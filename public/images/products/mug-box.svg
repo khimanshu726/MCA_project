@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#1a2d44"/>
+  <rect x="240" y="140" width="320" height="280" rx="28" fill="#f6ebdd"/>
+  <rect x="290" y="190" width="220" height="180" rx="18" fill="#ff9150"/>
+  <text x="336" y="290" fill="#183149" font-size="36" font-family="Arial, sans-serif" font-weight="700">MUG</text>
+</svg>

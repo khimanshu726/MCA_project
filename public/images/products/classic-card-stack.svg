@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#18283b"/>
+  <rect x="190" y="165" width="350" height="210" rx="22" fill="#ff9150"/>
+  <rect x="250" y="130" width="350" height="210" rx="22" fill="#f8efe3"/>
+  <text x="306" y="235" fill="#183149" font-size="44" font-family="Arial, sans-serif" font-weight="700">STACK</text>
+</svg>

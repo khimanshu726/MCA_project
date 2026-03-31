@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#162840"/>
+  <rect x="240" y="90" width="320" height="380" rx="24" fill="#fff6eb"/>
+  <circle cx="400" cy="200" r="78" fill="#4fd8c5"/>
+  <text x="317" y="346" fill="#183149" font-size="46" font-family="Arial, sans-serif" font-weight="700">LAUNCH</text>
+</svg>

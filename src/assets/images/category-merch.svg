@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
+  <rect width="600" height="420" rx="28" fill="#162840"/>
+  <path d="M190 118h220l40 55-46 40v95H196v-95l-46-40z" fill="#fff5ea"/>
+  <circle cx="430" cy="274" r="64" fill="#ff9150"/>
+  <text x="242" y="230" fill="#17324a" font-size="30" font-family="Arial, sans-serif" font-weight="700">MERCH</text>
+</svg>
