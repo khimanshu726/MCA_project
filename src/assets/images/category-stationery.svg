@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
+  <rect width="600" height="420" rx="28" fill="#15273d"/>
+  <rect x="160" y="96" width="185" height="250" rx="18" fill="#f7eddf"/>
+  <rect x="275" y="122" width="165" height="230" rx="18" fill="#4fd8c5"/>
+  <rect x="205" y="136" width="90" height="12" rx="6" fill="#183149"/>
+  <text x="182" y="318" fill="#183149" font-size="28" font-family="Arial, sans-serif" font-weight="700">NOTES</text>
+</svg>

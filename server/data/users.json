@@ -1,0 +1,43 @@
+[
+  {
+    "id": "fd777a0b-15e5-4534-89d8-77a570659da2",
+    "email": "",
+    "mobile": "9559145724",
+    "password": "",
+    "provider": "mobile",
+    "profileImage": "",
+    "role": "admin",
+    "createdAt": "2026-04-08T19:09:02.048Z"
+  },
+  {
+    "id": "39550dda-b01c-491c-9c31-6aa7bfc73eaa",
+    "email": "",
+    "mobile": "9876543212",
+    "password": "",
+    "provider": "mobile",
+    "profileImage": "",
+    "role": "admin",
+    "createdAt": "2026-04-08T19:05:41.378Z"
+  },
+  {
+    "id": "42da8af9-6223-4b12-a406-aed4c58b29d1",
+    "email": "",
+    "mobile": "9876543211",
+    "password": "",
+    "provider": "mobile",
+    "profileImage": "",
+    "role": "admin",
+    "createdAt": "2026-04-08T18:22:56.240Z"
+  },
+  {
+    "id": "288cae18-bdb7-4c5b-8c07-875a3286e4c9",
+    "username": "eliteadmin",
+    "email": "admin@elite-empressions.local",
+    "mobile": "9876543210",
+    "password": "$2b$10$VPS2cQKe.RzATh3Fr3Muye2Yif.18p9V2LiyYb65wh4jC4GNs8LNy",
+    "authProvider": "local",
+    "profileImage": "",
+    "role": "admin",
+    "createdAt": "2026-04-08T17:54:00.037Z"
+  }
+]

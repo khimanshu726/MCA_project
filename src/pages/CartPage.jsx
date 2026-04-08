@@ -5,6 +5,7 @@ import CartItemRow from "../components/CartItemRow";
 import InputField from "../components/InputField";
 import { useCart } from "../context/CartContext";
 import { cityOptions } from "../data/cities";
+import { createOrder } from "../lib/api";
 import {
   hasAddressErrors,
   sanitizeDigits,
@@ -12,13 +13,24 @@ import {
   validateAddressForm,
   validateField,
 } from "../utils/addressValidation";
+import { validateCheckoutFile } from "../utils/orderValidation";
+
+const orderCurrency = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+const formatMoney = (value) => orderCurrency.format(value || 0);
 
 const emptyAddressForm = {
   fullName: "",
   phoneNumber: "",
+  email: "",
   address: "",
   landmark: "",
   city: "",
+  state: "",
   postalCode: "",
 };
 
@@ -27,9 +39,11 @@ const initialSavedAddresses = [
     id: "addr-1",
     fullName: "Aarav Sharma",
     phoneNumber: "9876543210",
+    email: "aarav.sharma@example.com",
     address: "221 Business Street, Andheri East",
     landmark: "Near Metro Station Gate 2",
     city: "Mumbai",
+    state: "Maharashtra",
     postalCode: "400001",
     isDefault: true,
   },
@@ -37,16 +51,18 @@ const initialSavedAddresses = [
     id: "addr-2",
     fullName: "Riya Mehta",
     phoneNumber: "9123456780",
+    email: "riya.mehta@example.com",
     address: "18 Lake View Residency, Koramangala",
     landmark: "Opposite Forum Mall",
     city: "Bangalore",
+    state: "Karnataka",
     postalCode: "560034",
     isDefault: false,
   },
 ];
 
-const ADDRESS_STORAGE_KEY = "inkwell-saved-addresses";
-const SELECTED_ADDRESS_STORAGE_KEY = "inkwell-selected-address-id";
+const ADDRESS_STORAGE_KEY = "elite-empressions-saved-addresses";
+const SELECTED_ADDRESS_STORAGE_KEY = "elite-empressions-selected-address-id";
 
 const loadSavedAddresses = () => {
   if (typeof window === "undefined") {
@@ -88,8 +104,8 @@ const loadSelectedAddressId = (addresses) => {
 };
 
 function CartPage() {
-  const { cartItems, updateQuantity, removeFromCart } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState("upi");
+  const { cartItems, clearCart, removeFromCart, updateQuantity } = useCart();
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [savedAddresses, setSavedAddresses] = useState(() => loadSavedAddresses());
   const [selectedAddressId, setSelectedAddressId] = useState(() => loadSelectedAddressId(loadSavedAddresses()));
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -97,15 +113,20 @@ function CartPage() {
   const [formState, setFormState] = useState(emptyAddressForm);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const [submitMessage, setSubmitMessage] = useState("");
   const [cityQuery, setCityQuery] = useState("");
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [designFile, setDesignFile] = useState(null);
+  const [fileError, setFileError] = useState("");
+  const [orderMessage, setOrderMessage] = useState("");
+  const [orderReceipt, setOrderReceipt] = useState(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const subtotal = useMemo(
     () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
     [cartItems],
   );
-  const shipping = cartItems.length > 0 ? 12 : 0;
+  const shipping = cartItems.length > 0 ? 120 : 0;
   const total = subtotal + shipping;
 
   const filteredCities = useMemo(() => {
@@ -114,7 +135,7 @@ function CartPage() {
       return [];
     }
 
-    return cityOptions.filter((city) => city.toLowerCase().includes(query)).slice(0, 6);
+    return cityOptions.filter((city) => city.toLowerCase().includes(query)).slice(0, 8);
   }, [cityQuery]);
 
   const selectedAddress = useMemo(
@@ -147,7 +168,19 @@ function CartPage() {
     window.localStorage.setItem(SELECTED_ADDRESS_STORAGE_KEY, fallbackId);
   }, [savedAddresses, selectedAddressId]);
 
+  const resetAddressForm = () => {
+    setIsFormVisible(false);
+    setEditingAddressId("");
+    setFormState(emptyAddressForm);
+    setErrors({});
+    setTouched({});
+    setCityQuery("");
+    setShowCitySuggestions(false);
+  };
+
   const openNewAddressForm = () => {
+    setOrderMessage("");
+    setOrderReceipt(null);
     setIsFormVisible(true);
     setEditingAddressId("");
     setFormState(emptyAddressForm);
@@ -155,25 +188,27 @@ function CartPage() {
     setTouched({});
     setCityQuery("");
     setShowCitySuggestions(false);
-    setSubmitMessage("");
   };
 
   const handleEditAddress = (address) => {
+    setOrderMessage("");
+    setOrderReceipt(null);
     setIsFormVisible(true);
     setEditingAddressId(address.id);
     setFormState({
       fullName: address.fullName,
       phoneNumber: address.phoneNumber,
+      email: address.email,
       address: address.address,
       landmark: address.landmark ?? "",
       city: address.city,
+      state: address.state,
       postalCode: address.postalCode,
     });
     setCityQuery(address.city);
     setErrors({});
     setTouched({});
     setShowCitySuggestions(false);
-    setSubmitMessage("");
   };
 
   const handleDeleteAddress = (addressId) => {
@@ -189,8 +224,7 @@ function CartPage() {
     });
 
     if (editingAddressId === addressId) {
-      setIsFormVisible(false);
-      setEditingAddressId("");
+      resetAddressForm();
     }
   };
 
@@ -213,7 +247,8 @@ function CartPage() {
       ...currentState,
       [field]: nextValue,
     }));
-    setSubmitMessage("");
+    setOrderMessage("");
+    setOrderReceipt(null);
 
     if (field === "city") {
       setCityQuery(nextValue);
@@ -274,7 +309,7 @@ function CartPage() {
     setTouched(nextTouched);
 
     if (hasAddressErrors(nextErrors)) {
-      setSubmitMessage("Please correct the highlighted fields before saving.");
+      setOrderMessage("Please correct the highlighted address fields before saving.");
       return;
     }
 
@@ -282,9 +317,11 @@ function CartPage() {
       id: editingAddressId || `addr-${Date.now()}`,
       ...formState,
       fullName: formState.fullName.trim(),
+      email: formState.email.trim(),
       address: formState.address.trim(),
       landmark: formState.landmark.trim(),
       city: formState.city.trim(),
+      state: formState.state.trim(),
       isDefault: savedAddresses.length === 0 || !selectedAddressId,
     };
 
@@ -299,23 +336,85 @@ function CartPage() {
     });
 
     setSelectedAddressId(preparedAddress.id);
-    setIsFormVisible(false);
-    setEditingAddressId("");
-    setFormState(emptyAddressForm);
-    setErrors({});
-    setTouched({});
-    setCityQuery("");
-    setSubmitMessage("Address saved successfully.");
+    setOrderMessage("Address saved successfully.");
+    resetAddressForm();
   };
 
-  const handlePlaceOrder = () => {
+  const handleFileChange = (event) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    const nextError = validateCheckoutFile(nextFile);
+
+    setDesignFile(nextFile);
+    setFileError(nextError);
+    setOrderMessage("");
+    setOrderReceipt(null);
+  };
+
+  const handlePlaceOrder = async () => {
     if (!selectedAddress) {
-      setSubmitMessage("Select or add a delivery address before placing the order.");
+      setOrderMessage("Select or add a delivery address before placing the order.");
       setIsFormVisible(true);
       return;
     }
 
-    setSubmitMessage(`Order ready for ${selectedAddress.fullName} via ${paymentMethod.toUpperCase()}.`);
+    if (cartItems.length === 0) {
+      setOrderMessage("Add at least one product before placing an order.");
+      return;
+    }
+
+    const nextFileError = validateCheckoutFile(designFile);
+    if (nextFileError) {
+      setFileError(nextFileError);
+      setOrderMessage("Please correct the design file before placing the order.");
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    setOrderMessage("");
+    setOrderReceipt(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("customerName", selectedAddress.fullName);
+      formData.append("phone", selectedAddress.phoneNumber);
+      formData.append("email", selectedAddress.email);
+      formData.append("streetAddress", selectedAddress.address);
+      formData.append("landmark", selectedAddress.landmark || "");
+      formData.append("city", selectedAddress.city);
+      formData.append("state", selectedAddress.state);
+      formData.append("pincode", selectedAddress.postalCode);
+      formData.append("paymentMethod", paymentMethod);
+      formData.append("shippingCharge", String(shipping));
+      formData.append("customInstructions", customInstructions);
+      formData.append(
+        "lineItems",
+        JSON.stringify(
+          cartItems.map((item) => ({
+            productId: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            customizationText: customInstructions,
+          })),
+        ),
+      );
+
+      if (designFile) {
+        formData.append("designFile", designFile);
+      }
+
+      const response = await createOrder(formData);
+      setOrderReceipt(response.order);
+      setOrderMessage(`Order ${response.order.orderId} was placed successfully.`);
+      setCustomInstructions("");
+      setDesignFile(null);
+      setFileError("");
+      clearCart();
+    } catch (submitError) {
+      setOrderMessage(submitError.payload?.message || submitError.message || "Unable to place the order.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   return (
@@ -323,9 +422,9 @@ function CartPage() {
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">Cart + Checkout</p>
-          <h2>Review your cart and complete the checkout flow on the same page.</h2>
+          <h2>Place print orders with delivery, payment, and production files in one flow.</h2>
           <p className="section-copy">
-            Quantity, delivery details, payment selection, and final order summary now live together.
+            Customers can review products, attach design files, and send complete order details directly to the admin dashboard.
           </p>
         </div>
 
@@ -338,6 +437,7 @@ function CartPage() {
                   item={item}
                   onQuantityChange={updateQuantity}
                   onRemove={removeFromCart}
+                  priceLabel={formatMoney(item.price * item.quantity)}
                 />
               ))
             ) : (
@@ -351,6 +451,29 @@ function CartPage() {
                 </div>
               </div>
             )}
+
+            <div className="summary-card">
+              <p className="eyebrow">Order notes</p>
+              <InputField label="Custom Instructions" htmlFor="custom-instructions" helperText="Mention print finish, colors, sizing, or dispatch notes.">
+                <textarea
+                  id="custom-instructions"
+                  rows="5"
+                  value={customInstructions}
+                  onChange={(event) => setCustomInstructions(event.target.value)}
+                />
+              </InputField>
+
+              <InputField
+                label="Design File"
+                htmlFor="design-file"
+                error={fileError}
+                helperText="Upload PDF, PNG, or JPG up to 10 MB."
+              >
+                <input id="design-file" type="file" accept=".pdf,image/png,image/jpeg" onChange={handleFileChange} />
+              </InputField>
+
+              {designFile ? <p className="field-helper">Selected file: {designFile.name}</p> : null}
+            </div>
           </div>
 
           <aside className="checkout-column">
@@ -358,7 +481,7 @@ function CartPage() {
               <div className="delivery-header">
                 <div>
                   <p className="eyebrow">Delivery details</p>
-                  <h3 className="section-subtitle">Choose a saved address or add a new one.</h3>
+                  <h3 className="section-subtitle">Save multiple addresses and reuse them during checkout.</h3>
                 </div>
                 <button type="button" className="secondary-button compact-button address-add-button" onClick={openNewAddressForm}>
                   Add new address
@@ -397,11 +520,7 @@ function CartPage() {
                       />
                     </InputField>
 
-                    <InputField
-                      label="Phone Number"
-                      htmlFor="phone-number"
-                      error={touched.phoneNumber ? errors.phoneNumber : ""}
-                    >
+                    <InputField label="Phone Number" htmlFor="phone-number" error={touched.phoneNumber ? errors.phoneNumber : ""}>
                       <input
                         id="phone-number"
                         type="tel"
@@ -412,8 +531,28 @@ function CartPage() {
                       />
                     </InputField>
 
+                    <InputField label="Email" htmlFor="email" error={touched.email ? errors.email : ""}>
+                      <input
+                        id="email"
+                        type="email"
+                        value={formState.email}
+                        onChange={(event) => handleInputChange("email", event.target.value)}
+                        onBlur={() => handleFieldBlur("email")}
+                      />
+                    </InputField>
+
+                    <InputField label="State" htmlFor="state" error={touched.state ? errors.state : ""}>
+                      <input
+                        id="state"
+                        type="text"
+                        value={formState.state}
+                        onChange={(event) => handleInputChange("state", event.target.value)}
+                        onBlur={() => handleFieldBlur("state")}
+                      />
+                    </InputField>
+
                     <div className="full-span">
-                      <InputField label="Address" htmlFor="shipping-address" error={touched.address ? errors.address : ""}>
+                      <InputField label="Street Address" htmlFor="shipping-address" error={touched.address ? errors.address : ""}>
                         <textarea
                           id="shipping-address"
                           rows="4"
@@ -471,11 +610,7 @@ function CartPage() {
                       </div>
                     </InputField>
 
-                    <InputField
-                      label="Postal Code"
-                      htmlFor="postal-code"
-                      error={touched.postalCode ? errors.postalCode : ""}
-                    >
+                    <InputField label="Pincode" htmlFor="postal-code" error={touched.postalCode ? errors.postalCode : ""}>
                       <input
                         id="postal-code"
                         type="text"
@@ -491,19 +626,7 @@ function CartPage() {
                     <button type="submit" className="primary-button">
                       {editingAddressId ? "Update Address" : "Save Address"}
                     </button>
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => {
-                        setIsFormVisible(false);
-                        setEditingAddressId("");
-                        setFormState(emptyAddressForm);
-                        setErrors({});
-                        setTouched({});
-                        setCityQuery("");
-                        setShowCitySuggestions(false);
-                      }}
-                    >
+                    <button type="button" className="secondary-button" onClick={resetAddressForm}>
                       Cancel
                     </button>
                   </div>
@@ -514,6 +637,16 @@ function CartPage() {
             <div className="summary-card">
               <p className="eyebrow">Payment</p>
               <div className="payment-options">
+                <label className={`payment-option ${paymentMethod === "cod" ? "active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cod"
+                    checked={paymentMethod === "cod"}
+                    onChange={(event) => setPaymentMethod(event.target.value)}
+                  />
+                  Cash on Delivery
+                </label>
                 <label className={`payment-option ${paymentMethod === "upi" ? "active" : ""}`}>
                   <input
                     type="radio"
@@ -534,17 +667,10 @@ function CartPage() {
                   />
                   Card
                 </label>
-                <label className={`payment-option ${paymentMethod === "netbanking" ? "active" : ""}`}>
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="netbanking"
-                    checked={paymentMethod === "netbanking"}
-                    onChange={(event) => setPaymentMethod(event.target.value)}
-                  />
-                  Net banking
-                </label>
               </div>
+              {paymentMethod !== "cod" ? (
+                <p className="field-helper">Mock payment is enabled and will mark the order as paid.</p>
+              ) : null}
             </div>
 
             <div className="summary-card">
@@ -552,34 +678,46 @@ function CartPage() {
               {selectedAddress ? (
                 <div className="selected-address-inline">
                   <strong>Deliver to:</strong>
+                  <span>{selectedAddress.fullName}</span>
+                  <span>{selectedAddress.email}</span>
+                  <span>{selectedAddress.phoneNumber}</span>
                   <span>
-                    {selectedAddress.fullName}, {selectedAddress.address}
-                    {selectedAddress.landmark ? `, ${selectedAddress.landmark}` : ""}, {selectedAddress.city} -{" "}
-                    {selectedAddress.postalCode}
+                    {selectedAddress.address}
+                    {selectedAddress.landmark ? `, ${selectedAddress.landmark}` : ""}
+                  </span>
+                  <span>
+                    {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.postalCode}
                   </span>
                 </div>
               ) : null}
               <div className="summary-line">
                 <span>Subtotal</span>
-                <strong>${subtotal}</strong>
+                <strong>{formatMoney(subtotal)}</strong>
               </div>
               <div className="summary-line">
                 <span>Shipping</span>
-                <strong>${shipping}</strong>
+                <strong>{formatMoney(shipping)}</strong>
               </div>
               <div className="summary-line total-line">
                 <span>Total</span>
-                <strong>${total}</strong>
+                <strong>{formatMoney(total)}</strong>
               </div>
-              {submitMessage ? <p className="submit-message">{submitMessage}</p> : null}
+              {orderMessage ? <p className="submit-message">{orderMessage}</p> : null}
+              {orderReceipt ? (
+                <div className="order-success-card">
+                  <strong>{orderReceipt.orderId}</strong>
+                  <span>Status: {orderReceipt.orderStatus}</span>
+                  <span>Payment: {orderReceipt.paymentStatus}</span>
+                </div>
+              ) : null}
               <div className="action-row">
                 <button
                   type="button"
                   className="primary-button full-width-button"
                   onClick={handlePlaceOrder}
-                  disabled={cartItems.length === 0 || !selectedAddress}
+                  disabled={cartItems.length === 0 || !selectedAddress || isPlacingOrder}
                 >
-                  Place Order
+                  {isPlacingOrder ? "Placing Order..." : "Place Order"}
                 </button>
                 <Link className="secondary-button full-width-button" to="/customize">
                   Edit Designs

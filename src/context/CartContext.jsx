@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from "react";
 
-const CART_STORAGE_KEY = "inkwell-cart-items";
+const CART_STORAGE_KEY = "elite-empressions-cart-items";
 
 const CartContext = createContext(null);
 
@@ -85,6 +85,9 @@ const cartReducer = (state, action) => {
       return state;
     }
 
+    case "CLEAR_CART":
+      return [];
+
     default:
       return state;
   }
@@ -118,6 +121,12 @@ function CartProvider({ children }) {
     });
   }, []);
 
+  const clearCart = useCallback(() => {
+    dispatch({
+      type: "CLEAR_CART",
+    });
+  }, []);
+
   const cartCount = useMemo(
     () => cartItems.reduce((total, item) => total + item.quantity, 0),
     [cartItems],
@@ -130,8 +139,9 @@ function CartProvider({ children }) {
       addToCart,
       removeFromCart,
       updateQuantity,
+      clearCart,
     }),
-    [addToCart, cartCount, cartItems, removeFromCart, updateQuantity],
+    [addToCart, cartCount, cartItems, clearCart, removeFromCart, updateQuantity],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -10,7 +10,7 @@ function AppLayout() {
       <header className="site-header">
         <div className="brand-block">
           <p className="eyebrow">Image-ready storefront</p>
-          <h1>Inkwell Press</h1>
+          <h1>Elite Empressions</h1>
           <p className="brand-copy">Print products, gallery previews, and upload-based customization in one React app.</p>
         </div>
 

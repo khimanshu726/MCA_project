@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
+  <rect width="600" height="420" rx="28" fill="#1b2539"/>
+  <rect x="170" y="74" width="250" height="290" rx="22" fill="#f8f0e6"/>
+  <rect x="230" y="118" width="132" height="10" rx="5" fill="#d6b5c4"/>
+  <rect x="215" y="150" width="160" height="10" rx="5" fill="#d6b5c4"/>
+  <rect x="210" y="206" width="170" height="100" rx="18" fill="#e8c7d4"/>
+  <text x="210" y="330" fill="#855f71" font-size="28" font-family="Georgia, serif">Invite Suite</text>
+</svg>

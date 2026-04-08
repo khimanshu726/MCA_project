@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#132132"/>
+  <rect x="120" y="150" width="560" height="220" rx="28" fill="#ff9456"/>
+  <text x="192" y="255" fill="#221519" font-size="56" font-family="Arial, sans-serif" font-weight="700">GRAND SALE</text>
+  <rect x="190" y="286" width="220" height="18" rx="9" fill="#fff4e8"/>
+</svg>

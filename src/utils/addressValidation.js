@@ -21,6 +21,14 @@ export const validateField = (name, value) => {
         return "Phone number must be exactly 10 digits.";
       }
       return "";
+    case "email":
+      if (!trimmed) {
+        return "Email is required.";
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        return "Enter a valid email address.";
+      }
+      return "";
     case "address":
       if (!trimmed) {
         return "Address is required.";
@@ -31,6 +39,11 @@ export const validateField = (name, value) => {
     case "city":
       if (!trimmed) {
         return "City is required.";
+      }
+      return "";
+    case "state":
+      if (!trimmed) {
+        return "State is required.";
       }
       return "";
     case "postalCode":

@@ -19,3 +19,6 @@ pnpm-debug.log*
 
 uploads/*
 !uploads/.gitkeep
+
+__pycache__/
+*.pyc

@@ -51,6 +51,7 @@ function HomePage() {
               imageAlt={category.title}
               title={category.title}
               description={category.description}
+              to={`/products/${category.productId}`}
             />
           ))}
         </div>

@@ -14,10 +14,11 @@ function AddressCard({ address, isSelected, onSelect, onEdit, onDelete }) {
             {address.isDefault ? <span className="meta-pill address-pill">Default</span> : null}
           </div>
           <p>{address.phoneNumber}</p>
+          <p>{address.email}</p>
           <p>{address.address}</p>
           {address.landmark ? <p>Landmark: {address.landmark}</p> : null}
           <p>
-            {address.city} - {address.postalCode}
+            {address.city}, {address.state} - {address.postalCode}
           </p>
         </div>
       </label>

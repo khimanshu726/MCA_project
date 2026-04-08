@@ -5,11 +5,25 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.js",
+    "server:dev": "node --watch server/index.js",
+    "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "build": "vite build",
     "preview": "vite preview",
     "preview:prod": "npm run build && vite preview --host 127.0.0.1 --port 4173 --strictPort"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.5",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3"

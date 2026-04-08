@@ -1,6 +1,6 @@
 import ResponsiveImage from "./ResponsiveImage";
 
-function CartItemRow({ item, onQuantityChange, onRemove }) {
+function CartItemRow({ item, onQuantityChange, onRemove, priceLabel = `$${item.price * item.quantity}` }) {
   return (
     <article className="cart-item-row">
       <div className="cart-item-image">
@@ -23,7 +23,7 @@ function CartItemRow({ item, onQuantityChange, onRemove }) {
             +
           </button>
         </div>
-        <strong>${item.price * item.quantity}</strong>
+        <strong>{priceLabel}</strong>
         <button type="button" className="text-button" onClick={() => onRemove(item.id)}>
           Remove
         </button>

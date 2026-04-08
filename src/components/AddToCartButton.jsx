@@ -5,7 +5,7 @@ function AddToCartButton({
   product,
   className = "secondary-button",
   idleLabel = "Add to cart",
-  addedLabel = "Added ✓",
+  addedLabel = "Added",
 }) {
   const { addToCart, cartItems } = useCart();
   const [isLocked, setIsLocked] = useState(false);

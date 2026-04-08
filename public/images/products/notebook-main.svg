@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#142438"/>
+  <rect x="240" y="96" width="280" height="368" rx="28" fill="#f8efe2"/>
+  <rect x="290" y="156" width="180" height="18" rx="9" fill="#183149"/>
+  <rect x="290" y="202" width="146" height="18" rx="9" fill="#4fd8c5"/>
+  <text x="294" y="324" fill="#183149" font-size="42" font-family="Arial, sans-serif" font-weight="700">NOTEBOOK</text>
+</svg>
