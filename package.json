@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
+    "start": "node server/index.js",
     "server:dev": "node --watch server/index.js",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "build": "vite build",

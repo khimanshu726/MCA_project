@@ -6,7 +6,7 @@ dotenv.config();
 const fallbackAdminPassword = process.env.ADMIN_PASSWORD || "EliteAdmin@123";
 
 export const appConfig = {
-  apiPort: Number(process.env.API_PORT || 4000),
+  apiPort: Number(process.env.PORT || process.env.API_PORT || 4000),
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
   jwtSecret: process.env.JWT_SECRET || "elite-empressions-local-secret",
   adminEmail: process.env.ADMIN_EMAIL || "admin@elite-empressions.local",

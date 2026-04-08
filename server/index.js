@@ -11,6 +11,7 @@ import { ensureDefaultAdminUser } from "./services/userStore.js";
 
 const app = express();
 configurePassport();
+const distPath = path.resolve(process.cwd(), "dist");
 
 app.use(cors());
 app.use(express.json());
@@ -25,6 +26,14 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(distPath));
+
+  app.get(/^(?!\/api\/|\/uploads\/).*/, (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
 app.use((error, req, res, _next) => {
   const status = error.statusCode || 500;

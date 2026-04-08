@@ -91,3 +91,27 @@ server/
 - `public/images` contains product images
 - `src/assets/images` contains static UI images
 - `uploads/` is reserved as a backend-facing upload reference folder
+
+## Deploy on Render
+
+This project can be deployed as a single full-stack service on Render with a free `onrender.com` URL.
+
+1. Push this repository to GitHub
+2. In Render, create a new `Blueprint` or `Web Service` from the repository
+3. Render will use:
+   - build command: `npm install && npm run build`
+   - start command: `npm start`
+4. Set these environment variables in Render:
+   - `NODE_ENV=production`
+   - `JWT_SECRET=<strong-random-secret>`
+   - `CLIENT_ORIGIN=https://<your-render-app>.onrender.com`
+   - `AUTH_SUCCESS_REDIRECT=https://<your-render-app>.onrender.com/admin/auth/callback`
+   - `AUTH_FAILURE_REDIRECT=https://<your-render-app>.onrender.com/admin/login`
+
+Optional for Google login:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_CALLBACK_URL=https://<your-render-app>.onrender.com/api/auth/google/callback`
+
+In production, the Express server serves the built Vite app and the API from the same domain.
