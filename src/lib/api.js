@@ -59,8 +59,20 @@ export const registerAdmin = (payload) =>
     body: payload,
   });
 
+export const registerCustomer = (payload) =>
+  request("/auth/customer/register", {
+    method: "POST",
+    body: payload,
+  });
+
 export const loginAdmin = (credentials) =>
   request("/auth/login", {
+    method: "POST",
+    body: credentials,
+  });
+
+export const loginCustomer = (credentials) =>
+  request("/auth/customer/login", {
     method: "POST",
     body: credentials,
   });
@@ -79,6 +91,11 @@ export const verifyLoginOtp = (payload) =>
 
 export const fetchAdminProfile = (token) =>
   request("/auth/me", {
+    token,
+  });
+
+export const fetchCustomerProfile = (token) =>
+  request("/auth/customer/me", {
     token,
   });
 

@@ -8,9 +8,12 @@ import AdminAuthCallbackPage from "./pages/AdminAuthCallbackPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
 import AdminRegisterPage from "./pages/AdminRegisterPage";
+import AccountPage from "./pages/AccountPage";
 import HomePage from "./pages/HomePage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductsPage from "./pages/ProductsPage";
+import UserLoginPage from "./pages/UserLoginPage";
+import UserRegisterPage from "./pages/UserRegisterPage";
 
 function App() {
   return (
@@ -23,6 +26,9 @@ function App() {
         <Route path="/checkout" element={<Navigate to="/cart" replace />} />
         <Route path="/customize" element={<CustomizePage />} />
         <Route path="/customize/:productId" element={<CustomizePage />} />
+        <Route path="/login" element={<UserLoginPage />} />
+        <Route path="/register" element={<UserRegisterPage />} />
+        <Route path="/account" element={<AccountPage />} />
       </Route>
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/register" element={<AdminRegisterPage />} />

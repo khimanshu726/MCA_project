@@ -1,9 +1,12 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useUserAuth } from "../context/UserAuthContext";
 import { navigationLinks } from "../data";
 
 function AppLayout() {
   const { cartCount } = useCart();
+  const { isAuthenticated, signOut } = useUserAuth();
+  const customerLabel = isAuthenticated ? "My Account" : "Login";
 
   return (
     <div className="app-shell">
@@ -21,6 +24,14 @@ function AppLayout() {
               {link.to === "/cart" ? <span className="nav-count">{cartCount}</span> : null}
             </NavLink>
           ))}
+          <NavLink to={isAuthenticated ? "/account" : "/login"} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            {customerLabel}
+          </NavLink>
+          {isAuthenticated ? (
+            <button type="button" className="nav-link nav-button" onClick={signOut}>
+              Logout
+            </button>
+          ) : null}
         </nav>
       </header>
 

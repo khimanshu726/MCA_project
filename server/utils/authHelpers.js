@@ -65,6 +65,26 @@ export const validateEmailRegistrationPayload = ({ identifier, password }) => {
   return errors;
 };
 
+export const validateCustomerRegistrationPayload = ({ identifier, password }) => {
+  const errors = {};
+  const loginType = detectLoginType(identifier);
+
+  if (loginType === "unknown") {
+    errors.identifier = "Enter a valid email address or 10-digit mobile number.";
+  }
+
+  if (!password?.trim()) {
+    errors.password = "Password is required.";
+  } else if (password.trim().length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  }
+
+  return {
+    errors,
+    loginType,
+  };
+};
+
 export const validateLoginPayload = ({ identifier, password }) => {
   const errors = {};
   const loginType = detectLoginType(identifier);

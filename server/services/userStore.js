@@ -50,6 +50,20 @@ export const findUserByMobile = async (mobile) => {
   return users.find((user) => normalizeMobile(user.mobile) === normalizedMobile) ?? null;
 };
 
+export const findUserByIdentifier = async (identifier) => {
+  const normalizedIdentifier = String(identifier || "").trim();
+
+  if (!normalizedIdentifier) {
+    return null;
+  }
+
+  if (normalizedIdentifier.includes("@")) {
+    return findUserByEmail(normalizedIdentifier);
+  }
+
+  return findUserByMobile(normalizedIdentifier);
+};
+
 export const hasDuplicateUser = async ({ email, mobile }, ignoreUserId = "") => {
   const users = await readUsers();
   const normalizedEmail = normalizeEmail(email);

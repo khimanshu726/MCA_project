@@ -2,11 +2,15 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { appConfig } from "../config.js";
 import { authenticateAdmin } from "../middleware/authenticateAdmin.js";
+import { authenticateCustomer } from "../middleware/authenticateCustomer.js";
 import passport, { configurePassport, isGoogleAuthConfigured } from "../auth/passport.js";
 import {
+  getCurrentCustomerUser,
   getCurrentAuthUser,
   handleGoogleCallback,
+  loginCustomer,
   loginUser,
+  registerCustomer,
   registerUser,
   sendOtp,
   verifyOtp,
@@ -39,6 +43,9 @@ router.post("/login", loginUser);
 router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", verifyOtp);
 router.get("/me", authenticateAdmin, getCurrentAuthUser);
+router.post("/customer/register", registerCustomer);
+router.post("/customer/login", loginCustomer);
+router.get("/customer/me", authenticateCustomer, getCurrentCustomerUser);
 
 router.get(
   "/google",

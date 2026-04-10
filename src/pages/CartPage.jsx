@@ -4,6 +4,7 @@ import AddressCard from "../components/AddressCard";
 import CartItemRow from "../components/CartItemRow";
 import InputField from "../components/InputField";
 import { useCart } from "../context/CartContext";
+import { useUserAuth } from "../context/UserAuthContext";
 import { cityOptions } from "../data/cities";
 import { createOrder } from "../lib/api";
 import {
@@ -33,6 +34,12 @@ const emptyAddressForm = {
   state: "",
   postalCode: "",
 };
+
+const createPrefilledAddressForm = (user) => ({
+  ...emptyAddressForm,
+  email: user?.email || "",
+  phoneNumber: user?.mobile || "",
+});
 
 const initialSavedAddresses = [
   {
@@ -105,6 +112,7 @@ const loadSelectedAddressId = (addresses) => {
 
 function CartPage() {
   const { cartItems, clearCart, removeFromCart, updateQuantity } = useCart();
+  const { isAuthenticated, user } = useUserAuth();
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [savedAddresses, setSavedAddresses] = useState(() => loadSavedAddresses());
   const [selectedAddressId, setSelectedAddressId] = useState(() => loadSelectedAddressId(loadSavedAddresses()));
@@ -171,7 +179,7 @@ function CartPage() {
   const resetAddressForm = () => {
     setIsFormVisible(false);
     setEditingAddressId("");
-    setFormState(emptyAddressForm);
+    setFormState(createPrefilledAddressForm(user));
     setErrors({});
     setTouched({});
     setCityQuery("");
@@ -183,7 +191,7 @@ function CartPage() {
     setOrderReceipt(null);
     setIsFormVisible(true);
     setEditingAddressId("");
-    setFormState(emptyAddressForm);
+    setFormState(createPrefilledAddressForm(user));
     setErrors({});
     setTouched({});
     setCityQuery("");
@@ -482,6 +490,9 @@ function CartPage() {
                 <div>
                   <p className="eyebrow">Delivery details</p>
                   <h3 className="section-subtitle">Save multiple addresses and reuse them during checkout.</h3>
+                  {isAuthenticated ? (
+                    <p className="field-helper">Signed in as {user?.email || user?.mobile}. New addresses start with your saved contact info.</p>
+                  ) : null}
                 </div>
                 <button type="button" className="secondary-button compact-button address-add-button" onClick={openNewAddressForm}>
                   Add new address

@@ -3,7 +3,7 @@ import { appConfig } from "../config.js";
 import { findUserById } from "../services/userStore.js";
 import { mapUserForClient } from "../utils/authHelpers.js";
 
-export const authenticateAdmin = async (req, res, next) => {
+export const authenticateCustomer = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -16,11 +16,11 @@ export const authenticateAdmin = async (req, res, next) => {
     const payload = jwt.verify(token, appConfig.jwtSecret);
     const user = await findUserById(payload.sub);
 
-    if (!user || user.role !== "admin") {
-      return res.status(401).json({ message: "Admin account not found for this session." });
+    if (!user || user.role !== "customer") {
+      return res.status(401).json({ message: "Customer account not found for this session." });
     }
 
-    req.admin = {
+    req.customer = {
       ...mapUserForClient(user),
       id: user.id,
     };
