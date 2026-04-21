@@ -103,6 +103,6 @@ export const createUploadedFileUrl = (req, file) => {
   if (!file) {
     return "";
   }
-
-  return `${req.protocol}://${req.get("host")}/uploads/orders/${file.filename}`;
+  
+  return file.path;
 };

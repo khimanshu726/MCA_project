@@ -1,58 +1,40 @@
 import bcrypt from "bcryptjs";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { normalizeMobile } from "../utils/authHelpers.js";
+import { OTP } from "../models/OTP.js";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_MIN_INTERVAL_MS = 60 * 1000;
 const OTP_WINDOW_MS = 60 * 60 * 1000;
 const OTP_MAX_REQUESTS_PER_WINDOW = 5;
-const otpFilePath = path.resolve(process.cwd(), "server", "data", "otps.json");
 
-const ensureOtpFile = async () => {
-  await mkdir(path.dirname(otpFilePath), { recursive: true });
-
-  try {
-    await access(otpFilePath);
-  } catch {
-    await writeFile(otpFilePath, "[]", "utf8");
-  }
-};
-
-const readOtpRecords = async () => {
-  await ensureOtpFile();
-  const rawValue = await readFile(otpFilePath, "utf8");
-
-  try {
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeOtpRecords = async (records) => {
-  await ensureOtpFile();
-  await writeFile(otpFilePath, JSON.stringify(records, null, 2), "utf8");
-};
-
-const cleanupOtpRecords = (records) => {
+const cleanupOtpRecord = async (record) => {
+  if (!record) return null;
   const now = Date.now();
+  
+  const recentHistory = (record.requestHistory || []).filter((value) => now - Number(value) < OTP_WINDOW_MS);
+  const isValid = new Date(record.expiresAt).getTime() > now || recentHistory.length > 0;
 
-  return records
-    .map((record) => ({
-      ...record,
-      requestHistory: (record.requestHistory || []).filter((value) => now - Number(value) < OTP_WINDOW_MS),
-    }))
-    .filter((record) => new Date(record.expiresAt).getTime() > now || (record.requestHistory || []).length > 0);
+  if (!isValid) {
+    await OTP.findOneAndDelete({ mobile: record.mobile });
+    return null;
+  }
+
+  if (recentHistory.length !== record.requestHistory.length) {
+    record.requestHistory = recentHistory;
+    await record.save();
+  }
+
+  return record;
 };
 
 export const saveOtpForMobile = async (mobile, otp) => {
   const normalizedMobile = normalizeMobile(mobile);
   const now = Date.now();
-  const records = cleanupOtpRecords(await readOtpRecords());
-  const existingRecord = records.find((record) => record.mobile === normalizedMobile);
-  const recentHistory = (existingRecord?.requestHistory || []).filter((value) => now - Number(value) < OTP_WINDOW_MS);
+  
+  let existingRecord = await OTP.findOne({ mobile: normalizedMobile });
+  existingRecord = await cleanupOtpRecord(existingRecord);
+
+  const recentHistory = existingRecord?.requestHistory || [];
 
   if (recentHistory.length >= OTP_MAX_REQUESTS_PER_WINDOW) {
     return {
@@ -69,30 +51,42 @@ export const saveOtpForMobile = async (mobile, otp) => {
   }
 
   const codeHash = await bcrypt.hash(String(otp), 10);
-  const nextRecord = {
-    mobile: normalizedMobile,
-    codeHash,
-    expiresAt: new Date(now + OTP_TTL_MS).toISOString(),
-    requestHistory: [...recentHistory, now],
-  };
-
-  const nextRecords = records.filter((record) => record.mobile !== normalizedMobile);
-  nextRecords.push(nextRecord);
-  await writeOtpRecords(nextRecords);
+  const expiresAt = new Date(now + OTP_TTL_MS);
+  
+  if (existingRecord) {
+    existingRecord.codeHash = codeHash;
+    existingRecord.expiresAt = expiresAt;
+    existingRecord.requestHistory.push(now);
+    await existingRecord.save();
+  } else {
+    existingRecord = new OTP({
+      mobile: normalizedMobile,
+      codeHash,
+      expiresAt,
+      requestHistory: [now]
+    });
+    await existingRecord.save();
+  }
 
   return {
     ok: true,
-    expiresAt: nextRecord.expiresAt,
+    expiresAt: existingRecord.expiresAt.toISOString(),
   };
 };
 
 export const verifyOtpForMobile = async (mobile, otp) => {
   const normalizedMobile = normalizeMobile(mobile);
-  const records = cleanupOtpRecords(await readOtpRecords());
-  const targetRecord = records.find((record) => record.mobile === normalizedMobile);
+  
+  let targetRecord = await OTP.findOne({ mobile: normalizedMobile });
+  targetRecord = await cleanupOtpRecord(targetRecord);
 
   if (!targetRecord) {
-    await writeOtpRecords(records);
+    return false;
+  }
+  
+  const now = Date.now();
+  if (new Date(targetRecord.expiresAt).getTime() <= now) {
+    await OTP.findOneAndDelete({ mobile: normalizedMobile });
     return false;
   }
 
@@ -102,7 +96,6 @@ export const verifyOtpForMobile = async (mobile, otp) => {
     return false;
   }
 
-  const nextRecords = records.filter((record) => record.mobile !== normalizedMobile);
-  await writeOtpRecords(nextRecords);
+  await OTP.findOneAndDelete({ mobile: normalizedMobile });
   return true;
 };

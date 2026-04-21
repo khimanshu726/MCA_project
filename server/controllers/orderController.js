@@ -1,12 +1,14 @@
-import { unlink } from "node:fs/promises";
-import path from "node:path";
 import crypto from "node:crypto";
+import cloudinary from "../config/cloudinary.js";
+import razorpayInstance from "../config/razorpay.js";
 import {
   createOrderRecord,
   deleteOrderRecord,
   getOrderById,
   listOrders,
   updateOrderRecord,
+  bulkUpdateOrderRecords,
+  bulkDeleteOrderRecords,
 } from "../services/orderStore.js";
 import { sendOrderNotifications } from "../services/notificationService.js";
 import {
@@ -21,15 +23,25 @@ import {
   validateOrderPayload,
 } from "../utils/orderHelpers.js";
 
-const deleteUploadedFile = async (filePath) => {
-  if (!filePath) {
+const extractPublicIdFromUrl = (url) => {
+  if (!url || !url.includes("/upload/")) return null;
+  const parts = url.split("/upload/")[1].split("/");
+  const pathWithExtension = parts.slice(1).join("/");
+  return pathWithExtension.replace(/\.[^/.]+$/, "");
+};
+
+const deleteUploadedFile = async (fileUrl) => {
+  if (!fileUrl) {
     return;
   }
 
   try {
-    await unlink(filePath);
-  } catch {
-    // Ignore upload cleanup issues in local development.
+    const publicId = extractPublicIdFromUrl(fileUrl);
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId);
+    }
+  } catch (error) {
+    console.error("Cloudinary deletion error:", error);
   }
 };
 
@@ -65,6 +77,7 @@ export const createOrder = async (req, res, next) => {
     const order = {
       id: crypto.randomUUID(),
       orderId: createOrderId(),
+      customerId: req.customer ? req.customer.id : undefined,
       customerName: req.body.customerName.trim(),
       phone: req.body.phone.trim(),
       email: req.body.email.trim(),
@@ -90,6 +103,22 @@ export const createOrder = async (req, res, next) => {
       createdAt: new Date().toISOString(),
     };
 
+    if (paymentMethod !== "cod" && razorpayInstance) {
+      try {
+        const razorpayOrder = await razorpayInstance.orders.create({
+          amount: Math.round(totalPrice * 100),
+          currency: "INR",
+          receipt: order.orderId,
+        });
+        order.razorpayOrderId = razorpayOrder.id;
+        order.paymentStatus = "Pending";
+      } catch (razorpayError) {
+        console.error("Razorpay error:", razorpayError);
+        await deleteUploadedFile(req.file?.path);
+        return res.status(500).json({ message: "Failed to initialize payment gateway." });
+      }
+    }
+
     const savedOrder = await createOrderRecord(order);
 
     sendOrderNotifications(savedOrder).catch(() => {
@@ -114,6 +143,19 @@ export const getOrders = async (req, res, next) => {
       query: req.query.query,
       onlyNew: req.query.onlyNew === "true",
       includeArchived: req.query.includeArchived === "true",
+    });
+
+    return res.json({ orders });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getCustomerOrders = async (req, res, next) => {
+  try {
+    const orders = await listOrders({
+      customerId: req.customer.id,
+      includeArchived: true, // customers should see all their history
     });
 
     return res.json({ orders });
@@ -185,13 +227,68 @@ export const deleteOrder = async (req, res, next) => {
     const wasDeleted = await deleteOrderRecord(req.params.id);
 
     if (existingOrder.uploadedFileURL) {
-      const fileName = existingOrder.uploadedFileURL.split("/").pop();
-      await deleteUploadedFile(path.resolve(process.cwd(), "uploads", "orders", fileName));
+      await deleteUploadedFile(existingOrder.uploadedFileURL);
     }
 
     return res.json({
       message: wasDeleted ? "Order deleted successfully." : "Order was not deleted.",
     });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const bulkOrderAction = async (req, res, next) => {
+  const { orderIds, action, status } = req.body;
+
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return res.status(400).json({ message: "No orders selected for bulk action." });
+  }
+
+  try {
+    if (action === "delete") {
+      await bulkDeleteOrderRecords(orderIds);
+      return res.json({ message: `${orderIds.length} orders deleted successfully.` });
+    } else if (action === "updateStatus") {
+      if (!allowedOrderStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid order status provided for bulk update." });
+      }
+      await bulkUpdateOrderRecords(orderIds, { orderStatus: status, notificationStatus: "Seen", updatedAt: new Date().toISOString() });
+      return res.json({ message: `${orderIds.length} orders marked as ${status}.` });
+    } else {
+      return res.status(400).json({ message: "Unknown bulk action." });
+    }
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const verifyPayment = async (req, res, next) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ message: "Missing payment verification parameters." });
+    }
+
+    const shasum = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
+    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const digest = shasum.digest("hex");
+
+    if (digest !== razorpay_signature) {
+      return res.status(400).json({ message: "Payment verification failed: Invalid signature." });
+    }
+
+    const updatedOrder = await updateOrderRecord(razorpay_order_id, {
+      paymentStatus: "Paid",
+      razorpayPaymentId: razorpay_payment_id,
+    });
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    return res.json({ message: "Payment verified successfully.", order: updatedOrder });
   } catch (error) {
     return next(error);
   }

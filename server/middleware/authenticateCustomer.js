@@ -30,3 +30,29 @@ export const authenticateCustomer = async (req, res, next) => {
     return res.status(401).json({ message: "Session expired. Please log in again." });
   }
 };
+
+export const optionalAuthenticateCustomer = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return next();
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+
+  try {
+    const payload = jwt.verify(token, appConfig.jwtSecret);
+    const user = await findUserById(payload.sub);
+
+    if (user && user.role === "customer") {
+      req.customer = {
+        ...mapUserForClient(user),
+        id: user.id,
+      };
+      req.userRecord = user;
+    }
+    return next();
+  } catch {
+    return next();
+  }
+};

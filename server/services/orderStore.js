@@ -1,34 +1,4 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-
-const ordersFilePath = path.resolve(process.cwd(), "server", "data", "orders.json");
-
-const ensureOrdersFile = async () => {
-  await mkdir(path.dirname(ordersFilePath), { recursive: true });
-
-  try {
-    await access(ordersFilePath);
-  } catch {
-    await writeFile(ordersFilePath, "[]", "utf8");
-  }
-};
-
-const readOrders = async () => {
-  await ensureOrdersFile();
-  const raw = await readFile(ordersFilePath, "utf8");
-
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeOrders = async (orders) => {
-  await ensureOrdersFile();
-  await writeFile(ordersFilePath, JSON.stringify(orders, null, 2), "utf8");
-};
+import { Order } from "../models/Order.js";
 
 export const listOrders = async ({
   status,
@@ -36,75 +6,95 @@ export const listOrders = async ({
   query,
   onlyNew = false,
   includeArchived = false,
+  customerId,
 } = {}) => {
-  const orders = await readOrders();
+  const filter = {};
 
-  return orders
-    .filter((order) => (includeArchived ? true : !order.archived))
-    .filter((order) => (status ? order.orderStatus === status : true))
-    .filter((order) => {
-      if (!date) {
-        return true;
-      }
+  if (customerId) {
+    filter.customerId = customerId;
+  }
 
-      return new Date(order.createdAt).toISOString().slice(0, 10) === date;
-    })
-    .filter((order) => (onlyNew ? order.notificationStatus === "Unread" : true))
-    .filter((order) => {
-      if (!query) {
-        return true;
-      }
+  if (!includeArchived) {
+    filter.archived = false;
+  }
 
-      const haystack = [
-        order.orderId,
-        order.customerName,
-        order.phone,
-        order.email,
-        order.productName,
-      ]
-        .join(" ")
-        .toLowerCase();
+  if (status) {
+    filter.orderStatus = status;
+  }
 
-      return haystack.includes(query.toLowerCase());
-    })
-    .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+  if (date) {
+    filter.createdAt = {
+      $gte: new Date(`${date}T00:00:00.000Z`),
+      $lte: new Date(`${date}T23:59:59.999Z`),
+    };
+  }
+
+  if (onlyNew) {
+    filter.notificationStatus = "Unread";
+  }
+
+  if (query) {
+    filter.$or = [
+      { orderId: new RegExp(query, "i") },
+      { customerName: new RegExp(query, "i") },
+      { phone: new RegExp(query, "i") },
+      { email: new RegExp(query, "i") },
+      { productName: new RegExp(query, "i") },
+    ];
+  }
+
+  const orders = await Order.find(filter).sort({ createdAt: -1 });
+  return orders.map((o) => o.toObject());
 };
 
 export const getOrderById = async (id) => {
-  const orders = await readOrders();
-  return orders.find((order) => order.id === id || order.orderId === id) ?? null;
+  const filter = { $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] };
+  const order = await Order.findOne(filter);
+  return order ? order.toObject() : null;
 };
 
-export const createOrderRecord = async (order) => {
-  const orders = await readOrders();
-  const nextOrders = [order, ...orders];
-  await writeOrders(nextOrders);
-  return order;
+export const createOrderRecord = async (orderData) => {
+  const order = new Order(orderData);
+  await order.save();
+  return order.toObject();
 };
 
 export const updateOrderRecord = async (id, updater) => {
-  const orders = await readOrders();
-  const index = orders.findIndex((order) => order.id === id || order.orderId === id);
+  const currentOrder = await Order.findOne({ $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] });
 
-  if (index === -1) {
+  if (!currentOrder) {
     return null;
   }
 
-  const currentOrder = orders[index];
-  const nextOrder = typeof updater === "function" ? updater(currentOrder) : { ...currentOrder, ...updater };
-  orders[index] = nextOrder;
-  await writeOrders(orders);
-  return nextOrder;
+  const plainOrder = currentOrder.toObject();
+  const nextOrder = typeof updater === "function" ? updater(plainOrder) : { ...plainOrder, ...updater };
+  delete nextOrder._id;
+
+  const updated = await Order.findOneAndUpdate(
+    { $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] },
+    nextOrder,
+    { new: true, runValidators: true }
+  );
+
+  return updated ? updated.toObject() : null;
 };
 
 export const deleteOrderRecord = async (id) => {
-  const orders = await readOrders();
-  const nextOrders = orders.filter((order) => order.id !== id && order.orderId !== id);
+  const result = await Order.findOneAndDelete({ $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] });
+  return !!result;
+};
 
-  if (nextOrders.length === orders.length) {
-    return false;
-  }
+export const bulkUpdateOrderRecords = async (ids, updater) => {
+  const result = await Order.updateMany(
+    { $or: [{ id: { $in: ids } }, { orderId: { $in: ids } }] },
+    { $set: updater }
+  );
+  return result;
+};
 
-  await writeOrders(nextOrders);
-  return true;
+export const bulkDeleteOrderRecords = async (ids) => {
+  const result = await Order.deleteMany({
+    $or: [{ id: { $in: ids } }, { orderId: { $in: ids } }],
+  });
+  return result;
 };

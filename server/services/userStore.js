@@ -1,53 +1,25 @@
 import crypto from "node:crypto";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { appConfig } from "../config.js";
 import { normalizeEmail, normalizeMobile } from "../utils/authHelpers.js";
-
-const usersFilePath = path.resolve(process.cwd(), "server", "data", "users.json");
-
-const ensureUsersFile = async () => {
-  await mkdir(path.dirname(usersFilePath), { recursive: true });
-
-  try {
-    await access(usersFilePath);
-  } catch {
-    await writeFile(usersFilePath, "[]", "utf8");
-  }
-};
-
-const readUsers = async () => {
-  await ensureUsersFile();
-  const rawValue = await readFile(usersFilePath, "utf8");
-
-  try {
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeUsers = async (users) => {
-  await ensureUsersFile();
-  await writeFile(usersFilePath, JSON.stringify(users, null, 2), "utf8");
-};
+import { User } from "../models/User.js";
 
 export const findUserById = async (id) => {
-  const users = await readUsers();
-  return users.find((user) => user.id === id) ?? null;
+  const user = await User.findOne({ id });
+  return user ? user.toObject() : null;
 };
 
 export const findUserByEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
-  const users = await readUsers();
-  return users.find((user) => normalizeEmail(user.email) === normalizedEmail) ?? null;
+  if (!normalizedEmail) return null;
+  const user = await User.findOne({ email: new RegExp(`^${normalizedEmail}$`, "i") });
+  return user ? user.toObject() : null;
 };
 
 export const findUserByMobile = async (mobile) => {
   const normalizedMobile = normalizeMobile(mobile);
-  const users = await readUsers();
-  return users.find((user) => normalizeMobile(user.mobile) === normalizedMobile) ?? null;
+  if (!normalizedMobile) return null;
+  const user = await User.findOne({ mobile: normalizedMobile });
+  return user ? user.toObject() : null;
 };
 
 export const findUserByIdentifier = async (identifier) => {
@@ -65,25 +37,31 @@ export const findUserByIdentifier = async (identifier) => {
 };
 
 export const hasDuplicateUser = async ({ email, mobile }, ignoreUserId = "") => {
-  const users = await readUsers();
   const normalizedEmail = normalizeEmail(email);
   const normalizedMobile = normalizeMobile(mobile);
 
-  return users.some((user) => {
-    if (ignoreUserId && user.id === ignoreUserId) {
-      return false;
-    }
+  const query = { $or: [] };
 
-    return (
-      (normalizedEmail && normalizeEmail(user.email) === normalizedEmail) ||
-      (normalizedMobile && normalizeMobile(user.mobile) === normalizedMobile)
-    );
-  });
+  if (normalizedEmail) {
+    query.$or.push({ email: new RegExp(`^${normalizedEmail}$`, "i") });
+  }
+
+  if (normalizedMobile) {
+    query.$or.push({ mobile: normalizedMobile });
+  }
+
+  if (query.$or.length === 0) return false;
+
+  if (ignoreUserId) {
+    query.id = { $ne: ignoreUserId };
+  }
+
+  const existing = await User.findOne(query);
+  return !!existing;
 };
 
 export const createUserRecord = async (payload) => {
-  const users = await readUsers();
-  const user = {
+  const user = new User({
     id: crypto.randomUUID(),
     email: payload.email?.trim().toLowerCase() || "",
     mobile: payload.mobile?.trim() || "",
@@ -91,27 +69,26 @@ export const createUserRecord = async (payload) => {
     provider: payload.provider || "email",
     profileImage: payload.profileImage || "",
     role: payload.role || "admin",
-    createdAt: new Date().toISOString(),
-  };
+  });
 
-  users.unshift(user);
-  await writeUsers(users);
-  return user;
+  await user.save();
+  return user.toObject();
 };
 
 export const updateUserRecord = async (id, updater) => {
-  const users = await readUsers();
-  const index = users.findIndex((user) => user.id === id);
+  const currentUser = await User.findOne({ id });
 
-  if (index === -1) {
+  if (!currentUser) {
     return null;
   }
 
-  const currentUser = users[index];
-  const nextUser = typeof updater === "function" ? updater(currentUser) : { ...currentUser, ...updater };
-  users[index] = nextUser;
-  await writeUsers(users);
-  return nextUser;
+  const plainUser = currentUser.toObject();
+  const nextUser = typeof updater === "function" ? updater(plainUser) : { ...plainUser, ...updater };
+
+  delete nextUser._id;
+
+  const updated = await User.findOneAndUpdate({ id }, nextUser, { new: true, runValidators: true });
+  return updated ? updated.toObject() : null;
 };
 
 export const ensureDefaultAdminUser = async () => {

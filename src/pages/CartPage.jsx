@@ -6,7 +6,7 @@ import InputField from "../components/InputField";
 import { useCart } from "../context/CartContext";
 import { useUserAuth } from "../context/UserAuthContext";
 import { cityOptions } from "../data/cities";
-import { createOrder } from "../lib/api";
+import { createOrder, API_BASE_URL } from "../lib/api";
 import {
   hasAddressErrors,
   sanitizeDigits,
@@ -108,6 +108,20 @@ const loadSelectedAddressId = (addresses) => {
   }
 
   return addresses[0]?.id ?? "";
+};
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 };
 
 function CartPage() {
@@ -411,7 +425,71 @@ function CartPage() {
         formData.append("designFile", designFile);
       }
 
-      const response = await createOrder(formData);
+      const orderToken = isAuthenticated && user?.token ? user.token : null;
+      const response = await createOrder(formData, orderToken);
+
+      if (response.order.paymentMethod !== "cod" && response.order.razorpayOrderId) {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          setOrderMessage("Failed to load payment gateway. Please try again.");
+          setIsPlacingOrder(false);
+          return;
+        }
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: Math.round(total * 100),
+          currency: "INR",
+          name: "Elite Empressions",
+          description: "Print Shop Order",
+          order_id: response.order.razorpayOrderId,
+          handler: async function (paymentResponse) {
+            try {
+              const verifyRes = await fetch(`${API_BASE_URL}/orders/verify-payment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                }),
+              });
+              const verifyData = await verifyRes.json();
+
+              if (verifyRes.ok) {
+                setOrderReceipt(verifyData.order);
+                setOrderMessage(`Payment successful! Order ${verifyData.order.orderId} is confirmed.`);
+                clearCart();
+              } else {
+                setOrderMessage(verifyData.message || "Payment verification failed.");
+              }
+            } catch (err) {
+              setOrderMessage("Server error during payment verification.");
+            }
+          },
+          prefill: {
+            name: selectedAddress.fullName,
+            email: selectedAddress.email,
+            contact: selectedAddress.phoneNumber,
+          },
+          theme: {
+            color: "#3b82f6",
+          },
+        };
+
+        const razorpayInstance = new window.Razorpay(options);
+        razorpayInstance.on("payment.failed", function () {
+          setOrderMessage("Payment failed. Please try again.");
+        });
+        
+        razorpayInstance.open();
+        setIsPlacingOrder(false);
+        setCustomInstructions("");
+        setDesignFile(null);
+        setFileError("");
+        return;
+      }
+
       setOrderReceipt(response.order);
       setOrderMessage(`Order ${response.order.orderId} was placed successfully.`);
       setCustomInstructions("");
@@ -679,9 +757,6 @@ function CartPage() {
                   Card
                 </label>
               </div>
-              {paymentMethod !== "cod" ? (
-                <p className="field-helper">Mock payment is enabled and will mark the order as paid.</p>
-              ) : null}
             </div>
 
             <div className="summary-card">

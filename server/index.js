@@ -8,6 +8,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
+import { connectDB } from "./config/db.js";
 
 const app = express();
 configurePassport();
@@ -44,6 +45,7 @@ app.use((error, req, res, _next) => {
 });
 
 const startServer = async (port = appConfig.apiPort) => {
+  await connectDB();
   await ensureDefaultAdminUser();
 
   return new Promise((resolve, reject) => {

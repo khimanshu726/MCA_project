@@ -47,10 +47,11 @@ const request = async (path, { method = "GET", body, headers, token } = {}) => {
   return data;
 };
 
-export const createOrder = (formData) =>
+export const createOrder = (formData, token) =>
   request("/orders", {
     method: "POST",
     body: formData,
+    token,
   });
 
 export const registerAdmin = (payload) =>
@@ -99,6 +100,11 @@ export const fetchCustomerProfile = (token) =>
     token,
   });
 
+export const fetchCustomerOrders = (token) =>
+  request("/orders/customer", {
+    token,
+  });
+
 export const fetchOrders = (token, filters = {}) => {
   const searchParams = new URLSearchParams();
 
@@ -122,6 +128,13 @@ export const fetchOrder = (id, token) =>
 
 export const updateOrder = (id, payload, token) =>
   request(`/orders/${id}`, {
+    method: "PUT",
+    body: payload,
+    token,
+  });
+
+export const bulkUpdateOrders = (payload, token) =>
+  request("/orders/bulk", {
     method: "PUT",
     body: payload,
     token,

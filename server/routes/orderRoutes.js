@@ -1,27 +1,38 @@
 import { Router } from "express";
 import multer from "multer";
-import path from "node:path";
-import { mkdir } from "node:fs/promises";
-import crypto from "node:crypto";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
 import {
   createOrder,
   deleteOrder,
   getOrder,
   getOrders,
   updateOrder,
+  verifyPayment,
+  getCustomerOrders,
+  bulkOrderAction,
 } from "../controllers/orderController.js";
 import { authenticateAdmin } from "../middleware/authenticateAdmin.js";
+import { authenticateCustomer, optionalAuthenticateCustomer } from "../middleware/authenticateCustomer.js";
 
-const uploadRoot = path.resolve(process.cwd(), "uploads", "orders");
-
-const storage = multer.diskStorage({
-  destination: async (_req, _file, callback) => {
-    await mkdir(uploadRoot, { recursive: true });
-    callback(null, uploadRoot);
-  },
-  filename: (_req, file, callback) => {
-    const extension = path.extname(file.originalname);
-    callback(null, `${Date.now()}-${crypto.randomBytes(4).toString("hex")}${extension}`);
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const allowedFormats = {
+      "application/pdf": "pdf",
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/jpg": "jpg",
+    };
+    
+    const format = allowedFormats[file.mimetype] || "png";
+    const baseName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+    
+    return {
+      folder: "elite-empressions/orders",
+      format: format,
+      public_id: `${Date.now()}_${baseName}`,
+    };
   },
 });
 
@@ -49,7 +60,10 @@ const upload = multer({
 
 const router = Router();
 
-router.post("/", upload.single("designFile"), createOrder);
+router.post("/", upload.single("designFile"), optionalAuthenticateCustomer, createOrder);
+router.post("/verify-payment", verifyPayment);
+router.put("/bulk", authenticateAdmin, bulkOrderAction);
+router.get("/customer", authenticateCustomer, getCustomerOrders);
 router.get("/", authenticateAdmin, getOrders);
 router.get("/:id", authenticateAdmin, getOrder);
 router.put("/:id", authenticateAdmin, updateOrder);
