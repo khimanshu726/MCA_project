@@ -126,7 +126,7 @@ const loadRazorpayScript = () => {
 
 function CartPage() {
   const { cartItems, clearCart, removeFromCart, updateQuantity } = useCart();
-  const { isAuthenticated, user } = useUserAuth();
+  const { isAuthenticated, user, token } = useUserAuth();
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [savedAddresses, setSavedAddresses] = useState(() => loadSavedAddresses());
   const [selectedAddressId, setSelectedAddressId] = useState(() => loadSelectedAddressId(loadSavedAddresses()));
@@ -425,7 +425,7 @@ function CartPage() {
         formData.append("designFile", designFile);
       }
 
-      const orderToken = isAuthenticated && user?.token ? user.token : null;
+      const orderToken = isAuthenticated && token ? token : null;
       const response = await createOrder(formData, orderToken);
 
       if (response.order.paymentMethod !== "cod" && response.order.razorpayOrderId) {

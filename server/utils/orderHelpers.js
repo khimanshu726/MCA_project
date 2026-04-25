@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 export const allowedPaymentMethods = ["cod", "upi", "card"];
 export const allowedOrderStatuses = ["New", "Processing", "Completed", "Cancelled"];
-export const allowedPaymentStatuses = ["Pending", "Paid"];
+export const allowedPaymentStatuses = ["Pending", "Paid", "Refunded", "Failed"];
 export const allowedNotificationStatuses = ["Unread", "Seen"];
 
 export const parseLineItems = (value) => {
@@ -104,5 +104,15 @@ export const createUploadedFileUrl = (req, file) => {
     return "";
   }
   
-  return file.path;
+  // Cloudinary returns a full URL in file.path
+  if (file.path && /^https?:\/\//i.test(file.path)) {
+    return file.path;
+  }
+
+  // Local disk fallback: build a relative URL from the filename
+  if (file.filename) {
+    return `/uploads/${file.filename}`;
+  }
+
+  return file.path || "";
 };

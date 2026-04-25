@@ -18,17 +18,17 @@ const formatDate = (isoString) =>
   });
 
 function AccountPage() {
-  const { isAuthenticated, signOut, user } = useUserAuth();
+  const { isAuthenticated, signOut, user, token } = useUserAuth();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated || !user?.token) return;
+    if (!isAuthenticated || !token) return;
 
     const loadOrders = async () => {
       try {
-        const response = await fetchCustomerOrders(user.token);
+        const response = await fetchCustomerOrders(token);
         setOrders(response.orders || []);
       } catch (err) {
         setError("Failed to load your order history.");
@@ -38,7 +38,7 @@ function AccountPage() {
     };
 
     loadOrders();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, token]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

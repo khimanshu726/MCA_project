@@ -8,7 +8,7 @@ function HomePage() {
     <main className="page-stack">
       <section className="hero-section">
         <div className="hero-copy">
-          <p className="eyebrow">Homepage banner</p>
+          <p className="eyebrow">Print Shop Storefront</p>
           <h2>High-impact print products with a clean, scalable image system.</h2>
           <p className="section-copy">
             Browse product visuals, inspect multi-image details, and upload your own design for a live preview before ordering.
