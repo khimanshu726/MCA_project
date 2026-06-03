@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes.js";
 import { appConfig } from "./config.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import checkoutRoutes from "./routes/checkoutRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { connectDB } from "./config/db.js";
@@ -13,8 +14,20 @@ import { connectDB } from "./config/db.js";
 const app = express();
 configurePassport();
 const distPath = path.resolve(process.cwd(), "dist");
+const allowedOrigins = [appConfig.clientOrigin, appConfig.adminAppOrigin].filter(Boolean);
 
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin is not allowed by CORS."));
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
@@ -24,6 +37,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "Elite Empressions order API" });
 });
 
+app.use("/api", checkoutRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);

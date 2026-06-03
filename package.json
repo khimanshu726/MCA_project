@@ -5,15 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:admin": "vite --config vite.admin.config.js",
     "server": "node server/index.js",
     "start": "node server/index.js",
     "server:dev": "node --watch server/index.js",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
+    "dev:platform": "concurrently \"npm run server:dev\" \"npm run dev\" \"npm run dev:admin\"",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "build": "vite build",
+    "build:admin": "vite build --config vite.admin.config.js",
     "preview": "vite preview",
-    "preview:prod": "npm run build && vite preview --host 127.0.0.1 --port 4173 --strictPort"
+    "preview:prod": "npm run build && vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "preview:admin": "vite preview --config vite.admin.config.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -24,6 +28,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.2",
     "jsonwebtoken": "^9.0.3",
+    "mongodb-memory-server": "^10.2.0",
     "mongoose": "^9.5.0",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",

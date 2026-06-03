@@ -224,16 +224,10 @@ export const verifyOtp = async (req, res) => {
       return res.status(401).json({ message: "Invalid or expired OTP." });
     }
 
-    let user = await findUserByMobile(mobile);
+    const user = await findUserByMobile(mobile);
 
-    if (!user) {
-      user = await createUserRecord({
-        email: "",
-        mobile,
-        password: "",
-        provider: "mobile",
-        role: "admin",
-      });
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ message: "No admin account is provisioned for this mobile number." });
     }
 
     const token = issueAuthToken(user);
@@ -249,7 +243,8 @@ export const verifyOtp = async (req, res) => {
 };
 
 export const getCurrentAuthUser = async (req, res) => {
-  const user = req.userRecord || (await findUserById(req.admin.id));
+  const userId = req.admin?.id || req.auth?.id;
+  const user = req.userRecord || (userId ? await findUserById(userId) : null);
 
   if (!user) {
     return res.status(404).json({ message: "User not found." });
@@ -261,7 +256,8 @@ export const getCurrentAuthUser = async (req, res) => {
 };
 
 export const getCurrentCustomerUser = async (req, res) => {
-  const user = req.userRecord || (await findUserById(req.customer.id));
+  const userId = req.customer?.id || req.auth?.id;
+  const user = req.userRecord || (userId ? await findUserById(userId) : null);
 
   if (!user || user.role !== "customer") {
     return res.status(404).json({ message: "User not found." });

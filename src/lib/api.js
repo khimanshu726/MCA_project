@@ -2,7 +2,6 @@ const DEFAULT_API_BASE_URL = import.meta.env.PROD ? "/api" : "http://localhost:4
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || DEFAULT_API_BASE_URL;
 export const API_ASSET_BASE_URL = API_BASE_URL.replace(/\/api$/, "");
-export const GOOGLE_AUTH_URL = `${API_BASE_URL}/auth/google`;
 
 const buildHeaders = (headers, body, token) => {
   const nextHeaders = { ...headers };
@@ -54,45 +53,16 @@ export const createOrder = (formData, token) =>
     token,
   });
 
-export const registerAdmin = (payload) =>
-  request("/auth/register", {
-    method: "POST",
-    body: payload,
-  });
-
 export const registerCustomer = (payload) =>
   request("/auth/customer/register", {
     method: "POST",
     body: payload,
   });
 
-export const loginAdmin = (credentials) =>
-  request("/auth/login", {
-    method: "POST",
-    body: credentials,
-  });
-
 export const loginCustomer = (credentials) =>
   request("/auth/customer/login", {
     method: "POST",
     body: credentials,
-  });
-
-export const sendLoginOtp = (payload) =>
-  request("/auth/send-otp", {
-    method: "POST",
-    body: payload,
-  });
-
-export const verifyLoginOtp = (payload) =>
-  request("/auth/verify-otp", {
-    method: "POST",
-    body: payload,
-  });
-
-export const fetchAdminProfile = (token) =>
-  request("/auth/me", {
-    token,
   });
 
 export const fetchCustomerProfile = (token) =>
@@ -105,43 +75,15 @@ export const fetchCustomerOrders = (token) =>
     token,
   });
 
-export const fetchOrders = (token, filters = {}) => {
-  const searchParams = new URLSearchParams();
-
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== "" && value !== undefined && value !== null) {
-      searchParams.set(key, value);
-    }
-  });
-
-  const suffix = searchParams.toString() ? `?${searchParams.toString()}` : "";
-
-  return request(`/orders${suffix}`, {
-    token,
-  });
-};
-
-export const fetchOrder = (id, token) =>
-  request(`/orders/${id}`, {
+export const createRazorpayOrder = (formData, token) =>
+  request("/create-order", {
+    method: "POST",
+    body: formData,
     token,
   });
 
-export const updateOrder = (id, payload, token) =>
-  request(`/orders/${id}`, {
-    method: "PUT",
+export const verifyRazorpayPayment = (payload) =>
+  request("/verify-payment", {
+    method: "POST",
     body: payload,
-    token,
-  });
-
-export const bulkUpdateOrders = (payload, token) =>
-  request("/orders/bulk", {
-    method: "PUT",
-    body: payload,
-    token,
-  });
-
-export const deleteOrder = (id, token) =>
-  request(`/orders/${id}`, {
-    method: "DELETE",
-    token,
   });

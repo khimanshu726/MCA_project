@@ -35,6 +35,11 @@ export const configurePassport = () => {
           const existingUser = await findUserByEmail(email);
 
           if (existingUser) {
+            if (existingUser.role !== "admin") {
+              done(new Error("This Google account is not authorized for admin access."));
+              return;
+            }
+
             const updatedUser = await updateUserRecord(existingUser.id, (currentUser) => ({
               ...currentUser,
               provider: currentUser.provider === "email" ? currentUser.provider : "google",
@@ -45,16 +50,7 @@ export const configurePassport = () => {
             return;
           }
 
-          const createdUser = await createUserRecord({
-            email,
-            mobile: "",
-            password: "",
-            provider: "google",
-            profileImage,
-            role: "admin",
-          });
-
-          done(null, createdUser);
+          done(new Error("No admin account is provisioned for this Google email."));
         } catch (error) {
           done(error);
         }

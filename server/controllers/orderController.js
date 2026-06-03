@@ -72,7 +72,8 @@ export const createOrder = async (req, res, next) => {
     const shippingCharge = Math.max(0, Number(req.body.shippingCharge) || 0);
     const totalPrice = lineItemsTotal + shippingCharge;
     const paymentMethod = req.body.paymentMethod;
-    const paymentStatus = paymentMethod === "cod" ? "Pending" : "Paid";
+    const isOnlinePayment = paymentMethod !== "cod";
+    const paymentStatus = "Pending";
 
     const order = {
       id: crypto.randomUUID(),
@@ -103,7 +104,12 @@ export const createOrder = async (req, res, next) => {
       createdAt: new Date().toISOString(),
     };
 
-    if (paymentMethod !== "cod" && razorpayInstance) {
+    if (isOnlinePayment && !razorpayInstance) {
+      await deleteUploadedFile(req.file?.path);
+      return res.status(503).json({ message: "Online payments are not configured on this server." });
+    }
+
+    if (isOnlinePayment && razorpayInstance) {
       try {
         const razorpayOrder = await razorpayInstance.orders.create({
           amount: Math.round(totalPrice * 100),
@@ -125,9 +131,18 @@ export const createOrder = async (req, res, next) => {
       // Local development should not fail when SMTP is not configured.
     });
 
+    const razorpayPayload = savedOrder.razorpayOrderId
+      ? {
+          order_id: savedOrder.razorpayOrderId,
+          amount: Math.round(totalPrice * 100),
+          currency: "INR",
+        }
+      : null;
+
     return res.status(201).json({
       message: "Order placed successfully.",
       order: savedOrder,
+      razorpay: razorpayPayload,
     });
   } catch (error) {
     await deleteUploadedFile(req.file?.path);
@@ -265,6 +280,10 @@ export const bulkOrderAction = async (req, res, next) => {
 
 export const verifyPayment = async (req, res, next) => {
   try {
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(503).json({ message: "Payment verification is not configured on this server." });
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import InputField from "../components/InputField";
+import AuthSplitShell from "../components/AuthSplitShell";
 import { useUserAuth } from "../context/UserAuthContext";
 import { detectLoginType, normalizeMobileInput } from "../utils/authDetection";
 
@@ -10,6 +10,8 @@ function UserRegisterPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,7 +24,6 @@ function UserRegisterPage() {
   const handleIdentifierChange = (rawValue) => {
     const nextType = detectLoginType(rawValue);
     const nextValue = nextType === "mobile" ? normalizeMobileInput(rawValue) : rawValue;
-
     setIdentifier(nextValue);
     setError("");
   };
@@ -54,74 +55,103 @@ function UserRegisterPage() {
     }
   };
 
+  const helperCopy =
+    registerType === "email"
+      ? "Email registration detected"
+      : registerType === "mobile"
+        ? "Phone registration detected"
+        : "Use your email address or 10-digit mobile number";
+
   return (
-    <main className="page-stack">
-      <section className="section-panel auth-panel">
-        <div className="section-heading">
-          <p className="eyebrow">Customer Register</p>
-          <h2>Create your Elite Empressions account.</h2>
-          <p className="section-copy">Register with either an email address or your 10-digit mobile number and a password.</p>
-        </div>
+    <AuthSplitShell
+      eyebrow="Create your account"
+      title="Start ordering with Elite Empressions"
+      subtitle="Register once to save your cart, manage delivery details, and move faster through checkout."
+      promptText="Already registered?"
+      promptLinkTo="/login"
+      promptLinkLabel="Login"
+      leftHeadline="Everything you need for custom print ordering in one account."
+      leftCaption="Sign up to browse print products, save delivery details, and place personalized orders without starting from scratch every time."
+      highlights={[
+        "Register with your email address or mobile number.",
+        "Save account details for repeat print orders and faster checkout.",
+        "Access custom products, uploads, and order-ready delivery flow anytime.",
+      ]}
+    >
+      <form className="auth-modern-form" onSubmit={handleSubmit}>
+        <label className="auth-input-label" htmlFor="customer-register-identifier">
+          Email or phone number
+        </label>
+        <input
+          id="customer-register-identifier"
+          className="auth-modern-input"
+          type="text"
+          placeholder="Enter email or phone number"
+          value={identifier}
+          onChange={(event) => handleIdentifierChange(event.target.value)}
+        />
 
-        <form className="delivery-form-card admin-login-form" onSubmit={handleSubmit}>
-          <InputField
-            label="Email or Phone Number"
-            htmlFor="customer-register-identifier"
-            helperText={
-              registerType === "email"
-                ? "Email registration detected."
-                : registerType === "mobile"
-                  ? "Phone registration detected."
-                  : "Enter a valid email address or 10-digit mobile number."
-            }
-          >
-            <input
-              id="customer-register-identifier"
-              type="text"
-              value={identifier}
-              onChange={(event) => handleIdentifierChange(event.target.value)}
-            />
-          </InputField>
+        <p className="auth-inline-helper">{helperCopy}</p>
 
-          <InputField label="Password" htmlFor="customer-register-password" helperText="Use at least 8 characters.">
-            <input
-              id="customer-register-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </InputField>
-
-          <InputField label="Confirm Password" htmlFor="customer-register-confirm">
-            <input
-              id="customer-register-confirm"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-            />
-          </InputField>
-
+        <label className="auth-input-label" htmlFor="customer-register-password">
+          Password
+        </label>
+        <div className="auth-password-wrap">
+          <input
+            id="customer-register-password"
+            className="auth-modern-input auth-password-input"
+            type={showPassword ? "text" : "password"}
+            placeholder="Create password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
           <button
-            type="submit"
-            className="primary-button"
-            disabled={isSubmitting || registerType === "unknown" || !password.trim() || !confirmPassword.trim()}
+            type="button"
+            className="auth-password-toggle"
+            onClick={() => setShowPassword((currentValue) => !currentValue)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {isSubmitting ? "Creating Account..." : "Register"}
+            {showPassword ? "Hide" : "Show"}
           </button>
-        </form>
-
-        {error ? <p className="field-error">{error}</p> : null}
-
-        <div className="action-row">
-          <Link className="mini-link" to="/login">
-            Already have an account?
-          </Link>
-          <Link className="mini-link" to="/">
-            Back to storefront
-          </Link>
         </div>
-      </section>
-    </main>
+
+        <label className="auth-input-label" htmlFor="customer-register-confirm">
+          Confirm password
+        </label>
+        <div className="auth-password-wrap">
+          <input
+            id="customer-register-confirm"
+            className="auth-modern-input auth-password-input"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+          <button
+            type="button"
+            className="auth-password-toggle"
+            onClick={() => setShowConfirmPassword((currentValue) => !currentValue)}
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+          >
+            {showConfirmPassword ? "Hide" : "Show"}
+          </button>
+        </div>
+
+        {error ? <p className="field-error auth-error">{error}</p> : null}
+
+        <button
+          type="submit"
+          className="auth-submit-button"
+          disabled={isSubmitting || registerType === "unknown" || !password.trim() || !confirmPassword.trim()}
+        >
+          {isSubmitting ? "Creating account..." : "Create account"}
+        </button>
+
+        <div className="auth-footer-links">
+          <Link to="/login">Already have an account?</Link>
+        </div>
+      </form>
+    </AuthSplitShell>
   );
 }
 

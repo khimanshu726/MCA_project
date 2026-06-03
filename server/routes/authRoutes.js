@@ -1,8 +1,8 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { appConfig } from "../config.js";
-import { authenticateAdmin } from "../middleware/authenticateAdmin.js";
-import { authenticateCustomer } from "../middleware/authenticateCustomer.js";
+import { authenticateRequest } from "../middleware/authenticateRequest.js";
+import { authorizeRoles } from "../middleware/authorizeRoles.js";
 import passport, { configurePassport, isGoogleAuthConfigured } from "../auth/passport.js";
 import {
   getCurrentCustomerUser,
@@ -11,12 +11,21 @@ import {
   loginCustomer,
   loginUser,
   registerCustomer,
-  registerUser,
   sendOtp,
   verifyOtp,
 } from "../controllers/authController.js";
 
 const router = Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many authentication attempts. Please try again shortly.",
+  },
+});
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -38,14 +47,15 @@ const logGoogleRoute = (req, _res, next) => {
 
 configurePassport();
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+router.post("/login", authLimiter, loginUser);
 router.post("/send-otp", otpLimiter, sendOtp);
-router.post("/verify-otp", verifyOtp);
-router.get("/me", authenticateAdmin, getCurrentAuthUser);
-router.post("/customer/register", registerCustomer);
-router.post("/customer/login", loginCustomer);
-router.get("/customer/me", authenticateCustomer, getCurrentCustomerUser);
+router.post("/verify-otp", authLimiter, verifyOtp);
+router.get("/me", authenticateRequest, authorizeRoles("admin"), getCurrentAuthUser);
+router.post("/admin/login", authLimiter, loginUser);
+router.get("/admin/me", authenticateRequest, authorizeRoles("admin"), getCurrentAuthUser);
+router.post("/customer/register", authLimiter, registerCustomer);
+router.post("/customer/login", authLimiter, loginCustomer);
+router.get("/customer/me", authenticateRequest, authorizeRoles("customer"), getCurrentCustomerUser);
 
 router.get(
   "/google",

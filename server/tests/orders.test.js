@@ -12,8 +12,8 @@ vi.mock("../services/orderStore.js", () => ({
 
 // We must also mock authentication, but for our simple tests we can just test if the endpoint strictly rejects unauthorized traffic!
 describe("Order API Routes", () => {
-  it("should block unauthenticated access to the Admin getOrders route (/api/orders)", async () => {
-    const res = await request(app).get("/api/orders");
+  it("should block unauthenticated access to the Admin getOrders route (/api/admin/orders)", async () => {
+    const res = await request(app).get("/api/admin/orders");
     // Without an Admin token, it should reject immediately with 401
     expect(res.statusCode).toBe(401);
     expect(res.body).toHaveProperty("message");

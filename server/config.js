@@ -8,6 +8,7 @@ const fallbackAdminPassword = process.env.ADMIN_PASSWORD || "EliteAdmin@123";
 export const appConfig = {
   apiPort: Number(process.env.PORT || process.env.API_PORT || 4000),
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  adminAppOrigin: process.env.ADMIN_APP_ORIGIN || "http://localhost:5174",
   jwtSecret: process.env.JWT_SECRET || "elite-empressions-local-secret",
   adminEmail: process.env.ADMIN_EMAIL || "admin@elite-empressions.local",
   adminPhone: process.env.ADMIN_PHONE || "9876543210",
@@ -16,8 +17,8 @@ export const appConfig = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
   googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || "http://localhost:4000/api/auth/google/callback",
-  authSuccessRedirect: process.env.AUTH_SUCCESS_REDIRECT || "http://localhost:5173/admin/auth/callback",
-  authFailureRedirect: process.env.AUTH_FAILURE_REDIRECT || "http://localhost:5173/admin/login",
+  authSuccessRedirect: process.env.AUTH_SUCCESS_REDIRECT || "http://localhost:5174/admin/auth/callback",
+  authFailureRedirect: process.env.AUTH_FAILURE_REDIRECT || "http://localhost:5174/admin/login",
   smtpHost: process.env.SMTP_HOST || "",
   smtpPort: Number(process.env.SMTP_PORT || 587),
   smtpSecure: process.env.SMTP_SECURE === "true",

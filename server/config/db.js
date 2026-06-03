@@ -1,8 +1,19 @@
 import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
 
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/elite-empressions");
+    let mongoUri = process.env.MONGO_URI;
+
+    if (!mongoUri) {
+      const memoryServer = await MongoMemoryServer.create();
+      mongoUri = memoryServer.getUri("elite-empressions");
+      console.log("[DB] MONGO_URI not set. Using in-memory MongoDB for development.");
+    }
+
+    const conn = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+    });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);

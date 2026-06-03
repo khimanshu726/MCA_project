@@ -3,6 +3,11 @@ import { appConfig } from "../config.js";
 import { normalizeEmail, normalizeMobile } from "../utils/authHelpers.js";
 import { User } from "../models/User.js";
 
+export const listUsers = async () => {
+  const users = await User.find({}).sort({ createdAt: -1 });
+  return users.map((user) => user.toObject());
+};
+
 export const findUserById = async (id) => {
   const user = await User.findOne({ id });
   return user ? user.toObject() : null;

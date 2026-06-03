@@ -3,7 +3,6 @@ export const navigationLinks = [
   { to: "/products", label: "Products" },
   { to: "/customize", label: "Customize" },
   { to: "/cart", label: "Cart" },
-  { to: "/admin/login", label: "Admin" },
 ];
 
 const optimizeImage = (src, width = 1400, height) =>

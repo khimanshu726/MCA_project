@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AddressCard from "../components/AddressCard";
 import CartItemRow from "../components/CartItemRow";
 import InputField from "../components/InputField";
 import { useCart } from "../context/CartContext";
 import { useUserAuth } from "../context/UserAuthContext";
 import { cityOptions } from "../data/cities";
-import { createOrder, API_BASE_URL } from "../lib/api";
+import { API_BASE_URL, createOrder, createRazorpayOrder, verifyRazorpayPayment } from "../lib/api";
 import {
   hasAddressErrors,
   sanitizeDigits,
@@ -125,6 +125,7 @@ const loadRazorpayScript = () => {
 };
 
 function CartPage() {
+  const navigate = useNavigate();
   const { cartItems, clearCart, removeFromCart, updateQuantity } = useCart();
   const { isAuthenticated, user, token } = useUserAuth();
   const [paymentMethod, setPaymentMethod] = useState("cod");
@@ -143,6 +144,7 @@ function CartPage() {
   const [orderMessage, setOrderMessage] = useState("");
   const [orderReceipt, setOrderReceipt] = useState(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const subtotal = useMemo(
     () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
@@ -164,6 +166,58 @@ function CartPage() {
     () => savedAddresses.find((address) => address.id === selectedAddressId) ?? null,
     [savedAddresses, selectedAddressId],
   );
+
+  const effectiveAddress = useMemo(() => {
+    // If the user is adding/editing an address but hasn't saved yet, allow checkout
+    // to proceed using the current form values (simple checkout UX).
+    if (!selectedAddress && isFormVisible) {
+      return formState;
+    }
+
+    return selectedAddress;
+  }, [formState, isFormVisible, selectedAddress]);
+
+  const selectedAddressErrors = useMemo(() => {
+    if (!effectiveAddress) {
+      return {};
+    }
+
+    return validateAddressForm({
+      fullName: effectiveAddress.fullName || "",
+      phoneNumber: effectiveAddress.phoneNumber || "",
+      email: effectiveAddress.email || "",
+      address: effectiveAddress.address || "",
+      landmark: effectiveAddress.landmark || "",
+      city: effectiveAddress.city || "",
+      state: effectiveAddress.state || "",
+      postalCode: effectiveAddress.postalCode || "",
+    });
+  }, [effectiveAddress]);
+
+  const canPlaceOrder = useMemo(() => {
+    if (isPlacingOrder) return false;
+    if (!effectiveAddress) return false;
+    if (cartItems.length === 0) return false;
+    if (hasAddressErrors(selectedAddressErrors)) return false;
+    return true;
+  }, [cartItems.length, effectiveAddress, isPlacingOrder, selectedAddressErrors]);
+
+  const placeOrderDisabledReason = useMemo(() => {
+    if (isPlacingOrder) return "Processing your order...";
+    if (cartItems.length === 0) return "Add at least one product to continue.";
+    if (!effectiveAddress) return "Add delivery details to continue.";
+
+    const firstError = Object.values(selectedAddressErrors).find((value) => value);
+    if (firstError) return firstError;
+
+    return "";
+  }, [cartItems.length, effectiveAddress, isPlacingOrder, selectedAddressErrors]);
+
+  const pushToast = (nextToast) => {
+    setToast(nextToast);
+    window.clearTimeout(pushToast._timer);
+    pushToast._timer = window.setTimeout(() => setToast(null), 3200);
+  };
 
   useEffect(() => {
     window.localStorage.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(savedAddresses));
@@ -373,7 +427,7 @@ function CartPage() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddress) {
+    if (!effectiveAddress) {
       setOrderMessage("Select or add a delivery address before placing the order.");
       setIsFormVisible(true);
       return;
@@ -381,6 +435,12 @@ function CartPage() {
 
     if (cartItems.length === 0) {
       setOrderMessage("Add at least one product before placing an order.");
+      return;
+    }
+
+    if (hasAddressErrors(selectedAddressErrors)) {
+      setOrderMessage("Please correct the selected delivery address before placing the order.");
+      pushToast({ type: "error", message: "Delivery details are incomplete." });
       return;
     }
 
@@ -397,14 +457,14 @@ function CartPage() {
 
     try {
       const formData = new FormData();
-      formData.append("customerName", selectedAddress.fullName);
-      formData.append("phone", selectedAddress.phoneNumber);
-      formData.append("email", selectedAddress.email);
-      formData.append("streetAddress", selectedAddress.address);
-      formData.append("landmark", selectedAddress.landmark || "");
-      formData.append("city", selectedAddress.city);
-      formData.append("state", selectedAddress.state);
-      formData.append("pincode", selectedAddress.postalCode);
+      formData.append("customerName", effectiveAddress.fullName);
+      formData.append("phone", effectiveAddress.phoneNumber);
+      formData.append("email", effectiveAddress.email);
+      formData.append("streetAddress", effectiveAddress.address);
+      formData.append("landmark", effectiveAddress.landmark || "");
+      formData.append("city", effectiveAddress.city);
+      formData.append("state", effectiveAddress.state);
+      formData.append("pincode", effectiveAddress.postalCode);
       formData.append("paymentMethod", paymentMethod);
       formData.append("shippingCharge", String(shipping));
       formData.append("customInstructions", customInstructions);
@@ -416,7 +476,7 @@ function CartPage() {
             name: item.name,
             quantity: item.quantity,
             unitPrice: item.price,
-            customizationText: customInstructions,
+            customizationText: item.customizationText || "",
           })),
         ),
       );
@@ -426,7 +486,11 @@ function CartPage() {
       }
 
       const orderToken = isAuthenticated && token ? token : null;
-      const response = await createOrder(formData, orderToken);
+
+      const response =
+        paymentMethod === "cod"
+          ? await createOrder(formData, orderToken)
+          : await createRazorpayOrder(formData, orderToken);
 
       if (response.order.paymentMethod !== "cod" && response.order.razorpayOrderId) {
         const scriptLoaded = await loadRazorpayScript();
@@ -438,39 +502,38 @@ function CartPage() {
 
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-          amount: Math.round(total * 100),
-          currency: "INR",
+          amount: response.razorpay?.amount ?? Math.round(total * 100),
+          currency: response.razorpay?.currency ?? "INR",
           name: "Elite Empressions",
           description: "Print Shop Order",
           order_id: response.order.razorpayOrderId,
+          modal: {
+            ondismiss: function () {
+              pushToast({ type: "error", message: "Payment cancelled." });
+            },
+          },
           handler: async function (paymentResponse) {
             try {
-              const verifyRes = await fetch(`${API_BASE_URL}/orders/verify-payment`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  razorpay_order_id: paymentResponse.razorpay_order_id,
-                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                  razorpay_signature: paymentResponse.razorpay_signature,
-                }),
+              const verifyData = await verifyRazorpayPayment({
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
               });
-              const verifyData = await verifyRes.json();
 
-              if (verifyRes.ok) {
-                setOrderReceipt(verifyData.order);
-                setOrderMessage(`Payment successful! Order ${verifyData.order.orderId} is confirmed.`);
-                clearCart();
-              } else {
-                setOrderMessage(verifyData.message || "Payment verification failed.");
-              }
+              setOrderReceipt(verifyData.order);
+              setOrderMessage(`Payment successful! Order ${verifyData.order.orderId} is confirmed.`);
+              pushToast({ type: "success", message: "Payment successful." });
+              clearCart();
+              navigate("/order-success", { replace: true, state: { order: verifyData.order } });
             } catch (err) {
-              setOrderMessage("Server error during payment verification.");
+              setOrderMessage(err.message || "Server error during payment verification.");
+              pushToast({ type: "error", message: err.message || "Payment verification failed." });
             }
           },
           prefill: {
-            name: selectedAddress.fullName,
-            email: selectedAddress.email,
-            contact: selectedAddress.phoneNumber,
+            name: effectiveAddress.fullName,
+            email: effectiveAddress.email,
+            contact: effectiveAddress.phoneNumber,
           },
           theme: {
             color: "#3b82f6",
@@ -480,6 +543,7 @@ function CartPage() {
         const razorpayInstance = new window.Razorpay(options);
         razorpayInstance.on("payment.failed", function () {
           setOrderMessage("Payment failed. Please try again.");
+          pushToast({ type: "error", message: "Payment failed." });
         });
         
         razorpayInstance.open();
@@ -492,12 +556,15 @@ function CartPage() {
 
       setOrderReceipt(response.order);
       setOrderMessage(`Order ${response.order.orderId} was placed successfully.`);
+      pushToast({ type: "success", message: "Order placed successfully." });
       setCustomInstructions("");
       setDesignFile(null);
       setFileError("");
       clearCart();
+      navigate("/order-success", { replace: true, state: { order: response.order } });
     } catch (submitError) {
       setOrderMessage(submitError.payload?.message || submitError.message || "Unable to place the order.");
+      pushToast({ type: "error", message: submitError.payload?.message || submitError.message || "Unable to place the order." });
     } finally {
       setIsPlacingOrder(false);
     }
@@ -505,6 +572,11 @@ function CartPage() {
 
   return (
     <main className="page-stack">
+      {toast ? (
+        <div className={`toast toast-${toast.type}`} role="status" aria-live="polite">
+          {toast.message}
+        </div>
+      ) : null}
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">Cart + Checkout</p>
@@ -801,10 +873,13 @@ function CartPage() {
                   type="button"
                   className="primary-button full-width-button"
                   onClick={handlePlaceOrder}
-                  disabled={cartItems.length === 0 || !selectedAddress || isPlacingOrder}
+                  disabled={!canPlaceOrder}
                 >
                   {isPlacingOrder ? "Placing Order..." : "Place Order"}
                 </button>
+                {!canPlaceOrder && placeOrderDisabledReason ? (
+                  <p className="field-helper">{placeOrderDisabledReason}</p>
+                ) : null}
                 <Link className="secondary-button full-width-button" to="/customize">
                   Edit Designs
                 </Link>

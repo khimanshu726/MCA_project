@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
-import InputField from "../components/InputField";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import AuthSplitShell from "../components/AuthSplitShell";
 import { useUserAuth } from "../context/UserAuthContext";
 import { detectLoginType, normalizeMobileInput } from "../utils/authDetection";
 
@@ -10,6 +10,7 @@ function UserLoginPage() {
   const { isAuthenticated, signIn } = useUserAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,7 +24,6 @@ function UserLoginPage() {
   const handleIdentifierChange = (rawValue) => {
     const nextType = detectLoginType(rawValue);
     const nextValue = nextType === "mobile" ? normalizeMobileInput(rawValue) : rawValue;
-
     setIdentifier(nextValue);
     setError("");
   };
@@ -43,65 +43,77 @@ function UserLoginPage() {
     }
   };
 
+  const helperCopy =
+    loginType === "email"
+      ? "Email login detected"
+      : loginType === "mobile"
+        ? "Phone login detected"
+        : "Use your email address or 10-digit mobile number";
+
   return (
-    <main className="page-stack">
-      <section className="section-panel auth-panel">
-        <div className="section-heading">
-          <p className="eyebrow">Customer Login</p>
-          <h2>Sign in with your email address or phone number.</h2>
-          <p className="section-copy">Use the same password whether you registered with email or with your 10-digit mobile number.</p>
-        </div>
+    <AuthSplitShell
+      eyebrow="Welcome back!"
+      title="Login to your account"
+      subtitle="Use your customer account to continue with saved cart items, delivery details, and print-ready orders."
+      promptText="Not registered?"
+      promptLinkTo="/register"
+      promptLinkLabel="Create an account"
+    >
+      <form className="auth-modern-form" onSubmit={handleSubmit}>
+        <label className="auth-input-label" htmlFor="customer-login-identifier">
+          Email or phone number
+        </label>
+        <input
+          id="customer-login-identifier"
+          className="auth-modern-input"
+          type="text"
+          placeholder="Enter email or phone number"
+          value={identifier}
+          onChange={(event) => handleIdentifierChange(event.target.value)}
+        />
 
-        <form className="delivery-form-card admin-login-form" onSubmit={handleSubmit}>
-          <InputField
-            label="Email or Phone Number"
-            htmlFor="customer-login-identifier"
-            helperText={
-              loginType === "email"
-                ? "Email login detected."
-                : loginType === "mobile"
-                  ? "Phone login detected."
-                  : "Enter a valid email address or 10-digit mobile number."
-            }
-          >
-            <input
-              id="customer-login-identifier"
-              type="text"
-              value={identifier}
-              onChange={(event) => handleIdentifierChange(event.target.value)}
-            />
-          </InputField>
+        <p className="auth-inline-helper">{helperCopy}</p>
 
-          <InputField label="Password" htmlFor="customer-login-password">
-            <input
-              id="customer-login-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </InputField>
-
+        <label className="auth-input-label" htmlFor="customer-login-password">
+          Password
+        </label>
+        <div className="auth-password-wrap">
+          <input
+            id="customer-login-password"
+            className="auth-modern-input auth-password-input"
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
           <button
-            type="submit"
-            className="primary-button"
-            disabled={isSubmitting || detectLoginType(identifier) === "unknown" || !password.trim()}
+            type="button"
+            className="auth-password-toggle"
+            onClick={() => setShowPassword((currentValue) => !currentValue)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {isSubmitting ? "Signing In..." : "Login"}
+            {showPassword ? "Hide" : "Show"}
           </button>
-        </form>
-
-        {error ? <p className="field-error">{error}</p> : null}
-
-        <div className="action-row">
-          <Link className="mini-link" to="/register">
-            Create new account
-          </Link>
-          <Link className="mini-link" to="/">
-            Back to storefront
-          </Link>
         </div>
-      </section>
-    </main>
+
+        {error ? <p className="field-error auth-error">{error}</p> : null}
+
+        <button
+          type="submit"
+          className="auth-submit-button"
+          disabled={isSubmitting || detectLoginType(identifier) === "unknown" || !password.trim()}
+        >
+          {isSubmitting ? "Logging in..." : "Login"}
+        </button>
+
+        <div className="auth-footer-links">
+          <Link to="/register">Create new account</Link>
+          <button type="button" className="auth-text-button" disabled>
+            Forgot password
+          </button>
+        </div>
+      </form>
+    </AuthSplitShell>
   );
 }
 
