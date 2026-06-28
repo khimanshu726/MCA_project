@@ -1,39 +1,47 @@
-import { authorizeRoles } from "./authorizeRoles.js";
-import { authenticateRequest } from "./authenticateRequest.js";
-import jwt from "jsonwebtoken";
-import { appConfig } from "../config.js";
-import { findUserById } from "../services/userStore.js";
+import { verifyFirebaseIdToken } from "../config/firebaseAdmin.js";
 import { mapUserForClient } from "../utils/authHelpers.js";
+import { upsertCustomerFromFirebaseClaims } from "../services/userStore.js";
 
-export const authenticateCustomer = async (req, res, next) => {
-  return authenticateRequest(req, res, () =>
-    authorizeRoles("customer")(req, res, () => {
-      req.customer = req.auth;
-      return next();
-    }),
-  );
-};
-
-export const optionalAuthenticateCustomer = async (req, res, next) => {
+const applyCustomerFromToken = async (req) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
-    return next();
+    return null;
   }
 
   const token = authHeader.replace("Bearer ", "");
+  const decodedToken = await verifyFirebaseIdToken(token);
+  const user = await upsertCustomerFromFirebaseClaims(decodedToken);
 
+  req.customer = {
+    ...mapUserForClient(user),
+    id: user.id,
+  };
+  req.auth = req.customer;
+  req.userRecord = user;
+
+  return req.customer;
+};
+
+export const authenticateCustomer = async (req, res, next) => {
   try {
-    const payload = jwt.verify(token, appConfig.jwtSecret);
-    const user = await findUserById(payload.sub);
+    const customer = await applyCustomerFromToken(req);
 
-    if (user && user.role === "customer") {
-      req.customer = {
-        ...mapUserForClient(user),
-        id: user.id,
-      };
-      req.userRecord = user;
+    if (!customer) {
+      return res.status(401).json({ message: "Authentication required." });
     }
+
+    return next();
+  } catch (error) {
+    return res.status(error.statusCode || 401).json({
+      message: error.statusCode === 503 ? error.message : "Session expired. Please log in again.",
+    });
+  }
+};
+
+export const optionalAuthenticateCustomer = async (req, res, next) => {
+  try {
+    await applyCustomerFromToken(req);
     return next();
   } catch {
     return next();

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { appConfig } from "../config.js";
+import { authenticateCustomer } from "../middleware/authenticateCustomer.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 import passport, { configurePassport, isGoogleAuthConfigured } from "../auth/passport.js";
@@ -55,7 +56,7 @@ router.post("/admin/login", authLimiter, loginUser);
 router.get("/admin/me", authenticateRequest, authorizeRoles("admin"), getCurrentAuthUser);
 router.post("/customer/register", authLimiter, registerCustomer);
 router.post("/customer/login", authLimiter, loginCustomer);
-router.get("/customer/me", authenticateRequest, authorizeRoles("customer"), getCurrentCustomerUser);
+router.get("/customer/me", authenticateCustomer, getCurrentCustomerUser);
 
 router.get(
   "/google",

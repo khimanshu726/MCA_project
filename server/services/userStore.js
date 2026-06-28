@@ -13,6 +13,12 @@ export const findUserById = async (id) => {
   return user ? user.toObject() : null;
 };
 
+export const findUserByFirebaseUid = async (firebaseUid) => {
+  if (!firebaseUid) return null;
+  const user = await User.findOne({ firebaseUid });
+  return user ? user.toObject() : null;
+};
+
 export const findUserByEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return null;
@@ -71,7 +77,10 @@ export const createUserRecord = async (payload) => {
     email: payload.email?.trim().toLowerCase() || "",
     mobile: payload.mobile?.trim() || "",
     password: payload.password || "",
+    firebaseUid: payload.firebaseUid || "",
+    authProvider: payload.authProvider || "local",
     provider: payload.provider || "email",
+    username: payload.username || "",
     profileImage: payload.profileImage || "",
     role: payload.role || "admin",
   });
@@ -112,4 +121,67 @@ export const ensureDefaultAdminUser = async () => {
     provider: "email",
     role: "admin",
   });
+};
+
+const mapFirebaseProvider = (providerId = "") => {
+  if (providerId === "google.com") return "google";
+  if (providerId === "facebook.com") return "facebook";
+  if (providerId === "phone") return "mobile";
+  return "firebase";
+};
+
+export const upsertCustomerFromFirebaseClaims = async (decodedToken) => {
+  const firebaseUid = decodedToken.uid || "";
+  const email = normalizeEmail(decodedToken.email || "");
+  const mobile = normalizeMobile(decodedToken.phone_number || "");
+  const profileImage = decodedToken.picture || "";
+  const provider = mapFirebaseProvider(decodedToken.firebase?.sign_in_provider || decodedToken.sign_in_provider || "");
+  const username = decodedToken.name || "";
+
+  let existingUser = await findUserByFirebaseUid(firebaseUid);
+
+  if (!existingUser && (email || mobile)) {
+    const query = {
+      role: "customer",
+      $or: [],
+    };
+
+    if (email) {
+      query.$or.push({ email: new RegExp(`^${email}$`, "i") });
+    }
+
+    if (mobile) {
+      query.$or.push({ mobile });
+    }
+
+    if (query.$or.length > 0) {
+      const matchedUser = await User.findOne(query);
+      existingUser = matchedUser ? matchedUser.toObject() : null;
+    }
+  }
+
+  if (!existingUser) {
+    return createUserRecord({
+      email,
+      mobile,
+      firebaseUid,
+      provider,
+      authProvider: "firebase",
+      username,
+      profileImage,
+      role: "customer",
+    });
+  }
+
+  return updateUserRecord(existingUser.id, (currentUser) => ({
+    ...currentUser,
+    email: email || currentUser.email || "",
+    mobile: mobile || currentUser.mobile || "",
+    firebaseUid: firebaseUid || currentUser.firebaseUid || "",
+    provider: provider || currentUser.provider || "firebase",
+    authProvider: "firebase",
+    username: username || currentUser.username || "",
+    profileImage: profileImage || currentUser.profileImage || "",
+    role: currentUser.role || "customer",
+  }));
 };

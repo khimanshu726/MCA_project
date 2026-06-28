@@ -1,4 +1,16 @@
-const DEFAULT_API_BASE_URL = import.meta.env.PROD ? "/api" : "http://localhost:4000/api";
+const resolveDefaultApiBaseUrl = () => {
+  if (import.meta.env.PROD) {
+    return "/api";
+  }
+
+  if (typeof window === "undefined") {
+    return "http://localhost:4000/api";
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:4000/api`;
+};
+
+const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || DEFAULT_API_BASE_URL;
 export const API_ASSET_BASE_URL = API_BASE_URL.replace(/\/api$/, "");
@@ -51,18 +63,6 @@ export const createOrder = (formData, token) =>
     method: "POST",
     body: formData,
     token,
-  });
-
-export const registerCustomer = (payload) =>
-  request("/auth/customer/register", {
-    method: "POST",
-    body: payload,
-  });
-
-export const loginCustomer = (credentials) =>
-  request("/auth/customer/login", {
-    method: "POST",
-    body: credentials,
   });
 
 export const fetchCustomerProfile = (token) =>

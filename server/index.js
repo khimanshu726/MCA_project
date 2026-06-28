@@ -14,7 +14,7 @@ import { connectDB } from "./config/db.js";
 const app = express();
 configurePassport();
 const distPath = path.resolve(process.cwd(), "dist");
-const allowedOrigins = [appConfig.clientOrigin, appConfig.adminAppOrigin].filter(Boolean);
+const allowedOrigins = appConfig.allowedOrigins;
 
 app.use(
   cors({

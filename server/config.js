@@ -5,10 +5,44 @@ dotenv.config();
 
 const fallbackAdminPassword = process.env.ADMIN_PASSWORD || "EliteAdmin@123";
 
+const parseOriginList = (...values) => {
+  const originSet = new Set();
+
+  values
+    .filter(Boolean)
+    .flatMap((value) => String(value).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((origin) => {
+      originSet.add(origin);
+
+      try {
+        const url = new URL(origin);
+
+        if (url.hostname === "localhost") {
+          url.hostname = "127.0.0.1";
+          originSet.add(url.origin);
+        } else if (url.hostname === "127.0.0.1") {
+          url.hostname = "localhost";
+          originSet.add(url.origin);
+        }
+      } catch {
+        // Ignore invalid origin entries.
+      }
+    });
+
+  return [...originSet];
+};
+
 export const appConfig = {
   apiPort: Number(process.env.PORT || process.env.API_PORT || 4000),
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
   adminAppOrigin: process.env.ADMIN_APP_ORIGIN || "http://localhost:5174",
+  allowedOrigins: parseOriginList(
+    process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    process.env.ADMIN_APP_ORIGIN || "http://localhost:5174",
+    process.env.CLIENT_ORIGINS || "",
+  ),
   jwtSecret: process.env.JWT_SECRET || "elite-empressions-local-secret",
   adminEmail: process.env.ADMIN_EMAIL || "admin@elite-empressions.local",
   adminPhone: process.env.ADMIN_PHONE || "9876543210",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useUserAuth } from "../context/UserAuthContext";
 import { fetchCustomerOrders } from "../lib/api";
 
@@ -18,13 +18,13 @@ const formatDate = (isoString) =>
   });
 
 function AccountPage() {
-  const { isAuthenticated, signOut, user, token } = useUserAuth();
+  const { signOut, user, token } = useUserAuth();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!token) return;
 
     const loadOrders = async () => {
       try {
@@ -38,14 +38,18 @@ function AccountPage() {
     };
 
     loadOrders();
-  }, [isAuthenticated, token]);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  }, [token]);
 
   const contactLabel = user?.email || user?.mobile || "Customer";
   const joinedLabel = user?.createdAt ? formatDate(user.createdAt) : "";
+  const loginMethodLabel =
+    user?.provider === "mobile"
+      ? "Phone Number"
+      : user?.provider === "facebook"
+        ? "Facebook"
+        : user?.provider === "google"
+          ? "Google"
+          : "Firebase";
 
   return (
     <main className="page-stack">
@@ -66,7 +70,7 @@ function AccountPage() {
               </div>
               <div className="summary-line">
                 <span>Login method</span>
-                <strong>{user?.provider === "mobile" ? "Phone Number" : "Email"}</strong>
+                <strong>{loginMethodLabel}</strong>
               </div>
               {joinedLabel ? (
                 <div className="summary-line">

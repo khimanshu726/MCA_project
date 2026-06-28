@@ -9,6 +9,7 @@ import ProductsPage from "./pages/ProductsPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import UserRegisterPage from "./pages/UserRegisterPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -21,7 +22,14 @@ function App() {
         <Route path="/checkout" element={<Navigate to="/cart" replace />} />
         <Route path="/customize" element={<CustomizePage />} />
         <Route path="/customize/:productId" element={<CustomizePage />} />
-        <Route path="/account" element={<AccountPage />} />
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <AccountPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/order-success" element={<OrderSuccessPage />} />
       </Route>
       <Route path="/login" element={<UserLoginPage />} />

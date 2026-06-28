@@ -1,89 +1,146 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { fetchCustomerProfile, loginCustomer, registerCustomer } from "../lib/api";
+import { onIdTokenChanged, signInWithPhoneNumber, signOut as firebaseSignOut } from "firebase/auth";
+import { fetchCustomerProfile } from "../lib/api";
+import { ensureFirebaseAuth, ensureFirebasePersistence, firebaseAuth } from "../lib/firebase";
 
-const CUSTOMER_SESSION_KEY = "elite-customer-session";
 const UserAuthContext = createContext(null);
 
-const loadSession = () => {
-  if (typeof window === "undefined") {
-    return { token: "", user: null };
+const mapFirebaseUserFallback = (user) => {
+  if (!user) {
+    return null;
   }
 
-  try {
-    const rawValue = window.localStorage.getItem(CUSTOMER_SESSION_KEY);
+  const primaryProviderId = user.providerData?.[0]?.providerId || user.providerId || "";
+  const provider =
+    primaryProviderId === "google.com"
+      ? "google"
+      : primaryProviderId === "facebook.com"
+        ? "facebook"
+        : primaryProviderId === "phone"
+          ? "mobile"
+          : "firebase";
 
-    if (!rawValue) {
-      return { token: "", user: null };
-    }
-
-    const parsedValue = JSON.parse(rawValue);
-    return {
-      token: parsedValue.token || "",
-      user: parsedValue.user || null,
-    };
-  } catch {
-    return { token: "", user: null };
-  }
+  return {
+    id: user.uid,
+    email: user.email || "",
+    mobile: user.phoneNumber ? user.phoneNumber.replace(/^\+91/, "") : "",
+    provider,
+    profileImage: user.photoURL || "",
+    role: "customer",
+    createdAt: user.metadata?.creationTime || "",
+  };
 };
 
 function UserAuthProvider({ children }) {
-  const [session, setSession] = useState(loadSession);
+  const [token, setToken] = useState("");
+  const [user, setUser] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    window.localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify(session));
-  }, [session]);
+    let isActive = true;
+    let unsubscribe = () => undefined;
 
-  const applySession = (token, user) => {
-    setSession({
-      token,
-      user,
-    });
-  };
+    const setupAuth = async () => {
+      try {
+        const auth = await ensureFirebasePersistence();
 
-  const signIn = async (identifier, password) => {
-    const response = await loginCustomer({ identifier, password });
-    applySession(response.token, response.user);
-    return response.user;
-  };
+        unsubscribe = onIdTokenChanged(auth, async (nextUser) => {
+          if (!isActive) {
+            return;
+          }
 
-  const signUp = async (identifier, password) => {
-    const response = await registerCustomer({ identifier, password });
-    applySession(response.token, response.user);
-    return response.user;
-  };
+          if (!nextUser) {
+            setAuthUser(null);
+            setUser(null);
+            setToken("");
+            setIsLoading(false);
+            return;
+          }
+
+          setAuthUser(nextUser);
+
+          try {
+            const nextToken = await nextUser.getIdToken();
+            setToken(nextToken);
+            setUser(mapFirebaseUserFallback(nextUser));
+
+            const profileResponse = await fetchCustomerProfile(nextToken);
+            if (!isActive) {
+              return;
+            }
+
+            setUser(profileResponse.user || mapFirebaseUserFallback(nextUser));
+          } catch {
+            if (!isActive) {
+              return;
+            }
+
+            setUser(mapFirebaseUserFallback(nextUser));
+          } finally {
+            if (isActive) {
+              setIsLoading(false);
+            }
+          }
+        });
+      } catch {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    setupAuth();
+
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
+  }, []);
 
   const refreshProfile = async () => {
-    if (!session.token) {
+    const auth = ensureFirebaseAuth();
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      setUser(null);
+      setToken("");
       return null;
     }
 
-    const response = await fetchCustomerProfile(session.token);
-    setSession((currentSession) => ({
-      ...currentSession,
-      user: response.user,
-    }));
-
-    return response.user;
+    const nextToken = await currentUser.getIdToken(true);
+    setToken(nextToken);
+    const response = await fetchCustomerProfile(nextToken);
+    setUser(response.user || mapFirebaseUserFallback(currentUser));
+    return response.user || mapFirebaseUserFallback(currentUser);
   };
 
-  const signOut = () => {
-    setSession({
-      token: "",
-      user: null,
-    });
+  const signInWithPhoneOtp = async (phoneNumber, verifier) => {
+    const auth = ensureFirebaseAuth();
+    return signInWithPhoneNumber(auth, phoneNumber, verifier);
+  };
+
+  const signOut = async () => {
+    const auth = ensureFirebaseAuth();
+    await firebaseSignOut(auth);
+    setAuthUser(null);
+    setUser(null);
+    setToken("");
   };
 
   const value = useMemo(
     () => ({
-      token: session.token,
-      user: session.user,
-      isAuthenticated: Boolean(session.token),
-      signIn,
-      signUp,
+      auth: firebaseAuth,
+      authUser,
+      token,
+      user,
+      isAuthenticated: Boolean(authUser),
+      isLoading,
       refreshProfile,
+      signInWithPhoneOtp,
       signOut,
     }),
-    [session.token, session.user],
+    [authUser, isLoading, token, user],
   );
 
   return <UserAuthContext.Provider value={value}>{children}</UserAuthContext.Provider>;

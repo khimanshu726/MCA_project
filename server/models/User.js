@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String },
     mobile: { type: String, default: "" },
     password: { type: String },
+    firebaseUid: { type: String, default: "", index: true },
     authProvider: { type: String, default: "local" },
     provider: { type: String },
     profileImage: { type: String },
