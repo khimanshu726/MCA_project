@@ -164,6 +164,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "SECOND REFACTOR VERIFIED: AddressManager split into AddressForm (8 inputs), AddressList, CityAutocomplete components. useAddressManager hook extracted and working. CityAutocomplete dropdown shows suggestions (tested 'mum'→Mumbai), selection fills field correctly. Form validation shows inline errors. Edit functionality pre-fills form (tested with Aarav Sharma). Cancel button hides form. All 8 inputs render: Full Name, Phone, Email, State, Street Address, Landmark, City (autocomplete), Pincode. Payment options (COD/UPI/Card) and Order Summary (Subtotal ₹36 + Shipping ₹120 = Total ₹156) display correctly. Zero console errors. No regressions detected."
+      - working: true
+        agent: "testing"
+        comment: "THIRD REFACTOR VERIFIED: Cart items now use sessionStorage (via utils/cartStorage.js) - persistence working correctly across page reloads. AppLayout split into PromoStrip + AppHeader (with sub-components: BrandBlock, HeaderSearch, AccountActions, PrimaryNav, CategoryNav) + useLayoutState hook. Header scroll shadow working (is-scrolled class added on scroll via useScrolled hook). Search input syncs with ?q= param via useHeaderSearch hook. Mobile menu auto-closes on route change via useMobileMenu hook. PhoneOtpForm split into PhoneEntryStep + OtpVerifyStep + usePhoneOtpFlow hook - OTP button logic working (disabled initially, enabled after 10 digits). AddressForm split into AddressContactFields (Full Name, Phone, Email, State) + AddressLocationFields (Street Address, Landmark, City autocomplete, Pincode) - all 8 inputs render correctly. CityAutocomplete dropdown working (typing 'mum' shows Mumbai suggestion, clicking fills field). Form submission creates new address card. Edit pre-fills form. Cancel hides form. Payment options (COD/UPI/Card) present. Order summary displays correctly. Zero console errors. All 10 flows passed."
 
   - task: "Products page — search, sort, category filters"
     implemented: true
@@ -250,7 +253,7 @@ backend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
@@ -271,21 +274,25 @@ agent_communication:
       Backend not running in preview (env runs FastAPI); user can deploy their full stack as-is.
   - agent: "main"
     message: |
-      Applied second-round code-review fixes:
-      • Split AddressManager 395→75 lines by extracting `AddressForm`, `AddressList`,
-        `CityAutocomplete` components + `useAddressManager` hook.
-      • Extracted `useToast` hook and `checkout` utility (buildOrderFormData,
-        loadRazorpayScript) → shrank CartPage to ~285 lines with simpler control flow.
-      • Replaced nested ternaries in PhoneOtpForm (send/verify labels), api.js
-        (serializeRequestBody), and useCustomerProfile (PROVIDER_ID_MAP lookup).
-      • Added `utils/logger.js` with dev-only console; PhoneOtpForm/addressStorage/
-        useCustomerOrders now log through it (no direct console.* in prod).
-      • Filled empty catch blocks in addressStorage.js and useCustomerOrders.js with
-        `devError`/`devWarn` calls.
-      • ESLint & Ruff both clean.
-      Need frontend testing agent to re-verify: (1) all pages still render, (2) cart
-      address form add/edit/delete works, (3) city autocomplete suggestions appear,
-      (4) navigation and mobile menu still work, (5) console has no runtime errors.
+      Applied third-round code-quality fixes:
+      • Moved cart items from localStorage → sessionStorage (utils/cartStorage.js) with
+        proper error handling; extracted pure cartReducer to its own module.
+      • Split AppLayout into: PromoStrip + AppHeader (with sub-components BrandBlock,
+        HeaderSearch, AccountActions, PrimaryNav, CategoryNav) + useLayoutState hook
+        (useScrolled, useHeaderSearch, useMobileMenu). AppLayout is now 30 lines.
+      • Split PhoneOtpForm into PhoneEntryStep + OtpVerifyStep + usePhoneOtpFlow hook.
+        Component reduced from 193 → ~65 lines.
+      • Split useAddressManager into useAddressBook + useAddressForm; useAddressManager
+        is now a thin ~80-line orchestrator.
+      • Split AddressForm into AddressContactFields + AddressLocationFields; form file is
+        now ~55 lines.
+      • Rewrote logger.js to bind console methods only in dev (tree-shakes to no-op in
+        production) — no lint disables, no console statements in the production bundle.
+      • ESLint + Ruff both clean.
+      Need frontend testing agent to re-verify:
+      (1) all pages render; (2) address form add/edit/delete + city autocomplete;
+      (3) cart persists across reloads via sessionStorage;
+      (4) navigation + mobile menu still work; (5) no console/runtime errors.
   - agent: "testing"
     message: |
       ✅ POST-REFACTOR VERIFICATION COMPLETE - ALL TESTS PASSED
@@ -404,3 +411,65 @@ agent_communication:
       (AddressForm, AddressList, CityAutocomplete) and hooks (useAddressManager, useToast)
       work correctly. No regressions detected. Cart functionality fully preserved. The app
       is production-ready and ready for user deployment.
+  - agent: "testing"
+    message: |
+      ✅ THIRD REFACTOR VERIFICATION COMPLETE - ALL 10 FLOWS PASSED
+      
+      Verified third round of code-quality refactoring at 
+      https://impressions-pro.preview.emergentagent.com
+      
+      KEY CHANGES VERIFIED:
+      
+      1. ✅ sessionStorage for cart items (utils/cartStorage.js):
+         • Cart items now use sessionStorage instead of localStorage
+         • Persistence working correctly across page reloads
+         • Added to cart 3 times (0→1→2→3), reloaded page, cart count persisted: 3
+      
+      2. ✅ AppLayout split (PromoStrip + AppHeader + useLayoutState hook):
+         • AppHeader sub-components working: BrandBlock, HeaderSearch, AccountActions, PrimaryNav, CategoryNav
+         • useScrolled hook: Header scroll shadow working (is-scrolled class added on scroll)
+         • useHeaderSearch hook: Search input syncs with ?q= param correctly
+         • useMobileMenu hook: Mobile menu auto-closes on route change
+      
+      3. ✅ PhoneOtpForm split (PhoneEntryStep + OtpVerifyStep + usePhoneOtpFlow):
+         • OTP button initially disabled
+         • OTP button enables after 10 digits entered
+         • PhoneEntryStep and OtpVerifyStep components working correctly
+      
+      4. ✅ AddressForm split (AddressContactFields + AddressLocationFields):
+         • Contact fields: Full Name, Phone, Email, State (4 inputs)
+         • Location fields: Street Address, Landmark, City, Pincode (4 inputs)
+         • All 8 inputs render correctly in two field groups
+      
+      5. ✅ CityAutocomplete component:
+         • Typing "mum" shows 2 city suggestions
+         • Mumbai suggestion found in dropdown
+         • Clicking suggestion fills field with "Mumbai"
+         • Dropdown closes after selection
+      
+      ALL 10 FLOWS TESTED:
+      1. ✅ HOME (/) - Hero "Premium print, delivered launch-ready", header, footer, category cards, scroll shadow
+      2. ✅ NAVIGATION - Nav links work, mobile hamburger toggles (390x844), auto-closes on route change
+      3. ✅ HEADER SEARCH - Routes to /products?q=card, search input syncs with ?q= param
+      4. ✅ PRODUCTS (/products) - Sort dropdown, category chips, product grid (49 products)
+      5. ✅ PRODUCT DETAIL (/products/classic-card) - Gallery, add to cart (0→3), sessionStorage persistence
+      6. ✅ CART (/cart) - Line items, order summary, 2 seeded addresses (Aarav Sharma Default, Riya Mehta),
+         "Add new address" opens form with 8 inputs, CityAutocomplete working, form submission creates
+         new address (Priya Sharma), edit pre-fills form, cancel hides form, payment options (COD/UPI/Card)
+      7. ✅ LOGIN (/login) - Split-screen, social auth buttons, phone input, OTP button logic working
+      8. ✅ REGISTER (/register) - Split-screen, register copy, 3 highlights
+      9. ✅ ACCOUNT (/account) - Protected route redirects to /login
+      10. ✅ FOOTER - Footer present on all pages
+      
+      CONSOLE STATUS:
+      • Zero critical JavaScript errors ✅
+      • Zero React runtime errors ✅
+      • Zero console warnings ✅
+      • Only expected /api 404s and Firebase warnings (Express backend not running)
+      
+      CONCLUSION:
+      The third round of code-quality refactoring is SUCCESSFUL. All refactored components
+      (AppHeader sub-components, PhoneEntryStep, OtpVerifyStep, AddressContactFields,
+      AddressLocationFields) and hooks (useScrolled, useHeaderSearch, useMobileMenu,
+      usePhoneOtpFlow, useAddressBook, useAddressForm) work correctly. sessionStorage
+      migration for cart items successful. No regressions detected. The app is production-ready.

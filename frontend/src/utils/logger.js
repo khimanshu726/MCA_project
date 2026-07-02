@@ -1,21 +1,31 @@
 /**
- * Small dev-only logger utility. In production builds these become no-ops so
- * we never leak debug information to end users.
+ * Small dev-only logger utility. In production builds the logging functions
+ * become no-ops so we never leak debug information to end users.
+ *
+ * Vite replaces `import.meta.env.DEV` with a literal `false` for production
+ * builds, allowing the bundler to tree-shake the console calls out entirely.
  */
 
-const isDevEnvironment = () => {
+const IS_DEV = (() => {
   try {
     return Boolean(import.meta.env?.DEV);
   } catch {
     return false;
   }
+})();
+
+const noop = () => undefined;
+const nativeConsole = typeof console !== "undefined" ? console : null;
+
+const bind = (method) => {
+  if (!IS_DEV || !nativeConsole || typeof nativeConsole[method] !== "function") {
+    return noop;
+  }
+  return nativeConsole[method].bind(nativeConsole);
 };
 
-const forwardIfDev = (method, args) => {
-  if (!isDevEnvironment()) return;
-  console[method](...args);
-};
+const devLog = bind("log");
+const devWarn = bind("warn");
+const devError = bind("error");
 
-export const devLog = (...args) => forwardIfDev("log", args);
-export const devWarn = (...args) => forwardIfDev("warn", args);
-export const devError = (...args) => forwardIfDev("error", args);
+export { devLog, devWarn, devError };
