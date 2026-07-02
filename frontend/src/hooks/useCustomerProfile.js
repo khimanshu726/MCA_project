@@ -1,29 +1,33 @@
 import { fetchCustomerProfile } from "../lib/api";
 
+const PROVIDER_ID_MAP = {
+  "google.com": "google",
+  "facebook.com": "facebook",
+  "phone": "mobile",
+};
+
+function resolveProviderLabel(user) {
+  const primaryProviderId = user.providerData?.[0]?.providerId || user.providerId || "";
+  return PROVIDER_ID_MAP[primaryProviderId] || "firebase";
+}
+
+function stripCountryCode(phoneNumber) {
+  if (!phoneNumber) return "";
+  return phoneNumber.replace(/^\+91/, "");
+}
+
 /**
  * Profile fetching + Firebase user fallback mapper.
  * Extracted from UserAuthContext to reduce complexity there.
  */
 export function mapFirebaseUserFallback(user) {
-  if (!user) {
-    return null;
-  }
-
-  const primaryProviderId = user.providerData?.[0]?.providerId || user.providerId || "";
-  const provider =
-    primaryProviderId === "google.com"
-      ? "google"
-      : primaryProviderId === "facebook.com"
-        ? "facebook"
-        : primaryProviderId === "phone"
-          ? "mobile"
-          : "firebase";
+  if (!user) return null;
 
   return {
     id: user.uid,
     email: user.email || "",
-    mobile: user.phoneNumber ? user.phoneNumber.replace(/^\+91/, "") : "",
-    provider,
+    mobile: stripCountryCode(user.phoneNumber),
+    provider: resolveProviderLabel(user),
     profileImage: user.photoURL || "",
     role: "customer",
     createdAt: user.metadata?.creationTime || "",

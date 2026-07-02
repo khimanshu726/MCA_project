@@ -3,11 +3,24 @@ import { RecaptchaVerifier } from "firebase/auth";
 import { ensureFirebaseAuth } from "../lib/firebase";
 import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrors";
 import { normalizeMobileInput } from "../utils/authDetection";
+import { devError } from "../utils/logger";
 import { serializeFirebaseError, toE164IndianNumber } from "../utils/phoneValidation";
 import { useOtpTimer } from "../hooks/useOtpTimer";
 import InputField from "./InputField";
 
 const OTP_RESEND_SECONDS = 30;
+
+const resolveSendOtpLabel = (isSendingOtp, isOtpStep) => {
+  if (isSendingOtp) return "Sending OTP...";
+  if (isOtpStep) return "Send OTP Again";
+  return "Send OTP";
+};
+
+const resolveVerifyOtpLabel = (isVerifyingOtp, mode) => {
+  if (isVerifyingOtp) return "Verifying...";
+  if (mode === "register") return "Create account with OTP";
+  return "Verify OTP";
+};
 
 function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, isConfigured = true }) {
   const recaptchaContainerId = `${mode}-phone-recaptcha`;
@@ -79,7 +92,7 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
       setMessage(`OTP sent to ${phoneNumber}. Standard SMS rates may apply.`);
       startResendTimer(OTP_RESEND_SECONDS);
     } catch (submitError) {
-      console.error(`[Phone OTP] send failed ${JSON.stringify(serializeFirebaseError(submitError))}`);
+      devError(`[Phone OTP] send failed`, serializeFirebaseError(submitError));
       setError(getFirebaseAuthErrorMessage(submitError));
       await resetRecaptcha();
     } finally {
@@ -101,7 +114,7 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
     try {
       await onVerifyOtp(confirmationResult, otpCode.trim());
     } catch (submitError) {
-      console.error(`[Phone OTP] verify failed ${JSON.stringify(serializeFirebaseError(submitError))}`);
+      devError(`[Phone OTP] verify failed`, serializeFirebaseError(submitError));
       setError(getFirebaseAuthErrorMessage(submitError));
     } finally {
       setIsVerifyingOtp(false);
@@ -149,7 +162,7 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
         </InputField>
 
         <button type="button" className="auth-submit-button" onClick={handleSendOtp} disabled={!canSendOtp}>
-          {isSendingOtp ? "Sending OTP..." : isOtpStep ? "Send OTP Again" : "Send OTP"}
+          {resolveSendOtpLabel(isSendingOtp, isOtpStep)}
         </button>
       </div>
 
@@ -177,7 +190,7 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
 
           <div className="auth-otp-actions">
             <button type="submit" className="auth-submit-button" disabled={!canVerifyOtp}>
-              {isVerifyingOtp ? "Verifying..." : mode === "register" ? "Create account with OTP" : "Verify OTP"}
+              {resolveVerifyOtpLabel(isVerifyingOtp, mode)}
             </button>
             <button
               type="button"

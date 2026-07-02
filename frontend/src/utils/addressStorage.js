@@ -8,8 +8,14 @@
  * required, addresses should be fetched from the authenticated `/api` endpoint.
  */
 
+import { devWarn } from "./logger";
+
 const ADDRESS_STORAGE_KEY = "elite-empressions-saved-addresses";
 const SELECTED_ADDRESS_STORAGE_KEY = "elite-empressions-selected-address-id";
+
+const logStorageWarning = (context, error) => {
+  devWarn(`[addressStorage] ${context}`, error?.message || error);
+};
 
 const initialSavedAddresses = [
   {
@@ -42,7 +48,8 @@ const safeSessionStorage = () => {
   if (typeof window === "undefined") return null;
   try {
     return window.sessionStorage;
-  } catch {
+  } catch (error) {
+    logStorageWarning("sessionStorage inaccessible", error);
     return null;
   }
 };
@@ -58,7 +65,8 @@ export function loadSavedAddresses() {
     const parsedValue = JSON.parse(rawValue);
     if (!Array.isArray(parsedValue)) return initialSavedAddresses;
     return parsedValue.length > 0 ? parsedValue : [];
-  } catch {
+  } catch (error) {
+    logStorageWarning("Failed to parse saved addresses", error);
     return initialSavedAddresses;
   }
 }
@@ -68,8 +76,9 @@ export function persistSavedAddresses(addresses) {
   if (!store) return;
   try {
     store.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(addresses));
-  } catch {
-    /* storage may be full or blocked; safe to ignore for UX cache */
+  } catch (error) {
+    // Storage may be full or blocked; the UI still works from memory.
+    logStorageWarning("Failed to persist saved addresses", error);
   }
 }
 
@@ -84,7 +93,8 @@ export function loadSelectedAddressId(addresses) {
       return storedId;
     }
     return fallback;
-  } catch {
+  } catch (error) {
+    logStorageWarning("Failed to read selected address id", error);
     return fallback;
   }
 }
@@ -98,8 +108,8 @@ export function persistSelectedAddressId(id) {
     } else {
       store.removeItem(SELECTED_ADDRESS_STORAGE_KEY);
     }
-  } catch {
-    /* ignore */
+  } catch (error) {
+    logStorageWarning("Failed to persist selected address id", error);
   }
 }
 

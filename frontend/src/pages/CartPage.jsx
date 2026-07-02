@@ -7,7 +7,9 @@ import OrderSummary from "../components/OrderSummary";
 import PaymentSelector from "../components/PaymentSelector";
 import { useCart } from "../context/CartContext";
 import { useUserAuth } from "../context/UserAuthContext";
+import { useToast } from "../hooks/useToast";
 import { createOrder, createRazorpayOrder, verifyRazorpayPayment } from "../lib/api";
+import { buildOrderFormData, loadRazorpayScript } from "../utils/checkout";
 import { validateCheckoutFile } from "../utils/orderValidation";
 
 const orderCurrency = new Intl.NumberFormat("en-IN", {
@@ -18,77 +20,75 @@ const orderCurrency = new Intl.NumberFormat("en-IN", {
 
 const formatMoney = (value) => orderCurrency.format(value || 0);
 
-const loadRazorpayScript = () =>
-  new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
+const RAZORPAY_THEME_COLOR = "#3b82f6";
+const SHIPPING_FEE = 120;
+
+const emptyAddressState = {
+  selectedAddress: null,
+  effectiveAddress: null,
+  selectedAddressErrors: {},
+  hasErrors: false,
+  openForm: () => undefined,
+};
+
+const resolvePlaceOrderReason = ({
+  isPlacingOrder,
+  cartItems,
+  effectiveAddress,
+  selectedAddressErrors,
+}) => {
+  if (isPlacingOrder) return "Processing your order...";
+  if (cartItems.length === 0) return "Add at least one product to continue.";
+  if (!effectiveAddress) return "Add delivery details to continue.";
+  const firstError = Object.values(selectedAddressErrors).find((value) => value);
+  return firstError || "";
+};
 
 function CartPage() {
   const navigate = useNavigate();
   const { cartItems, clearCart, removeFromCart, updateQuantity } = useCart();
   const { isAuthenticated, user, token } = useUserAuth();
+  const { toast, pushToast } = useToast();
 
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [addressState, setAddressState] = useState({
-    selectedAddress: null,
-    effectiveAddress: null,
-    selectedAddressErrors: {},
-    hasErrors: false,
-    openForm: () => undefined,
-  });
+  const [addressState, setAddressState] = useState(emptyAddressState);
   const [customInstructions, setCustomInstructions] = useState("");
   const [designFile, setDesignFile] = useState(null);
   const [fileError, setFileError] = useState("");
   const [orderMessage, setOrderMessage] = useState("");
   const [orderReceipt, setOrderReceipt] = useState(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [toast, setToast] = useState(null);
 
   const subtotal = useMemo(
     () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
     [cartItems],
   );
-  const shipping = cartItems.length > 0 ? 120 : 0;
+  const shipping = cartItems.length > 0 ? SHIPPING_FEE : 0;
   const total = subtotal + shipping;
 
-  const canPlaceOrder = useMemo(() => {
-    if (isPlacingOrder) return false;
-    if (!addressState.effectiveAddress) return false;
-    if (cartItems.length === 0) return false;
-    if (addressState.hasErrors) return false;
-    return true;
-  }, [addressState.effectiveAddress, addressState.hasErrors, cartItems.length, isPlacingOrder]);
+  const canPlaceOrder =
+    !isPlacingOrder &&
+    Boolean(addressState.effectiveAddress) &&
+    cartItems.length > 0 &&
+    !addressState.hasErrors;
 
-  const placeOrderDisabledReason = useMemo(() => {
-    if (isPlacingOrder) return "Processing your order...";
-    if (cartItems.length === 0) return "Add at least one product to continue.";
-    if (!addressState.effectiveAddress) return "Add delivery details to continue.";
-    const firstError = Object.values(addressState.selectedAddressErrors).find((value) => value);
-    return firstError || "";
-  }, [
-    addressState.effectiveAddress,
-    addressState.selectedAddressErrors,
-    cartItems.length,
-    isPlacingOrder,
-  ]);
+  const placeOrderDisabledReason = useMemo(
+    () =>
+      resolvePlaceOrderReason({
+        isPlacingOrder,
+        cartItems,
+        effectiveAddress: addressState.effectiveAddress,
+        selectedAddressErrors: addressState.selectedAddressErrors,
+      }),
+    [
+      isPlacingOrder,
+      cartItems,
+      addressState.effectiveAddress,
+      addressState.selectedAddressErrors,
+    ],
+  );
 
-  const pushToast = useCallback((nextToast) => {
-    setToast(nextToast);
-    window.clearTimeout(pushToast._timer);
-    pushToast._timer = window.setTimeout(() => setToast(null), 3200);
-  }, []);
-
-  const handleAddressChange = useCallback((next) => {
-    setAddressState(next);
-  }, []);
+  const handleAddressChange = useCallback((next) => setAddressState(next), []);
 
   const handleFileChange = (event) => {
     const nextFile = event.target.files?.[0] ?? null;
@@ -99,37 +99,18 @@ function CartPage() {
     setOrderReceipt(null);
   };
 
-  const buildOrderFormData = (effectiveAddress) => {
-    const formData = new FormData();
-    formData.append("customerName", effectiveAddress.fullName);
-    formData.append("phone", effectiveAddress.phoneNumber);
-    formData.append("email", effectiveAddress.email);
-    formData.append("streetAddress", effectiveAddress.address);
-    formData.append("landmark", effectiveAddress.landmark || "");
-    formData.append("city", effectiveAddress.city);
-    formData.append("state", effectiveAddress.state);
-    formData.append("pincode", effectiveAddress.postalCode);
-    formData.append("paymentMethod", paymentMethod);
-    formData.append("shippingCharge", String(shipping));
-    formData.append("customInstructions", customInstructions);
-    formData.append(
-      "lineItems",
-      JSON.stringify(
-        cartItems.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          customizationText: item.customizationText || "",
-        })),
-      ),
-    );
-
-    if (designFile) formData.append("designFile", designFile);
-    return formData;
+  const finalizeCodOrder = (order) => {
+    setOrderReceipt(order);
+    setOrderMessage(`Order ${order.orderId} was placed successfully.`);
+    pushToast({ type: "success", message: "Order placed successfully." });
+    setCustomInstructions("");
+    setDesignFile(null);
+    setFileError("");
+    clearCart();
+    navigate("/order-success", { replace: true, state: { order } });
   };
 
-  const runRazorpayFlow = async (response, effectiveAddress) => {
+  const openRazorpayCheckout = async (response, effectiveAddress) => {
     const scriptLoaded = await loadRazorpayScript();
     if (!scriptLoaded) {
       setOrderMessage("Failed to load payment gateway. Please try again.");
@@ -160,8 +141,9 @@ function CartPage() {
           clearCart();
           navigate("/order-success", { replace: true, state: { order: verifyData.order } });
         } catch (err) {
-          setOrderMessage(err.message || "Server error during payment verification.");
-          pushToast({ type: "error", message: err.message || "Payment verification failed." });
+          const message = err.message || "Server error during payment verification.";
+          setOrderMessage(message);
+          pushToast({ type: "error", message });
         }
       },
       prefill: {
@@ -169,7 +151,7 @@ function CartPage() {
         email: effectiveAddress.email,
         contact: effectiveAddress.phoneNumber,
       },
-      theme: { color: "#3b82f6" },
+      theme: { color: RAZORPAY_THEME_COLOR },
     };
 
     const razorpayInstance = new window.Razorpay(options);
@@ -185,39 +167,51 @@ function CartPage() {
     setFileError("");
   };
 
-  const handlePlaceOrder = async () => {
+  const validateBeforePlacingOrder = () => {
     const effectiveAddress = addressState.effectiveAddress;
 
     if (!effectiveAddress) {
       setOrderMessage("Select or add a delivery address before placing the order.");
       addressState.openForm();
-      return;
+      return null;
     }
-
     if (cartItems.length === 0) {
       setOrderMessage("Add at least one product before placing an order.");
-      return;
+      return null;
     }
-
     if (addressState.hasErrors) {
       setOrderMessage("Please correct the selected delivery address before placing the order.");
       pushToast({ type: "error", message: "Delivery details are incomplete." });
-      return;
+      return null;
     }
 
     const nextFileError = validateCheckoutFile(designFile);
     if (nextFileError) {
       setFileError(nextFileError);
       setOrderMessage("Please correct the design file before placing the order.");
-      return;
+      return null;
     }
+
+    return effectiveAddress;
+  };
+
+  const handlePlaceOrder = async () => {
+    const effectiveAddress = validateBeforePlacingOrder();
+    if (!effectiveAddress) return;
 
     setIsPlacingOrder(true);
     setOrderMessage("");
     setOrderReceipt(null);
 
     try {
-      const formData = buildOrderFormData(effectiveAddress);
+      const formData = buildOrderFormData({
+        effectiveAddress,
+        paymentMethod,
+        shipping,
+        customInstructions,
+        cartItems,
+        designFile,
+      });
       const orderToken = isAuthenticated && token ? token : null;
 
       const response =
@@ -226,18 +220,11 @@ function CartPage() {
           : await createRazorpayOrder(formData, orderToken);
 
       if (response.order.paymentMethod !== "cod" && response.order.razorpayOrderId) {
-        await runRazorpayFlow(response, effectiveAddress);
+        await openRazorpayCheckout(response, effectiveAddress);
         return;
       }
 
-      setOrderReceipt(response.order);
-      setOrderMessage(`Order ${response.order.orderId} was placed successfully.`);
-      pushToast({ type: "success", message: "Order placed successfully." });
-      setCustomInstructions("");
-      setDesignFile(null);
-      setFileError("");
-      clearCart();
-      navigate("/order-success", { replace: true, state: { order: response.order } });
+      finalizeCodOrder(response.order);
     } catch (submitError) {
       const errorMessage =
         submitError.payload?.message || submitError.message || "Unable to place the order.";

@@ -29,6 +29,12 @@ const buildHeaders = (headers, body, token) => {
   return nextHeaders;
 };
 
+const serializeRequestBody = (body) => {
+  if (!body) return undefined;
+  if (body instanceof FormData) return body;
+  return JSON.stringify(body);
+};
+
 const request = async (path, { method = "GET", body, headers, token } = {}) => {
   let response;
 
@@ -36,7 +42,7 @@ const request = async (path, { method = "GET", body, headers, token } = {}) => {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: buildHeaders(headers, body, token),
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+      body: serializeRequestBody(body),
     });
   } catch {
     const backendHint = API_BASE_URL.startsWith("http")

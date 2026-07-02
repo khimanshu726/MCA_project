@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchCustomerOrders } from "../lib/api";
+import { devError } from "../utils/logger";
 
 /**
  * Loads and manages customer orders for a given auth token.
@@ -22,7 +23,8 @@ export function useCustomerOrders(token) {
     try {
       const response = await fetchCustomerOrders(activeToken);
       setOrders(response.orders || []);
-    } catch (err) {
+    } catch (fetchError) {
+      devError("[useCustomerOrders] failed to load orders", fetchError);
       setError("Failed to load your order history.");
     } finally {
       setIsLoading(false);
