@@ -16,7 +16,8 @@ const errorMessages = {
   "auth/invalid-verification-code": "The OTP you entered is invalid. Check the code and try again.",
   "auth/missing-phone-number": "Enter your mobile number before requesting an OTP.",
   "auth/missing-verification-code": "Enter the OTP sent to your phone.",
-  "auth/operation-not-allowed": "This sign-in method is not enabled yet. Please try another option.",
+  "auth/operation-not-allowed":
+    "Email/password sign-up is disabled in Firebase. Enable the Email/Password provider in Firebase Authentication, then try again.",
   "auth/network-request-failed": "Network request failed. Check your connection and try again.",
   "auth/popup-blocked": "Your browser blocked the sign-in popup. Allow popups and try again.",
   "auth/popup-closed-by-user": "The sign-in popup was closed before authentication finished.",
