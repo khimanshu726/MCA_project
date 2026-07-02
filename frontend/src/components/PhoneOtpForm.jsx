@@ -1,29 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { RecaptchaVerifier } from "firebase/auth";
 import { ensureFirebaseAuth } from "../lib/firebase";
 import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrors";
 import { normalizeMobileInput } from "../utils/authDetection";
+import { serializeFirebaseError, toE164IndianNumber } from "../utils/phoneValidation";
+import { useOtpTimer } from "../hooks/useOtpTimer";
 import InputField from "./InputField";
 
 const OTP_RESEND_SECONDS = 30;
-
-const serializeFirebaseError = (error) => ({
-  name: error?.name || "",
-  code: error?.code || "",
-  message: error?.message || "",
-  customData: error?.customData || null,
-  stack: error?.stack || "",
-});
-
-const toE164IndianNumber = (value) => {
-  const digits = normalizeMobileInput(value);
-
-  if (digits.length !== 10) {
-    return "";
-  }
-
-  return `+91${digits}`;
-};
 
 function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, isConfigured = true }) {
   const recaptchaContainerId = `${mode}-phone-recaptcha`;
@@ -36,49 +20,28 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [resendSeconds, setResendSeconds] = useState(0);
+  const { seconds: resendSeconds, start: startResendTimer } = useOtpTimer(0);
 
   const isOtpStep = Boolean(confirmationResult);
+
   const canSendOtp = useMemo(
     () => isConfigured && !isBusy && !isSendingOtp && normalizeMobileInput(mobile).length === 10,
     [isBusy, isConfigured, isSendingOtp, mobile],
   );
+
   const canVerifyOtp = useMemo(
     () => isConfigured && !isBusy && !isVerifyingOtp && isOtpStep && otpCode.trim().length === 6,
     [isBusy, isConfigured, isOtpStep, isVerifyingOtp, otpCode],
   );
 
-  useEffect(() => {
-    if (resendSeconds <= 0) {
-      return undefined;
-    }
-
-    const timer = window.setTimeout(() => {
-      setResendSeconds((currentSeconds) => Math.max(0, currentSeconds - 1));
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [resendSeconds]);
-
-  useEffect(() => {
-    return () => {
-      verifierRef.current?.clear();
-      verifierRef.current = null;
-    };
-  }, []);
-
   const getVerifier = async () => {
-    if (verifierRef.current) {
-      return verifierRef.current;
-    }
+    if (verifierRef.current) return verifierRef.current;
 
     const auth = ensureFirebaseAuth();
     const verifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
       size: "invisible",
       callback: () => undefined,
-      "expired-callback": () => {
-        setMessage("The verification session expired. Request a new OTP.");
-      },
+      "expired-callback": () => setMessage("The verification session expired. Request a new OTP."),
     });
 
     widgetIdRef.current = await verifier.render();
@@ -92,7 +55,6 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
       window.grecaptcha.reset(widgetId);
       return;
     }
-
     if (verifierRef.current) {
       widgetIdRef.current = await verifierRef.current.render();
     }
@@ -110,13 +72,12 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
     }
 
     setIsSendingOtp(true);
-
     try {
       const verifier = await getVerifier();
       const result = await onSendOtp(phoneNumber, verifier);
       setConfirmationResult(result);
       setMessage(`OTP sent to ${phoneNumber}. Standard SMS rates may apply.`);
-      setResendSeconds(OTP_RESEND_SECONDS);
+      startResendTimer(OTP_RESEND_SECONDS);
     } catch (submitError) {
       console.error(`[Phone OTP] send failed ${JSON.stringify(serializeFirebaseError(submitError))}`);
       setError(getFirebaseAuthErrorMessage(submitError));
@@ -137,7 +98,6 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
     }
 
     setIsVerifyingOtp(true);
-
     try {
       await onVerifyOtp(confirmationResult, otpCode.trim());
     } catch (submitError) {
@@ -149,19 +109,25 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
   };
 
   const handleResendOtp = async () => {
-    if (resendSeconds > 0 || isSendingOtp) {
-      return;
-    }
-
+    if (resendSeconds > 0 || isSendingOtp) return;
     setConfirmationResult(null);
     await handleSendOtp();
   };
 
+  const handleMobileChange = (event) => {
+    setMobile(normalizeMobileInput(event.target.value));
+    setError("");
+    setMessage("");
+  };
+
+  const handleOtpChange = (event) => {
+    setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+    setError("");
+  };
+
   return (
     <div className="auth-phone-panel">
-      <div className="auth-divider">
-        <span>or use your mobile number</span>
-      </div>
+      <div className="auth-divider"><span>or use your mobile number</span></div>
 
       <div className="auth-phone-grid">
         <InputField
@@ -177,11 +143,7 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
             autoComplete="tel"
             placeholder="9876543210"
             value={mobile}
-            onChange={(event) => {
-              setMobile(normalizeMobileInput(event.target.value));
-              setError("");
-              setMessage("");
-            }}
+            onChange={handleMobileChange}
             disabled={isBusy || isSendingOtp || isVerifyingOtp}
           />
         </InputField>
@@ -208,10 +170,7 @@ function PhoneOtpForm({ mode = "login", onSendOtp, onVerifyOtp, isBusy = false, 
               autoComplete="one-time-code"
               placeholder="Enter OTP"
               value={otpCode}
-              onChange={(event) => {
-                setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6));
-                setError("");
-              }}
+              onChange={handleOtpChange}
               disabled={isBusy || isVerifyingOtp}
             />
           </InputField>

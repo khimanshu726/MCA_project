@@ -1,35 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { onIdTokenChanged, signInWithPhoneNumber, signOut as firebaseSignOut } from "firebase/auth";
 import { fetchCustomerProfile } from "../lib/api";
 import { ensureFirebaseAuth, ensureFirebasePersistence, firebaseAuth } from "../lib/firebase";
+import { loadCustomerProfile, mapFirebaseUserFallback } from "../hooks/useCustomerProfile";
 
 const UserAuthContext = createContext(null);
-
-const mapFirebaseUserFallback = (user) => {
-  if (!user) {
-    return null;
-  }
-
-  const primaryProviderId = user.providerData?.[0]?.providerId || user.providerId || "";
-  const provider =
-    primaryProviderId === "google.com"
-      ? "google"
-      : primaryProviderId === "facebook.com"
-        ? "facebook"
-        : primaryProviderId === "phone"
-          ? "mobile"
-          : "firebase";
-
-  return {
-    id: user.uid,
-    email: user.email || "",
-    mobile: user.phoneNumber ? user.phoneNumber.replace(/^\+91/, "") : "",
-    provider,
-    profileImage: user.photoURL || "",
-    role: "customer",
-    createdAt: user.metadata?.creationTime || "",
-  };
-};
 
 function UserAuthProvider({ children }) {
   const [token, setToken] = useState("");
@@ -41,52 +16,34 @@ function UserAuthProvider({ children }) {
     let isActive = true;
     let unsubscribe = () => undefined;
 
+    const handleAuthChange = async (nextUser) => {
+      if (!isActive) return;
+
+      if (!nextUser) {
+        setAuthUser(null);
+        setUser(null);
+        setToken("");
+        setIsLoading(false);
+        return;
+      }
+
+      setAuthUser(nextUser);
+      try {
+        const { user: profileUser, token: profileToken } = await loadCustomerProfile(nextUser);
+        if (!isActive) return;
+        setUser(profileUser);
+        setToken(profileToken);
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    };
+
     const setupAuth = async () => {
       try {
         const auth = await ensureFirebasePersistence();
-
-        unsubscribe = onIdTokenChanged(auth, async (nextUser) => {
-          if (!isActive) {
-            return;
-          }
-
-          if (!nextUser) {
-            setAuthUser(null);
-            setUser(null);
-            setToken("");
-            setIsLoading(false);
-            return;
-          }
-
-          setAuthUser(nextUser);
-
-          try {
-            const nextToken = await nextUser.getIdToken();
-            setToken(nextToken);
-            setUser(mapFirebaseUserFallback(nextUser));
-
-            const profileResponse = await fetchCustomerProfile(nextToken);
-            if (!isActive) {
-              return;
-            }
-
-            setUser(profileResponse.user || mapFirebaseUserFallback(nextUser));
-          } catch {
-            if (!isActive) {
-              return;
-            }
-
-            setUser(mapFirebaseUserFallback(nextUser));
-          } finally {
-            if (isActive) {
-              setIsLoading(false);
-            }
-          }
-        });
+        unsubscribe = onIdTokenChanged(auth, handleAuthChange);
       } catch {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       }
     };
 
@@ -98,7 +55,7 @@ function UserAuthProvider({ children }) {
     };
   }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     const auth = ensureFirebaseAuth();
     const currentUser = auth.currentUser;
 
@@ -111,22 +68,23 @@ function UserAuthProvider({ children }) {
     const nextToken = await currentUser.getIdToken(true);
     setToken(nextToken);
     const response = await fetchCustomerProfile(nextToken);
-    setUser(response.user || mapFirebaseUserFallback(currentUser));
-    return response.user || mapFirebaseUserFallback(currentUser);
-  };
+    const resolvedUser = response.user || mapFirebaseUserFallback(currentUser);
+    setUser(resolvedUser);
+    return resolvedUser;
+  }, []);
 
-  const signInWithPhoneOtp = async (phoneNumber, verifier) => {
+  const signInWithPhoneOtp = useCallback(async (phoneNumber, verifier) => {
     const auth = ensureFirebaseAuth();
     return signInWithPhoneNumber(auth, phoneNumber, verifier);
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const auth = ensureFirebaseAuth();
     await firebaseSignOut(auth);
     setAuthUser(null);
     setUser(null);
     setToken("");
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -140,7 +98,7 @@ function UserAuthProvider({ children }) {
       signInWithPhoneOtp,
       signOut,
     }),
-    [authUser, isLoading, token, user],
+    [authUser, isLoading, refreshProfile, signInWithPhoneOtp, signOut, token, user],
   );
 
   return <UserAuthContext.Provider value={value}>{children}</UserAuthContext.Provider>;

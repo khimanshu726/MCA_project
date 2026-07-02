@@ -1,9 +1,15 @@
+import { useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useUserAuth } from "../context/UserAuthContext";
 
 function ProtectedRoute({ children }) {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useUserAuth();
+
+  const navigationState = useMemo(
+    () => ({ from: `${location.pathname}${location.search}` }),
+    [location.pathname, location.search],
+  );
 
   if (isLoading) {
     return (
@@ -20,7 +26,7 @@ function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+    return <Navigate to="/login" replace state={navigationState} />;
   }
 
   return children;
