@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#18283d"/>
+  <line x1="180" y1="70" x2="180" y2="144" stroke="#f8efe2" stroke-width="8"/>
+  <line x1="620" y1="70" x2="620" y2="144" stroke="#f8efe2" stroke-width="8"/>
+  <rect x="140" y="144" width="520" height="240" rx="26" fill="#4fd8c5"/>
+  <text x="256" y="280" fill="#163047" font-size="52" font-family="Arial, sans-serif" font-weight="700">NOW OPEN</text>
+</svg>

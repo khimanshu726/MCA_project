@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#132132"/>
+  <rect x="220" y="175" width="360" height="180" rx="24" fill="#ef7d4c"/>
+  <rect x="260" y="195" width="280" height="140" rx="18" fill="#f8efe2"/>
+  <text x="305" y="278" fill="#183149" font-size="40" font-family="Arial, sans-serif" font-weight="700">MAILER</text>
+</svg>

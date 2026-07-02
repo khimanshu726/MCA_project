@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560">
+  <rect width="800" height="560" fill="#122033"/>
+  <rect x="148" y="142" width="504" height="236" rx="26" fill="#f8efe2"/>
+  <circle cx="180" cy="174" r="18" fill="#ff9456"/>
+  <circle cx="620" cy="174" r="18" fill="#ff9456"/>
+  <text x="256" y="278" fill="#183149" font-size="48" font-family="Arial, sans-serif" font-weight="700">VINYL PRINT</text>
+</svg>

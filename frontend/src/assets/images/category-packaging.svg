@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
+  <rect width="600" height="420" rx="28" fill="#122033"/>
+  <rect x="150" y="135" width="170" height="150" rx="16" fill="#f1d9b8"/>
+  <rect x="280" y="115" width="170" height="170" rx="16" fill="#ef7d4c"/>
+  <rect x="208" y="88" width="176" height="44" rx="12" fill="#fff4e6"/>
+  <text x="233" y="117" fill="#17324a" font-size="24" font-family="Arial, sans-serif" font-weight="700">BOX KIT</text>
+</svg>
