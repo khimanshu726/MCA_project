@@ -41,6 +41,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dump.rdb
+.runlogs/
+dev-full.stdout.log
+dev-full.stderr.log
 
 # System files
 .DS_Store
@@ -72,6 +75,8 @@ agenthub/agents/youtube/db
 *.pack
 *.deb
 *.dylib
+superpowers/
+uploads/
 
 # Build caches
 .cache/
