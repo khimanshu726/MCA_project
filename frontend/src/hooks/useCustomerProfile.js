@@ -25,7 +25,9 @@ export function mapFirebaseUserFallback(user) {
 
   return {
     id: user.uid,
+    displayName: user.displayName || "",
     email: user.email || "",
+    emailVerified: Boolean(user.emailVerified),
     mobile: stripCountryCode(user.phoneNumber),
     provider: resolveProviderLabel(user),
     profileImage: user.photoURL || "",

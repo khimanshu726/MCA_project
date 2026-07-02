@@ -67,8 +67,15 @@ function UserAuthProvider({ children }) {
 
     const nextToken = await currentUser.getIdToken(true);
     setToken(nextToken);
-    const response = await fetchCustomerProfile(nextToken);
-    const resolvedUser = response.user || mapFirebaseUserFallback(currentUser);
+    let resolvedUser = mapFirebaseUserFallback(currentUser);
+
+    try {
+      const response = await fetchCustomerProfile(nextToken);
+      resolvedUser = response.user || resolvedUser;
+    } catch {
+      resolvedUser = mapFirebaseUserFallback(currentUser);
+    }
+
     setUser(resolvedUser);
     return resolvedUser;
   }, []);

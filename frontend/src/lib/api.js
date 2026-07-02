@@ -1,14 +1,4 @@
-const resolveDefaultApiBaseUrl = () => {
-  if (import.meta.env.PROD) {
-    return "/api";
-  }
-
-  if (typeof window === "undefined") {
-    return "http://localhost:4000/api";
-  }
-
-  return `${window.location.protocol}//${window.location.hostname}:4000/api`;
-};
+const resolveDefaultApiBaseUrl = () => "/api";
 
 const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();
 

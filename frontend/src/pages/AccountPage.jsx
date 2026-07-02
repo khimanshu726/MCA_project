@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useCustomerOrders } from "../hooks/useCustomerOrders";
 import OrdersList from "../components/OrdersList";
@@ -11,16 +12,18 @@ const formatDate = (isoString) =>
   });
 
 const PROVIDER_LABELS = {
+  email: "Email & Password",
   mobile: "Phone Number",
   facebook: "Facebook",
   google: "Google",
 };
 
 function AccountPage() {
-  const { signOut, user, token } = useUserAuth();
+  const { authUser, refreshProfile, signOut, user, token } = useUserAuth();
   const { orders, isLoading, error } = useCustomerOrders(token);
 
-  const contactLabel = user?.email || user?.mobile || "Customer";
+  const accountName = user?.displayName || authUser?.displayName || user?.email || user?.mobile || "Customer";
+  const contactLabel = user?.email || authUser?.email || user?.mobile || "Customer";
   const joinedLabel = user?.createdAt ? formatDate(user.createdAt) : "";
   const loginMethodLabel = PROVIDER_LABELS[user?.provider] || "Firebase";
 
@@ -33,10 +36,16 @@ function AccountPage() {
           <p className="section-copy">Manage your profile and track all your previous orders natively.</p>
         </div>
 
+        <EmailVerificationBanner authUser={authUser} refreshProfile={refreshProfile} />
+
         <div className="account-grid">
           <div className="summary-card">
             <p className="eyebrow">Profile</p>
             <div className="account-detail-list">
+              <div className="summary-line">
+                <span>Account name</span>
+                <strong>{accountName}</strong>
+              </div>
               <div className="summary-line">
                 <span>Signed in as</span>
                 <strong>{contactLabel}</strong>

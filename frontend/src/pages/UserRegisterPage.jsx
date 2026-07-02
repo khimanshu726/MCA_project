@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import AuthSplitShell from "../components/AuthSplitShell";
-import CustomerAuthCard from "../components/CustomerAuthCard";
+import CustomerRegisterCard from "../components/CustomerRegisterCard";
 import { useUserAuth } from "../context/UserAuthContext";
 
 const REGISTER_HIGHLIGHTS = [
@@ -28,7 +28,7 @@ function UserRegisterPage() {
       leftCaption="Sign up to browse print products, save delivery details, and place personalized orders without starting from scratch every time."
       highlights={REGISTER_HIGHLIGHTS}
     >
-      <CustomerAuthCard mode="register" destination="/account" />
+      <CustomerRegisterCard destination="/account" />
       <div className="auth-footer-links">
         <Link to="/login">Already have an account?</Link>
       </div>
