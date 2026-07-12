@@ -1,7 +1,13 @@
 import { Link, Navigate } from "react-router-dom";
 import AuthSplitShell from "../components/AuthSplitShell";
-import CustomerAuthCard from "../components/CustomerAuthCard";
+import CustomerRegisterCard from "../components/CustomerRegisterCard";
 import { useUserAuth } from "../context/UserAuthContext";
+
+const REGISTER_HIGHLIGHTS = [
+  "Register with your email address or mobile number.",
+  "Save account details for repeat print orders and faster checkout.",
+  "Access custom products, uploads, and order-ready delivery flow anytime.",
+];
 
 function UserRegisterPage() {
   const { isAuthenticated, isLoading } = useUserAuth();
@@ -20,13 +26,9 @@ function UserRegisterPage() {
       promptLinkLabel="Login"
       leftHeadline="Everything you need for custom print ordering in one account."
       leftCaption="Sign up to browse print products, save delivery details, and place personalized orders without starting from scratch every time."
-      highlights={[
-        "Register with your email address or mobile number.",
-        "Save account details for repeat print orders and faster checkout.",
-        "Access custom products, uploads, and order-ready delivery flow anytime.",
-      ]}
+      highlights={REGISTER_HIGHLIGHTS}
     >
-      <CustomerAuthCard mode="register" destination="/account" />
+      <CustomerRegisterCard destination="/account" />
       <div className="auth-footer-links">
         <Link to="/login">Already have an account?</Link>
       </div>

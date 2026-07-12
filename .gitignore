@@ -9,6 +9,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.runlogs/
+dev-full.stdout.log
+dev-full.stderr.log
 
 .env
 .env.*
@@ -19,6 +22,7 @@ pnpm-debug.log*
 
 uploads/*
 !uploads/.gitkeep
+superpowers/
 
 __pycache__/
 *.pyc

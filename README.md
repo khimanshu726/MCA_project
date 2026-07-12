@@ -7,6 +7,8 @@ React + Vite storefront for a print shop with:
 - persistent cart with shared cart state
 - cart + checkout flow
 - saved delivery addresses with validation and city autocomplete
+- customer registration with Google sign-in and Firebase email/password sign-up
+- email verification, forgot password, and protected customer account routes
 - Express order API with uploads and order management
 - separate admin application for order management
 - RBAC-secured backend for admin and customer roles
@@ -57,6 +59,7 @@ Local defaults created automatically on first server start:
 - password: `EliteAdmin@123`
 
 Admin accounts are provisioned on the backend. Public self-service admin registration is intentionally disabled.
+Customer registration happens through Firebase Authentication with Google, phone OTP, and email/password flows.
 
 For mobile OTP login in local development, the mock OTP is returned in the API response and shown in the login helper text.
 

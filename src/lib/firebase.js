@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import {
   FacebookAuthProvider,
   GoogleAuthProvider,
@@ -6,6 +6,7 @@ import {
   getAuth,
   setPersistence,
 } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -22,11 +23,13 @@ const missingFirebaseMessage =
 
 let firebaseApp = null;
 let firebaseAuth = null;
+let firestoreDb = null;
 let authPersistencePromise = null;
 
 if (isFirebaseConfigured) {
-  firebaseApp = initializeApp(firebaseConfig);
+  firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
   firebaseAuth = getAuth(firebaseApp);
+  firestoreDb = getFirestore(firebaseApp);
   firebaseAuth.languageCode = "en";
 }
 
@@ -55,4 +58,4 @@ export const ensureFirebasePersistence = async () => {
   return auth;
 };
 
-export { firebaseApp, firebaseAuth, missingFirebaseMessage };
+export { firebaseApp, firebaseAuth, firestoreDb, missingFirebaseMessage };

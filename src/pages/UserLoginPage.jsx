@@ -1,6 +1,6 @@
 import { Link, Navigate, useLocation } from "react-router-dom";
 import AuthSplitShell from "../components/AuthSplitShell";
-import CustomerAuthCard from "../components/CustomerAuthCard";
+import CustomerLoginCard from "../components/CustomerLoginCard";
 import { useUserAuth } from "../context/UserAuthContext";
 
 function UserLoginPage() {
@@ -9,7 +9,7 @@ function UserLoginPage() {
   const destination = location.state?.from || "/account";
 
   if (!isLoading && isAuthenticated) {
-    return <Navigate to="/account" replace />;
+    return <Navigate to={destination} replace />;
   }
 
   return (
@@ -21,7 +21,7 @@ function UserLoginPage() {
       promptLinkTo="/register"
       promptLinkLabel="Create an account"
     >
-      <CustomerAuthCard mode="login" destination={destination} />
+      <CustomerLoginCard destination={destination} />
       <div className="auth-footer-links">
         <Link to="/register">Create new account</Link>
       </div>

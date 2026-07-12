@@ -30,6 +30,7 @@
     "firebase": "^12.15.0",
     "firebase-admin": "^14.1.0",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.23.0",
     "mongodb-memory-server": "^10.2.0",
     "mongoose": "^9.5.0",
     "multer": "^2.1.1",

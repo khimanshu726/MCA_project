@@ -1,14 +1,4 @@
-const resolveDefaultApiBaseUrl = () => {
-  if (import.meta.env.PROD) {
-    return "/api";
-  }
-
-  if (typeof window === "undefined") {
-    return "http://localhost:4000/api";
-  }
-
-  return `${window.location.protocol}//${window.location.hostname}:4000/api`;
-};
+const resolveDefaultApiBaseUrl = () => "/api";
 
 const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();
 
@@ -29,6 +19,12 @@ const buildHeaders = (headers, body, token) => {
   return nextHeaders;
 };
 
+const serializeRequestBody = (body) => {
+  if (!body) return undefined;
+  if (body instanceof FormData) return body;
+  return JSON.stringify(body);
+};
+
 const request = async (path, { method = "GET", body, headers, token } = {}) => {
   let response;
 
@@ -36,7 +32,7 @@ const request = async (path, { method = "GET", body, headers, token } = {}) => {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: buildHeaders(headers, body, token),
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+      body: serializeRequestBody(body),
     });
   } catch {
     const backendHint = API_BASE_URL.startsWith("http")
