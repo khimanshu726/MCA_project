@@ -17,7 +17,8 @@ function AuthSplitShell({
   promptLinkLabel,
   children,
   leftHeadline = "Maximum convenience for custom print orders",
-  leftCaption = "Elite Empressions helps customers log in quickly, manage their details, and move from product selection to checkout without extra friction.",
+  leftCaption =
+    "Elite Empressions helps customers log in quickly, manage their details, and move from product selection to checkout without extra friction.",
   highlights = defaultHighlights,
 }) {
   return (
@@ -27,7 +28,7 @@ function AuthSplitShell({
           <div className="auth-showcase-visual">
             <ResponsiveImage
               src={authIllustration}
-              alt="Illustration of a professional working at a desk with finance and productivity panels"
+              alt="Illustration of a professional working at a desk with business tools"
               className="auth-showcase-image"
               aspectClassName="ratio-card"
               priority
@@ -41,7 +42,7 @@ function AuthSplitShell({
               {highlights.map((item) => (
                 <li key={item}>
                   <span className="auth-benefit-icon" aria-hidden="true">
-                    ✓
+                    ?
                   </span>
                   <span>{item}</span>
                 </li>
@@ -57,7 +58,10 @@ function AuthSplitShell({
                 <span>Print storefront platform</span>
               </div>
             </div>
-            <p>Elite Empressions is built for smooth account access, saved customer details, and quick print ordering.</p>
+            <p>
+              Elite Empressions is built for smooth account access, saved customer details,
+              and quick print ordering.
+            </p>
           </div>
         </aside>
 

@@ -4,7 +4,12 @@ function CartItemRow({ item, onQuantityChange, onRemove, priceLabel = `$${item.p
   return (
     <article className="cart-item-row">
       <div className="cart-item-image">
-        <ResponsiveImage src={item.images[0]} alt={item.name} className="card-image" aspectClassName="ratio-square" />
+        <ResponsiveImage
+          src={item.images[0]}
+          alt={item.name}
+          className="card-image"
+          aspectClassName="ratio-square"
+        />
       </div>
 
       <div className="cart-item-copy">
@@ -14,12 +19,12 @@ function CartItemRow({ item, onQuantityChange, onRemove, priceLabel = `$${item.p
       </div>
 
       <div className="cart-item-controls">
-        <div className="quantity-stepper">
-          <button type="button" onClick={() => onQuantityChange(item.id, "decrement")}>
+        <div className="quantity-stepper" aria-label={`Quantity for ${item.name}`}>
+          <button type="button" onClick={() => onQuantityChange(item.id, "decrement")} aria-label={`Decrease quantity of ${item.name}`}>
             -
           </button>
           <span>{item.quantity}</span>
-          <button type="button" onClick={() => onQuantityChange(item.id, "increment")}>
+          <button type="button" onClick={() => onQuantityChange(item.id, "increment")} aria-label={`Increase quantity of ${item.name}`}>
             +
           </button>
         </div>

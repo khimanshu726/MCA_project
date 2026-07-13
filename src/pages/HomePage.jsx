@@ -16,19 +16,22 @@ const trustIcons = [Sparkles, Truck, ShieldCheck, Palette];
 
 const testimonials = [
   {
-    quote: "The finishing was flawless. Our cards arrived faster than expected and clients keep asking where we got them.",
+    quote:
+      "The finishing was flawless. Our cards arrived faster than expected and clients keep asking where we got them.",
     name: "Ananya Sharma",
     title: "Founder, Studio Marlow",
     initials: "AS",
   },
   {
-    quote: "Elite Empressions is our go-to for launch collateral. Consistent color, premium paper stocks, zero surprises.",
+    quote:
+      "Elite Empressions is our go-to for launch collateral. Consistent color, premium paper stocks, zero surprises.",
     name: "Rohan Patel",
     title: "Head of Brand, Firelane",
     initials: "RP",
   },
   {
-    quote: "The customization flow is genuinely fun. We put together a full merch drop in under an hour.",
+    quote:
+      "The customization flow is genuinely fun. We put together a full merch drop in under an hour.",
     name: "Priya Menon",
     title: "Creative Director, Lumo",
     initials: "PM",
@@ -38,98 +41,78 @@ const testimonials = [
 function HomePage() {
   return (
     <main className="page-stack">
-      {/* Hero */}
-      <section className="hero-section premium-hero">
-        <div className="hero-content">
-          <div className="hero-badge">✨ Premium Print Shop</div>
-          <h1>Transform Your Vision into Premium Print</h1>
-          <p className="hero-description">
-            From business cards to custom merchandise, create impactful print solutions with studio-grade quality,
-            fast turnaround, and a seamless customization experience designed for ambitious brands.
-          </p>
-
-          <div className="premium-features">
-            <div className="premium-feature">
-              <div className="feature-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-              </div>
-              <span>Studio Quality</span>
-            </div>
-            <div className="premium-feature">
-              <div className="feature-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 10c0 6-4 10-10 10S0 16 0 10 4 0 10 0s10 4 10 10z"/>
-                  <path d="M9 10l2 2 4-4"/>
-                </svg>
-              </div>
-              <span>Perfect Finish</span>
-            </div>
-            <div className="premium-feature">
-              <div className="feature-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-              </div>
-              <span>Fast Turnaround</span>
-            </div>
-          </div>
-
-          <div className="hero-actions">
-            <Link className="primary-button premium" to="/products">Shop Collection</Link>
-            <Link className="secondary-button premium" to="/customize">Customize Now</Link>
-          </div>
-        </div>
-
-        <div className="hero-visual">
-          <div className="hero-image-container">
-            <ResponsiveImage
-              src={homepageBanner.src}
-              alt={homepageBanner.alt}
-              className="hero-image premium"
-              aspectClassName="ratio-hero"
-              priority
-            />
-            <div className="hero-decoration">
-              <div className="decoration-line"></div>
-              <div className="decoration-dot"></div>
-              <div className="decoration-circle"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Trust Strip */}
-      <section className="trust-strip premium-trust" aria-label="Store highlights">
-        <div className="trust-grid">
-          {trustHighlights.map((item, index) => {
-            const Icon = trustIcons[index % trustIcons.length];
-            return (
-              <article key={item.title} className="trust-card premium">
-                <div className="trust-icon-wrapper">
-                  <span className="trust-icon" aria-hidden="true">
-                    <Icon size={22} strokeWidth={1.8} />
-                  </span>
-                </div>
-                <h3>{item.title}</h3>
-                <p>{item.detail}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="section-panel premium-section">
-        <div className="section-heading">
-          <p className="eyebrow">Shop Categories</p>
-          <h2>Explore Our Premium Collection</h2>
+      <section className="hero-section">
+        <div className="hero-copy">
+          <p className="eyebrow">Premium Print Shop</p>
+          <h2>Print products that feel launch-ready from the first click.</h2>
           <p className="section-copy">
-            Discover premium print products organized by category, each designed to elevate your brand presence.
+            Business cards, brochures, packaging, invitations, and custom gifts - designed to
+            feel premium, easy to customize, and fast to reorder.
+          </p>
+          <div className="hero-feature-row">
+            <span className="meta-pill">Studio quality finishes</span>
+            <span className="meta-pill">Bulk pricing for teams</span>
+            <span className="meta-pill">Production-ready checkout</span>
+          </div>
+          <div className="action-row">
+            <Link className="primary-button" to="/products">
+              Shop all products
+            </Link>
+            <Link className="secondary-button" to="/customize">
+              Start customizing
+            </Link>
+          </div>
+        </div>
+
+        <div className="hero-banner">
+          <ResponsiveImage
+            src={homepageBanner.src}
+            alt={homepageBanner.alt}
+            className="hero-image"
+            aspectClassName="ratio-banner"
+            priority
+          />
+        </div>
+      </section>
+
+      <section className="trust-strip" aria-label="Store highlights">
+        {trustHighlights.map((item, index) => {
+          const Icon = trustIcons[index % trustIcons.length];
+          return (
+            <article key={item.title} className="trust-card">
+              <span
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "var(--ink-100)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--ink-900)",
+                  marginBottom: "0.75rem",
+                }}
+                aria-hidden="true"
+              >
+                <Icon size={18} strokeWidth={1.7} />
+              </span>
+              <h3>{item.title}</h3>
+              <p>{item.detail}</p>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="section-panel">
+        <div className="section-heading">
+          <p className="eyebrow">Shop by category</p>
+          <h2>Browse the print products customers discover first.</h2>
+          <p className="section-copy">
+            Explore stationery, marketing materials, packaging, merchandise, event print, and
+            custom gifting from one organized catalog.
           </p>
         </div>
-        <div className="category-grid premium-grid">
+        <div className="category-grid">
           {categories.map((category) => (
             <ImageCard
               key={category.id}
@@ -138,93 +121,98 @@ function HomePage() {
               title={category.title}
               description={category.description}
               to={`/products/${category.productId}`}
-              className="premium-card"
             />
           ))}
         </div>
       </section>
 
-      {/* Popular products */}
-      <section className="section-panel premium-section">
-        <div className="section-heading premium-heading">
+      <section className="section-panel">
+        <div className="section-heading section-heading-row">
           <div>
-            <p className="eyebrow">Most Popular</p>
-            <h2>Customer Favorites</h2>
+            <p className="eyebrow">Popular now</p>
+            <h2>Best-selling essentials for brands and events.</h2>
           </div>
-          <Link className="secondary-button premium" to="/products">View All</Link>
+          <Link className="secondary-button" to="/products">
+            Explore full catalog
+          </Link>
         </div>
-        <div className="product-grid premium-grid">
+        <div className="product-grid">
           {popularProducts.map((product) => (
-            <ProductCard key={product.id} product={product} className="premium-card" />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
 
-      {/* Brand story */}
-      <section className="brand-story premium-brand">
-        <div className="brand-content">
+      <section className="brand-story">
+        <div>
           <p className="eyebrow">Why Elite Empressions</p>
-          <h2>Crafted for Brands That Care About Detail</h2>
-          <p className="brand-description">
-            We combine studio-grade printing with a modern ordering experience—so every card, box, and banner arrives
-            print-perfect. Trusted by studios, agencies, and independent brands across India.
+          <h2>Crafted for businesses that care about detail.</h2>
+          <p style={{ marginTop: "1rem", marginBottom: "1.75rem" }}>
+            We combine premium print execution with a cleaner digital ordering flow, so every
+            card, banner, invitation, and gift arrives ready to impress.
           </p>
-          <Link className="primary-button premium" to="/products">Browse the Catalog</Link>
+          <Link className="primary-button" to="/products">
+            Browse the catalog
+          </Link>
         </div>
-        <div className="brand-stats premium-stats">
-          <div className="brand-stat premium">
-            <div className="stat-value">12k+</div>
-            <div className="stat-label">Orders Shipped</div>
+        <div className="brand-stats">
+          <div className="brand-stat">
+            <strong>12k+</strong>
+            <span>Orders shipped</span>
           </div>
-          <div className="brand-stat premium">
-            <div className="stat-value">
-              4.9 <span className="star">★</span>
-            </div>
-            <div className="stat-label">Customer Rating</div>
+          <div className="brand-stat">
+            <strong>
+              4.9<span style={{ fontSize: "0.5em", color: "var(--gold)" }}> *</span>
+            </strong>
+            <span>Customer rating</span>
           </div>
-          <div className="brand-stat premium">
-            <div className="stat-value">72h</div>
-            <div className="stat-label">Rush Turnaround</div>
+          <div className="brand-stat">
+            <strong>72h</strong>
+            <span>Rush turnaround</span>
           </div>
-          <div className="brand-stat premium">
-            <div className="stat-value">100%</div>
-            <div className="stat-label">Reprint Guarantee</div>
+          <div className="brand-stat">
+            <strong>100%</strong>
+            <span>Reprint guarantee</span>
           </div>
         </div>
       </section>
 
-      {/* Essentials */}
-      <section className="essentials-grid premium-essentials" aria-label="Business essentials">
+      <section className="essentials-grid">
         {businessEssentials.map((item) => (
-          <article key={item.id} className="section-panel essentials-card premium-card">
-            <div className="essentials-badge">Business Essentials</div>
+          <article key={item.id} className="section-panel essentials-card">
+            <p className="eyebrow">Business essentials</p>
             <h2>{item.title}</h2>
             <p className="section-copy">{item.description}</p>
             <div className="action-row">
-              <Link className="primary-button premium" to={item.ctaTo}>{item.ctaLabel}</Link>
+              <Link className="primary-button" to={item.ctaTo}>
+                {item.ctaLabel}
+              </Link>
             </div>
           </article>
         ))}
       </section>
 
-      {/* Testimonials */}
-      <section className="section-panel premium-section premium-testimonials" aria-label="Customer testimonials">
+      <section className="section-panel">
         <div className="section-heading">
-          <p className="eyebrow">What They Say</p>
-          <h2>Trusted by Studios and Growing Brands</h2>
+          <p className="eyebrow">Customer feedback</p>
+          <h2>Trusted by studios, founders, and growing teams.</h2>
         </div>
-        <div className="testimonials-grid premium-grid">
-          {testimonials.map((t) => (
-            <article key={t.name} className="testimonial-card premium">
+        <div className="testimonials-grid">
+          {testimonials.map((testimonial) => (
+            <article key={testimonial.name} className="testimonial-card">
               <div className="testimonial-rating" aria-label="5 star rating">
-                {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={16} fill="currentColor" strokeWidth={0} />)}
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <Star key={index} size={14} fill="currentColor" strokeWidth={0} />
+                ))}
               </div>
-              <p className="testimonial-quote">“{t.quote}”</p>
-              <div className="testimonial-author premium">
-                <div className="testimonial-avatar premium">{t.initials}</div>
+              <p className="testimonial-quote">{testimonial.quote}</p>
+              <div className="testimonial-author">
+                <span className="testimonial-avatar" aria-hidden="true">
+                  {testimonial.initials}
+                </span>
                 <div>
-                  <strong>{t.name}</strong>
-                  <span className="testimonial-title">{t.title}</span>
+                  <strong>{testimonial.name}</strong>
+                  <span>{testimonial.title}</span>
                 </div>
               </div>
             </article>
@@ -232,18 +220,19 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Services */}
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">Ideas and services</p>
-          <h2>More than products—a starting point.</h2>
+          <h2>More than products - a practical starting point.</h2>
         </div>
         <div className="service-grid">
           {inspirationLinks.map((item) => (
             <article key={item.id} className="service-card">
               <h3>{item.title}</h3>
               <p>{item.description}</p>
-              <Link className="mini-link" to={item.to}>Open</Link>
+              <Link className="mini-link" to={item.to}>
+                Open
+              </Link>
             </article>
           ))}
         </div>

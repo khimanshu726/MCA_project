@@ -2,9 +2,15 @@ import { Link } from "react-router-dom";
 import AddToCartButton from "./AddToCartButton";
 import ResponsiveImage from "./ResponsiveImage";
 
-function ProductCard({ product }) {
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+function ProductCard({ product, className = "" }) {
   return (
-    <article className="product-card">
+    <article className={`product-card ${className}`.trim()}>
       <ResponsiveImage
         src={product.images[0]}
         alt={product.name}
@@ -25,7 +31,7 @@ function ProductCard({ product }) {
         <div className="product-card-footer">
           <div className="product-price-block">
             <span>Starting at</span>
-            <strong>${product.price}</strong>
+            <strong>{currencyFormatter.format(product.price)}</strong>
           </div>
           <div className="card-actions-inline">
             <AddToCartButton product={product} className="mini-link mini-button" />

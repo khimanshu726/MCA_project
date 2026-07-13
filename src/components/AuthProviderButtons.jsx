@@ -8,7 +8,7 @@ function AuthProviderButtons({
 }) {
   return (
     <div className="auth-provider-stack">
-      <button type="button" className="auth-provider-button" onClick={onGoogle} disabled={isBusy}>
+      <button type="button" className="auth-provider-button google-provider" onClick={onGoogle} disabled={isBusy}>
         <span className="auth-provider-logo auth-provider-google" aria-hidden="true">
           G
         </span>
@@ -16,7 +16,7 @@ function AuthProviderButtons({
       </button>
 
       {showFacebook ? (
-        <button type="button" className="auth-provider-button" onClick={onFacebook} disabled={isBusy}>
+        <button type="button" className="auth-provider-button facebook-provider" onClick={onFacebook} disabled={isBusy}>
           <span className="auth-provider-logo auth-provider-facebook" aria-hidden="true">
             f
           </span>

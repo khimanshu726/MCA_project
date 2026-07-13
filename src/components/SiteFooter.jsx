@@ -46,7 +46,10 @@ function SiteFooter() {
       <div className="footer-grid">
         <div className="footer-brand">
           <h3>Elite Empressions</h3>
-          <p>Premium print products crafted for growing brands—business cards, packaging, merch, and event print made effortless.</p>
+          <p>
+            Premium print products crafted for growing brands - business cards, packaging,
+            merchandise, custom gifts, and event print made easier to order.
+          </p>
           <div className="footer-social">
             {socialLinks.map((link) => (
               <a key={link.label} href={link.href} aria-label={link.label} title={link.label}>
@@ -54,11 +57,11 @@ function SiteFooter() {
               </a>
             ))}
           </div>
-          <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem", color: "var(--ink-400)", fontSize: "0.85rem" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+          <div className="footer-contact-list">
+            <span>
               <Mail size={14} strokeWidth={1.6} /> hello@elite-empressions.com
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+            <span>
               <Phone size={14} strokeWidth={1.6} /> +91 98765 43210
             </span>
           </div>
@@ -79,7 +82,7 @@ function SiteFooter() {
       </div>
 
       <div className="footer-bottom">
-        <span>© {new Date().getFullYear()} Elite Empressions. All rights reserved.</span>
+        <span>&copy; {new Date().getFullYear()} Elite Empressions. All rights reserved.</span>
         <div className="footer-bottom-links">
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>

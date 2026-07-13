@@ -4,6 +4,12 @@ import AddToCartButton from "../components/AddToCartButton";
 import ProductGallery from "../components/ProductGallery";
 import { getProductById, products } from "../data";
 
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
 function ProductDetailPage() {
   const { productId } = useParams();
   const product = useMemo(() => getProductById(productId) ?? products[0], [productId]);
@@ -26,11 +32,12 @@ function ProductDetailPage() {
         <article className="section-panel detail-panel">
           <p className="eyebrow">Product detail</p>
           <h2>{product.name}</h2>
-          <p className="detail-price">${product.price}</p>
+          <p className="detail-price">{currencyFormatter.format(product.price)}</p>
           <p className="section-copy">{product.description}</p>
           <div className="pill-row">
             <span className="meta-pill">{product.category}</span>
-            <span className="meta-pill">3 image gallery</span>
+            <span className="meta-pill">{product.images.length} preview images</span>
+            {product.minimum ? <span className="meta-pill">{product.minimum}</span> : null}
           </div>
           <div className="action-row">
             <Link className="primary-button" to={`/customize/${product.id}`}>
@@ -40,7 +47,7 @@ function ProductDetailPage() {
             <Link className="secondary-button" to="/cart">
               View cart
             </Link>
-            <Link className="secondary-button" to="/products">
+            <Link className="ghost-button" to="/products">
               Back to products
             </Link>
           </div>
