@@ -142,13 +142,13 @@ This project can be deployed as a single full-stack service on Render with a fre
 1. Push this repository to GitHub
 2. In Render, create a new `Blueprint` or `Web Service` from the repository
 3. Render will use:
-   - build command: `npm install && npm run build`
+   - build command: `npm install --include=dev && npm run build && npm run build:admin`
    - start command: `npm start`
 4. Set these environment variables in Render:
    - `NODE_ENV=production`
    - `JWT_SECRET=<strong-random-secret>`
    - `CLIENT_ORIGIN=https://<your-render-app>.onrender.com`
-   - `AUTH_SUCCESS_REDIRECT=https://<your-render-app>.onrender.com/admin/auth/callback`
+   - `ADMIN_APP_ORIGIN=https://<your-render-app>.onrender.com`r`n   - `AUTH_SUCCESS_REDIRECT=https://<your-render-app>.onrender.com/admin/auth/callback`
    - `AUTH_FAILURE_REDIRECT=https://<your-render-app>.onrender.com/admin/login`
 
 Optional for Google login:
@@ -157,4 +157,5 @@ Optional for Google login:
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_CALLBACK_URL=https://<your-render-app>.onrender.com/api/auth/google/callback`
 
-In production, the Express server serves the built Vite app and the API from the same domain.
+In production, the Express server serves the storefront from `/`, the admin app from `/admin`, and the API from the same domain.
+

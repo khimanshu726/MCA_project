@@ -3,7 +3,7 @@ services:
     name: elite-empressions
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm install --include=dev && npm run build && npm run build:admin
     startCommand: npm start
     autoDeploy: true
     envVars:

@@ -7,6 +7,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: path.resolve(rootDir, "admin-app"),
+  base: "/admin/",
   plugins: [react()],
   server: {
     host: "127.0.0.1",

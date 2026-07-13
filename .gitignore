@@ -26,3 +26,5 @@ superpowers/
 
 __pycache__/
 *.pyc
+
+dist-admin/

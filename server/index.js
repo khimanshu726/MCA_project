@@ -14,6 +14,7 @@ import { connectDB } from "./config/db.js";
 const app = express();
 configurePassport();
 const distPath = path.resolve(process.cwd(), "dist");
+const distAdminPath = path.resolve(process.cwd(), "dist-admin");
 const allowedOrigins = appConfig.allowedOrigins;
 
 app.use(
@@ -43,9 +44,14 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 
 if (process.env.NODE_ENV === "production") {
+  app.use("/admin", express.static(distAdminPath));
   app.use(express.static(distPath));
 
-  app.get(/^(?!\/api\/|\/uploads\/).*/, (req, res) => {
+  app.get(/^\/admin(?:\/.*)?$/, (_req, res) => {
+    res.sendFile(path.join(distAdminPath, "index.html"));
+  });
+
+  app.get(/^(?!\/api\/|\/uploads\/|\/admin(?:\/|$)).*/, (req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
   });
 }
