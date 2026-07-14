@@ -10,6 +10,7 @@ import checkoutRoutes from "./routes/checkoutRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import wishlistRoutes from "./routes/wishlistRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
@@ -51,6 +52,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", authenticateCustomer, cartRoutes);
 app.use("/api/wishlist", authenticateCustomer, wishlistRoutes);
+app.use("/api/addresses", authenticateCustomer, addressRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use("/admin", express.static(distAdminPath));

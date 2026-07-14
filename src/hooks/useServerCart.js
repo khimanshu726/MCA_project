@@ -168,5 +168,10 @@ export function useServerCart() {
     applyCoupon: applyCouponMutation.mutateAsync,
     removeCoupon: removeCouponMutation.mutateAsync,
     isApplyingCoupon: applyCouponMutation.isPending,
+    // Only the item actually being updated should show a loading state,
+    // not the whole cart.
+    pendingQuantityProductId: setQuantityMutation.isPending
+      ? setQuantityMutation.variables?.productId
+      : null,
   };
 }

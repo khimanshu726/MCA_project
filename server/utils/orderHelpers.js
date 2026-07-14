@@ -1,7 +1,21 @@
 import crypto from "node:crypto";
 
 export const allowedPaymentMethods = ["cod", "upi", "card"];
-export const allowedOrderStatuses = ["New", "Processing", "Completed", "Cancelled"];
+export const allowedOrderStatuses = [
+  "Placed",
+  "Confirmed",
+  "Packed",
+  "Shipped",
+  "OutForDelivery",
+  "Delivered",
+  "Cancelled",
+  "Returned",
+  "Refunded",
+];
+// Terminal statuses render as a distinct end state on the customer timeline
+// rather than a linear step — an order doesn't pass "through" Cancelled on
+// its way to Delivered.
+export const terminalOrderStatuses = ["Cancelled", "Returned", "Refunded"];
 export const allowedPaymentStatuses = ["Pending", "Paid", "Refunded", "Failed"];
 export const allowedNotificationStatuses = ["Unread", "Seen"];
 

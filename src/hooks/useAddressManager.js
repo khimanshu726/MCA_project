@@ -1,94 +1,167 @@
-import { useMemo } from "react";
-import {
-  hasAddressErrors,
-  validateAddressForm,
-} from "../utils/addressValidation";
-import { useAddressBook } from "./useAddressBook";
-import { useAddressForm } from "./useAddressForm";
-
-const buildEffectiveAddress = (selectedAddress, formState, isFormVisible) => {
-  if (!selectedAddress && isFormVisible) return formState;
-  return selectedAddress;
-};
-
-const computeAddressErrors = (address) => {
-  if (!address) return {};
-  return validateAddressForm({
-    fullName: address.fullName || "",
-    phoneNumber: address.phoneNumber || "",
-    email: address.email || "",
-    address: address.address || "",
-    landmark: address.landmark || "",
-    city: address.city || "",
-    state: address.state || "",
-    postalCode: address.postalCode || "",
-  });
-};
+import { useEffect, useMemo, useState } from "react";
+import { useAddresses } from "./useAddresses";
+import { useAddressFormState } from "./useAddressFormState";
+import { createPrefilledAddressForm } from "../utils/addressForm";
+import { hasAddressErrors, validateAddressForm } from "../utils/addressValidation";
 
 /**
- * Thin orchestrator that combines the address book (saved list + selection)
- * with the address form (create/edit state) and exposes a single API for the
- * AddressManager UI component.
+ * Auth-aware address facade, mirroring useCart's guest/authenticated split:
+ * authenticated customers get a real saved-address book backed by the
+ * server (CRUD, default selection); guests get today's single-use form with
+ * no persistence — saving an address for reuse requires login, same gate as
+ * wishlist/save-for-later.
  */
-export function useAddressManager({ user, onOrderMessage }) {
-  const book = useAddressBook();
-  const form = useAddressForm({ user, onMessage: onOrderMessage });
+export function useAddressManager({ user, isAuthenticated, onMessage }) {
+  const server = useAddresses();
 
-  const effectiveAddress = useMemo(
-    () => buildEffectiveAddress(book.selectedAddress, form.formState, form.isVisible),
-    [book.selectedAddress, form.formState, form.isVisible],
-  );
+  // ---- Authenticated: saved list + create/edit form ----
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState("");
+  const authForm = useAddressFormState({ requireEmail: false });
 
-  const selectedAddressErrors = useMemo(
-    () => computeAddressErrors(effectiveAddress),
-    [effectiveAddress],
-  );
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const stillExists = server.addresses.some((address) => address._id === selectedAddressId);
+    if (stillExists) return;
+    const preferred = server.addresses.find((address) => address.isDefault) || server.addresses[0];
+    setSelectedAddressId(preferred ? preferred._id : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, server.addresses]);
 
-  const hasErrors = useMemo(
-    () => hasAddressErrors(selectedAddressErrors),
-    [selectedAddressErrors],
-  );
+  const openNewForm = () => {
+    onMessage("");
+    setEditingAddressId("");
+    authForm.setForm({ ...authForm.formState, ...createPrefilledAddressForm(user), email: "" });
+    setIsFormVisible(true);
+  };
 
-  const deleteAddress = (addressId) => {
-    book.deleteAddress(addressId);
-    if (form.editingId === addressId) {
-      form.reset();
+  const openEditForm = (address) => {
+    onMessage("");
+    setEditingAddressId(address._id);
+    authForm.setForm({
+      fullName: address.fullName,
+      phoneNumber: address.phoneNumber,
+      email: "",
+      pincode: address.pincode,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2 || "",
+      landmark: address.landmark || "",
+      city: address.city,
+      district: address.district || "",
+      state: address.state,
+      addressType: address.addressType || "home",
+      isDefault: address.isDefault,
+    });
+    setIsFormVisible(true);
+  };
+
+  const resetForm = () => {
+    setIsFormVisible(false);
+    setEditingAddressId("");
+  };
+
+  const saveForm = async (event) => {
+    event.preventDefault();
+    if (!authForm.validateAll()) {
+      onMessage("Please correct the highlighted address fields before saving.");
+      return;
+    }
+
+    const { email: _email, ...payload } = authForm.formState;
+
+    try {
+      if (editingAddressId) {
+        await server.updateAddress(editingAddressId, payload);
+      } else {
+        const created = await server.createAddress(payload);
+        setSelectedAddressId(created.address._id);
+      }
+      onMessage("Address saved successfully.");
+      resetForm();
+    } catch (error) {
+      onMessage(error.payload?.message || error.message || "Unable to save this address.");
     }
   };
 
-  const saveForm = (event) =>
-    form.submit(event, (preparedAddress, editingId) => {
-      const withDefault = {
-        ...preparedAddress,
-        isDefault: book.savedAddresses.length === 0 || !book.selectedAddressId,
-      };
-      book.upsertAddress(withDefault, editingId);
-    });
+  const deleteAddress = async (addressId) => {
+    await server.deleteAddress(addressId);
+    if (editingAddressId === addressId) resetForm();
+  };
+
+  const selectedAuthAddress = useMemo(
+    () => server.addresses.find((address) => address._id === selectedAddressId) || null,
+    [server.addresses, selectedAddressId],
+  );
+
+  // ---- Guest: single ephemeral form, no saved list ----
+  const guestForm = useAddressFormState({ requireEmail: true });
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+    guestForm.setForm(createPrefilledAddressForm(user));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  const guestErrors = useMemo(
+    () => validateAddressForm(guestForm.formState, { requireEmail: true }),
+    [guestForm.formState],
+  );
+  const guestHasErrors = hasAddressErrors(guestErrors);
+
+  if (isAuthenticated) {
+    return {
+      mode: "authenticated",
+      isLoading: server.isLoading,
+      isSaving: server.isSaving,
+      savedAddresses: server.addresses,
+      selectedAddressId,
+      setSelectedAddressId,
+      selectedAddress: selectedAuthAddress,
+      effectiveAddress: selectedAuthAddress,
+      hasErrors: !selectedAuthAddress,
+      isFormVisible,
+      editingAddressId,
+      formState: authForm.formState,
+      errors: authForm.errors,
+      touched: authForm.touched,
+      requireEmail: false,
+      changeField: authForm.changeField,
+      blurField: authForm.blurField,
+      setFieldsSilently: authForm.setFieldsSilently,
+      openNewForm,
+      openEditForm,
+      resetForm,
+      saveForm,
+      deleteAddress,
+      setDefaultAddress: server.setDefaultAddress,
+    };
+  }
 
   return {
-    // list state
-    savedAddresses: book.savedAddresses,
-    selectedAddress: book.selectedAddress,
-    selectedAddressId: book.selectedAddressId,
-    setSelectedAddressId: book.setSelectedAddressId,
-    // derived
-    effectiveAddress,
-    selectedAddressErrors,
-    hasErrors,
-    // form state
-    isFormVisible: form.isVisible,
-    editingAddressId: form.editingId,
-    formState: form.formState,
-    errors: form.errors,
-    touched: form.touched,
-    // actions
-    openNewForm: form.openNew,
-    openEditForm: form.openEdit,
-    resetForm: form.reset,
-    changeField: form.changeField,
-    blurField: form.blurField,
-    setCityValue: form.setCityValue,
-    deleteAddress,
-    saveForm,
+    mode: "guest",
+    isLoading: false,
+    isSaving: false,
+    savedAddresses: [],
+    selectedAddressId: "",
+    setSelectedAddressId: () => undefined,
+    selectedAddress: null,
+    effectiveAddress: guestHasErrors ? null : guestForm.formState,
+    hasErrors: guestHasErrors,
+    isFormVisible: true,
+    editingAddressId: "",
+    formState: guestForm.formState,
+    errors: guestForm.errors,
+    touched: guestForm.touched,
+    requireEmail: true,
+    changeField: guestForm.changeField,
+    blurField: guestForm.blurField,
+    setFieldsSilently: guestForm.setFieldsSilently,
+    openNewForm: () => undefined,
+    openEditForm: () => undefined,
+    resetForm: () => undefined,
+    saveForm: (event) => event.preventDefault(),
+    deleteAddress: () => undefined,
+    setDefaultAddress: () => undefined,
   };
 }

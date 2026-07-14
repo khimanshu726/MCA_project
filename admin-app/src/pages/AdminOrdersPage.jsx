@@ -2,7 +2,31 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_ASSET_BASE_URL, deleteOrder, fetchOrder, fetchOrders, updateOrder } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
-const statusOptions = ["All", "New", "Processing", "Completed", "Cancelled"];
+const statusOptions = [
+  "All",
+  "Placed",
+  "Confirmed",
+  "Packed",
+  "Shipped",
+  "OutForDelivery",
+  "Delivered",
+  "Cancelled",
+  "Returned",
+  "Refunded",
+];
+const STATUS_LABELS = { OutForDelivery: "Out for Delivery" };
+const statusLabel = (status) => STATUS_LABELS[status] || status;
+// Manual forward progression only — an admin moves an order one step at a
+// time; there's no carrier integration, so "shipped"/"delivered" here just
+// means the admin has confirmed that step happened.
+const FORWARD_STATUS_STEPS = {
+  Placed: "Confirmed",
+  Confirmed: "Packed",
+  Packed: "Shipped",
+  Shipped: "OutForDelivery",
+  OutForDelivery: "Delivered",
+};
+const TERMINAL_ORDER_STATUSES = ["Cancelled", "Returned", "Refunded"];
 const orderCurrency = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -262,7 +286,7 @@ function AdminOrdersPage() {
                       <td>{formatMoney(order.price)}</td>
                       <td>
                         <span className={`status-badge status-${order.orderStatus.toLowerCase()}`}>
-                          {order.orderStatus}
+                          {statusLabel(order.orderStatus)}
                         </span>
                       </td>
                     </tr>
@@ -290,7 +314,7 @@ function AdminOrdersPage() {
                 </div>
                 <div className="order-detail-block">
                   <span className={`status-badge status-${selectedOrder.orderStatus.toLowerCase()}`}>
-                    {selectedOrder.orderStatus}
+                    {statusLabel(selectedOrder.orderStatus)}
                   </span>
                   <span className={`status-badge status-${selectedOrder.paymentStatus.toLowerCase()}`}>
                     {selectedOrder.paymentStatus}
@@ -342,15 +366,20 @@ function AdminOrdersPage() {
                   <span>{formatMoney(selectedOrder.price)}</span>
                 </div>
                 <div className="action-row">
-                  <button type="button" className="secondary-button" onClick={() => handleStatusUpdate("Processing")}>
-                    Mark Processing
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => handleStatusUpdate("Completed")}>
-                    Mark Completed
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => handleStatusUpdate("Cancelled")}>
-                    Cancel Order
-                  </button>
+                  {FORWARD_STATUS_STEPS[selectedOrder.orderStatus] ? (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => handleStatusUpdate(FORWARD_STATUS_STEPS[selectedOrder.orderStatus])}
+                    >
+                      Mark {statusLabel(FORWARD_STATUS_STEPS[selectedOrder.orderStatus])}
+                    </button>
+                  ) : null}
+                  {!TERMINAL_ORDER_STATUSES.includes(selectedOrder.orderStatus) ? (
+                    <button type="button" className="secondary-button" onClick={() => handleStatusUpdate("Cancelled")}>
+                      Cancel Order
+                    </button>
+                  ) : null}
                   <button type="button" className="secondary-button danger-button" onClick={handleDeleteOrder}>
                     Delete Order
                   </button>
