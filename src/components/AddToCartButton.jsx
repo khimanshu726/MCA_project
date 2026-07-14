@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
 
 function AddToCartButton({
   product,
@@ -7,12 +7,12 @@ function AddToCartButton({
   idleLabel = "Add to cart",
   addedLabel = "Added",
 }) {
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, cartItemIds } = useCart();
   const [isLocked, setIsLocked] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const lockTimerRef = useRef(null);
   const feedbackTimerRef = useRef(null);
-  const isInCart = cartItems.some((item) => item.id === product.id);
+  const isInCart = cartItemIds.has(product.id);
 
   useEffect(() => {
     return () => {
@@ -31,7 +31,7 @@ function AddToCartButton({
       return;
     }
 
-    addToCart(product);
+    addToCart(product, product.minimumOrderQty || 1);
     setIsLocked(true);
     setIsAdded(true);
 

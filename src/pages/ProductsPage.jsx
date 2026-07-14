@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
-import { categoryOptions, products } from "../data";
+import { useProducts } from "../hooks/useProducts";
+
+const categoryOptionsFromItems = (items) => ["All", ...new Set(items.map((product) => product.category))];
 
 function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -9,20 +11,19 @@ function ProductsPage() {
   const query = searchParams.get("q") ?? "";
   const sort = searchParams.get("sort") ?? "featured";
 
+  const { data, isLoading, isError, refetch } = useProducts({ category, q: query, limit: 100 });
+  const items = data?.items ?? [];
+
+  // Fetched independently of the active category filter so the chip row
+  // doesn't collapse to a single option once a category is selected.
+  const { data: allProductsData } = useProducts({ limit: 100 });
+  const categoryOptions = useMemo(
+    () => categoryOptionsFromItems(allProductsData?.items ?? []),
+    [allProductsData],
+  );
+
   const visibleProducts = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const filteredProducts = products.filter((product) => {
-      const matchesCategory = category === "All" || product.category === category;
-      const matchesQuery =
-        !normalizedQuery ||
-        `${product.name} ${product.category} ${product.description} ${product.audience ?? ""}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-
-      return matchesCategory && matchesQuery;
-    });
-
-    const sortedProducts = [...filteredProducts];
+    const sortedProducts = [...items];
 
     if (sort === "price-low") {
       sortedProducts.sort((first, second) => first.price - second.price);
@@ -33,7 +34,7 @@ function ProductsPage() {
     }
 
     return sortedProducts;
-  }, [category, query, sort]);
+  }, [items, sort]);
 
   const updateParams = (changes) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -104,24 +105,38 @@ function ProductsPage() {
           })}
         </div>
 
-        <div className="results-summary">
-          <strong>{visibleProducts.length}</strong> product{visibleProducts.length === 1 ? "" : "s"} available
-          {category !== "All" ? ` in ${category}` : ""}
-          {query ? ` for "${query}"` : ""}
-        </div>
-
-        <div className="product-grid">
-          {visibleProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-
-        {!visibleProducts.length ? (
+        {isLoading ? (
+          <p className="section-copy">Loading products&hellip;</p>
+        ) : isError ? (
           <div className="empty-state-card">
-            <p className="eyebrow">No products found</p>
-            <h3>Try a broader category or a shorter search term.</h3>
+            <p className="eyebrow">Something went wrong</p>
+            <h3>We couldn&rsquo;t load the catalog.</h3>
+            <button type="button" className="secondary-button" onClick={() => refetch()}>
+              Try again
+            </button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="results-summary">
+              <strong>{visibleProducts.length}</strong> product{visibleProducts.length === 1 ? "" : "s"} available
+              {category !== "All" ? ` in ${category}` : ""}
+              {query ? ` for "${query}"` : ""}
+            </div>
+
+            <div className="product-grid">
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {!visibleProducts.length ? (
+              <div className="empty-state-card">
+                <p className="eyebrow">No products found</p>
+                <h3>Try a broader category or a shorter search term.</h3>
+              </div>
+            ) : null}
+          </>
+        )}
       </section>
     </main>
   );

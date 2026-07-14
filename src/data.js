@@ -222,8 +222,6 @@ export const products = [
   },
 ];
 
-export const categoryOptions = ["All", ...new Set(products.map((product) => product.category))];
-
 export const trustHighlights = [
   { title: "Fast production", detail: "Turnaround options for urgent launches and event print runs." },
   { title: "Design assistance", detail: "Start from templates, upload your file, or hand work to a designer." },
@@ -269,6 +267,3 @@ export const inspirationLinks = [
   },
 ];
 
-export const popularProducts = products.slice(0, 4);
-
-export const getProductById = (productId) => products.find((product) => product.id === productId);

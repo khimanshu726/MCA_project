@@ -7,9 +7,13 @@ import { appConfig } from "./config.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import checkoutRoutes from "./routes/checkoutRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
+import { ensureProductsSeeded } from "./services/productMigration.js";
 import { connectDB } from "./config/db.js";
+import { authenticateCustomer } from "./middleware/authenticateCustomer.js";
 
 const app = express();
 configurePassport();
@@ -42,6 +46,8 @@ app.use("/api", checkoutRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", authenticateCustomer, cartRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use("/admin", express.static(distAdminPath));
@@ -67,6 +73,7 @@ app.use((error, req, res, _next) => {
 const startServer = async (port = appConfig.apiPort) => {
   await connectDB();
   await ensureDefaultAdminUser();
+  await ensureProductsSeeded();
 
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {

@@ -22,22 +22,18 @@ export const parseLineItems = (value) => {
   }
 };
 
+// Only productId/quantity/customizationText are trusted from the client.
+// Anything price-related (name, unitPrice, totalPrice) the client sends is
+// ignored here — createOrder resolves those authoritatively from the live
+// Product record instead.
 export const normalizeLineItems = (lineItems) =>
   lineItems
-    .filter((item) => item && typeof item.name === "string")
-    .map((item) => {
-      const quantity = Math.max(1, Number(item.quantity) || 1);
-      const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
-
-      return {
-        productId: item.productId || item.id || crypto.randomUUID(),
-        name: item.name.trim(),
-        quantity,
-        unitPrice,
-        totalPrice: quantity * unitPrice,
-        customizationText: typeof item.customizationText === "string" ? item.customizationText.trim() : "",
-      };
-    });
+    .filter((item) => item && (item.productId || item.id))
+    .map((item) => ({
+      productId: String(item.productId || item.id),
+      quantity: Math.max(1, Number(item.quantity) || 1),
+      customizationText: typeof item.customizationText === "string" ? item.customizationText.trim() : "",
+    }));
 
 export const validateOrderPayload = ({
   customerName,

@@ -1,24 +1,34 @@
 /**
  * Cart storage utilities.
  *
- * Security note: The cart holds only non-sensitive product identifiers,
+ * Security note: the cart holds only non-sensitive product identifiers,
  * names, prices, and quantities (no auth tokens, no PII). It is kept in
- * `sessionStorage` so it never persists across tab sessions and cannot be
- * silently exfiltrated by a compromised persistent script. Cart state is
- * merged with the authenticated user's server cart on next login for cross-
- * device continuity.
+ * `localStorage` so a guest's cart survives across browser sessions and tab
+ * closes. Stale entries (referencing deleted/repriced products) are handled
+ * by re-resolving against the live product API on read, not by expiring the
+ * storage itself.
  */
 
 import { devWarn } from "./logger";
 
-const CART_STORAGE_KEY = "elite-empressions-cart-items";
+const CART_STORAGE_KEY = "elite-empressions-cart-items-v2";
+const LEGACY_SESSION_STORAGE_KEY = "elite-empressions-cart-items";
 
-const safeStorage = () => {
+const safeLocalStorage = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch (error) {
+    devWarn("[cartStorage] localStorage inaccessible", error?.message || error);
+    return null;
+  }
+};
+
+const safeSessionStorage = () => {
   if (typeof window === "undefined") return null;
   try {
     return window.sessionStorage;
-  } catch (error) {
-    devWarn("[cartStorage] sessionStorage inaccessible", error?.message || error);
+  } catch {
     return null;
   }
 };
@@ -28,28 +38,48 @@ const normalizeStoredItem = (item) => ({
   quantity: Math.max(1, Number(item.quantity) || 1),
 });
 
-export function loadCartItems() {
-  const store = safeStorage();
-  if (!store) return [];
+const parseStoredItems = (rawValue) => {
+  if (!rawValue) return [];
 
   try {
-    const rawValue = store.getItem(CART_STORAGE_KEY);
-    if (!rawValue) return [];
-
     const parsedValue = JSON.parse(rawValue);
     if (!Array.isArray(parsedValue)) return [];
 
-    return parsedValue
-      .filter((item) => item && typeof item.id === "string")
-      .map(normalizeStoredItem);
+    return parsedValue.filter((item) => item && typeof item.id === "string").map(normalizeStoredItem);
   } catch (error) {
     devWarn("[cartStorage] Failed to parse cart items", error?.message || error);
     return [];
   }
+};
+
+// One-time migration: earlier versions of this app stored the guest cart in
+// sessionStorage, which meant it didn't survive a tab close. Carry any
+// leftover items forward once, then drop the old key.
+const migrateLegacySessionCart = (store) => {
+  const legacySession = safeSessionStorage();
+  if (!legacySession) return;
+
+  const legacyRaw = legacySession.getItem(LEGACY_SESSION_STORAGE_KEY);
+  if (!legacyRaw) return;
+
+  if (!store.getItem(CART_STORAGE_KEY)) {
+    store.setItem(CART_STORAGE_KEY, legacyRaw);
+  }
+
+  legacySession.removeItem(LEGACY_SESSION_STORAGE_KEY);
+};
+
+export function loadCartItems() {
+  const store = safeLocalStorage();
+  if (!store) return [];
+
+  migrateLegacySessionCart(store);
+
+  return parseStoredItems(store.getItem(CART_STORAGE_KEY));
 }
 
 export function persistCartItems(cartItems) {
-  const store = safeStorage();
+  const store = safeLocalStorage();
   if (!store) return;
   try {
     store.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));

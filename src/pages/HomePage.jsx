@@ -3,12 +3,12 @@ import { Star, Sparkles, Truck, ShieldCheck, Palette } from "lucide-react";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
 import ResponsiveImage from "../components/ResponsiveImage";
+import { useProducts } from "../hooks/useProducts";
 import {
   businessEssentials,
   categories,
   homepageBanner,
   inspirationLinks,
-  popularProducts,
   trustHighlights,
 } from "../data";
 
@@ -39,6 +39,9 @@ const testimonials = [
 ];
 
 function HomePage() {
+  const { data, isLoading, isError } = useProducts({ featured: true, limit: 4 });
+  const popularProducts = data?.items ?? [];
+
   return (
     <main className="page-stack">
       <section className="hero-section">
@@ -136,11 +139,17 @@ function HomePage() {
             Explore full catalog
           </Link>
         </div>
-        <div className="product-grid">
-          {popularProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {isLoading ? (
+          <p className="section-copy">Loading popular products&hellip;</p>
+        ) : isError ? (
+          <p className="section-copy">We couldn&rsquo;t load popular products right now.</p>
+        ) : (
+          <div className="product-grid">
+            {popularProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="brand-story">

@@ -1,51 +1,149 @@
 import crypto from "node:crypto";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { Product } from "../models/Product.js";
 
-const productsFilePath = path.resolve(process.cwd(), "server", "data", "products.json");
-
-const ensureProductsFile = async () => {
-  await mkdir(path.dirname(productsFilePath), { recursive: true });
-
-  try {
-    await access(productsFilePath);
-  } catch {
-    await writeFile(productsFilePath, "[]", "utf8");
+const computeDiscountPercent = (price, mrp) => {
+  if (!mrp || mrp <= price) {
+    return 0;
   }
+
+  return Math.round(((mrp - price) / mrp) * 100);
 };
 
-const readProducts = async () => {
-  await ensureProductsFile();
-  const rawValue = await readFile(productsFilePath, "utf8");
+export const serializeProduct = (product) => {
+  const plain = typeof product.toObject === "function" ? product.toObject() : product;
 
-  try {
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
+  return {
+    ...plain,
+    discountPercent: computeDiscountPercent(plain.price, plain.mrp),
+  };
+};
+
+export const listProducts = async ({
+  category,
+  q,
+  status,
+  featured,
+  ids,
+  page = 1,
+  limit = 24,
+  sort = "-createdAt",
+  includeInactive = false,
+} = {}) => {
+  const filter = {};
+
+  if (!includeInactive) {
+    filter.status = "active";
+  } else if (status) {
+    filter.status = status;
+  }
+
+  if (category && category !== "All") {
+    filter.category = category;
+  }
+
+  if (typeof featured === "boolean") {
+    filter.featured = featured;
+  }
+
+  if (Array.isArray(ids) && ids.length > 0) {
+    filter.id = { $in: ids };
+  }
+
+  if (q) {
+    filter.$or = [
+      { name: new RegExp(q, "i") },
+      { description: new RegExp(q, "i") },
+      { category: new RegExp(q, "i") },
+    ];
+  }
+
+  const safeLimit = Math.min(Math.max(Number(limit) || 24, 1), 100);
+  const safePage = Math.max(Number(page) || 1, 1);
+
+  const [items, total] = await Promise.all([
+    Product.find(filter)
+      .sort(sort)
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit),
+    Product.countDocuments(filter),
+  ]);
+
+  return {
+    items: items.map(serializeProduct),
+    total,
+    page: safePage,
+    limit: safeLimit,
+  };
+};
+
+export const getProductById = async (id) => {
+  const product = await Product.findOne({ id });
+  return product ? serializeProduct(product) : null;
+};
+
+export const getProductsByIds = async (ids) => {
+  if (!Array.isArray(ids) || ids.length === 0) {
     return [];
   }
-};
 
-const writeProducts = async (products) => {
-  await ensureProductsFile();
-  await writeFile(productsFilePath, JSON.stringify(products, null, 2), "utf8");
+  const products = await Product.find({ id: { $in: ids } });
+  return products.map(serializeProduct);
 };
 
 export const createProductRecord = async (payload) => {
-  const products = await readProducts();
-  const nextProduct = {
-    id: crypto.randomUUID(),
-    name: payload.name.trim(),
-    description: payload.description.trim(),
-    category: payload.category.trim(),
-    imageUrl: payload.imageUrl.trim(),
-    basePrice: Number(payload.basePrice),
+  const product = new Product({
+    id: payload.id || crypto.randomUUID(),
+    name: payload.name?.trim(),
+    description: payload.description?.trim(),
+    category: payload.category?.trim(),
+    images: payload.images,
+    price: Number(payload.price),
+    mrp: Number(payload.mrp ?? payload.price),
+    stock: Number(payload.stock ?? 0),
+    sku: payload.sku || "",
     status: payload.status || "draft",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+    leadTime: payload.leadTime || "",
+    minimumOrderQty: Number(payload.minimumOrderQty) || 1,
+    badge: payload.badge || "",
+    materials: payload.materials || [],
+    audience: payload.audience || "",
+    featured: Boolean(payload.featured),
+    source: payload.source || "admin",
+  });
 
-  products.unshift(nextProduct);
-  await writeProducts(products);
-  return nextProduct;
+  await product.save();
+  return serializeProduct(product);
+};
+
+export const updateProductRecord = async (id, updates) => {
+  const product = await Product.findOneAndUpdate(
+    { id },
+    { $set: updates },
+    { new: true, runValidators: true },
+  );
+
+  return product ? serializeProduct(product) : null;
+};
+
+export const deleteProductRecord = async (id) => {
+  const result = await Product.findOneAndDelete({ id });
+  return !!result;
+};
+
+// Atomic, race-condition-safe stock decrement: the `stock: { $gte: quantity }`
+// filter is evaluated by MongoDB at the document level, so two concurrent
+// requests racing for the last unit of stock cannot both succeed.
+export const decrementStockAtomic = async (id, quantity) => {
+  const product = await Product.findOneAndUpdate(
+    { id, status: "active", stock: { $gte: quantity } },
+    { $inc: { stock: -quantity } },
+    { new: true },
+  );
+
+  return product ? serializeProduct(product) : null;
+};
+
+export const restoreStock = async (id, quantity) => {
+  const product = await Product.findOneAndUpdate({ id }, { $inc: { stock: quantity } }, { new: true });
+  return product ? serializeProduct(product) : null;
 };

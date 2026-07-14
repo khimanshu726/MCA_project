@@ -28,3 +28,5 @@ __pycache__/
 *.pyc
 
 dist-admin/
+
+.claude/settings.local.json

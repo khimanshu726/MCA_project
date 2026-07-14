@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AddToCartButton from "../components/AddToCartButton";
 import ProductGallery from "../components/ProductGallery";
-import { getProductById, products } from "../data";
+import { useProduct } from "../hooks/useProduct";
+import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -12,12 +13,46 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 
 function ProductDetailPage() {
   const { productId } = useParams();
-  const product = useMemo(() => getProductById(productId) ?? products[0], [productId]);
-  const [activeImage, setActiveImage] = useState(product.images[0]);
+  const { data: product, isLoading, isError } = useProduct(productId);
+  const [activeImage, setActiveImage] = useState(null);
+  const { recordView } = useRecentlyViewed();
 
   useEffect(() => {
-    setActiveImage(product.images[0]);
+    if (product?.images?.[0]) {
+      setActiveImage(product.images[0]);
+    }
   }, [product]);
+
+  useEffect(() => {
+    if (product?.id) {
+      recordView(product.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
+
+  if (isLoading) {
+    return (
+      <main className="page-stack">
+        <section className="section-panel">
+          <p className="section-copy">Loading product&hellip;</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <main className="page-stack">
+        <section className="empty-state-card">
+          <p className="eyebrow">Product not found</p>
+          <h3>This product may have been removed or is no longer available.</h3>
+          <Link className="secondary-button" to="/products">
+            Back to products
+          </Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page-stack">
@@ -25,7 +60,7 @@ function ProductDetailPage() {
         <ProductGallery
           images={product.images}
           productName={product.name}
-          activeImage={activeImage}
+          activeImage={activeImage ?? product.images[0]}
           onSelect={setActiveImage}
         />
 
@@ -37,7 +72,8 @@ function ProductDetailPage() {
           <div className="pill-row">
             <span className="meta-pill">{product.category}</span>
             <span className="meta-pill">{product.images.length} preview images</span>
-            {product.minimum ? <span className="meta-pill">{product.minimum}</span> : null}
+            {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
+            {product.stock <= 0 ? <span className="meta-pill">Out of stock</span> : null}
           </div>
           <div className="action-row">
             <Link className="primary-button" to={`/customize/${product.id}`}>

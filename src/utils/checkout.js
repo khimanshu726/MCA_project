@@ -22,6 +22,9 @@ export function buildOrderFormData({
   formData.append("paymentMethod", paymentMethod);
   formData.append("shippingCharge", String(shipping));
   formData.append("customInstructions", customInstructions);
+  // name/unitPrice are sent only as an optional display hint — the server
+  // (server/controllers/orderController.js#createOrder) resolves the real
+  // price and stock from the live Product record and ignores both fields.
   formData.append(
     "lineItems",
     JSON.stringify(

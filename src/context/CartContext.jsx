@@ -11,16 +11,16 @@ function CartProvider({ children }) {
     persistCartItems(cartItems);
   }, [cartItems]);
 
-  const addToCart = useCallback((product) => {
-    dispatch({ type: "ADD_ITEM", payload: { product } });
+  const addToCart = useCallback((product, quantity = 1) => {
+    dispatch({ type: "ADD_ITEM", payload: { product, quantity } });
   }, []);
 
   const removeFromCart = useCallback((id) => {
     dispatch({ type: "REMOVE_ITEM", payload: { id } });
   }, []);
 
-  const updateQuantity = useCallback((id, mode) => {
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, mode } });
+  const updateQuantity = useCallback((id, quantity) => {
+    dispatch({ type: "SET_QUANTITY", payload: { id, quantity } });
   }, []);
 
   const clearCart = useCallback(() => {

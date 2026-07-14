@@ -1,27 +1,27 @@
-import { useCallback, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import AddressManager from "../components/AddressManager";
-import CartItemRow from "../components/CartItemRow";
 import OrderNotesCard from "../components/OrderNotesCard";
-import OrderSummary from "../components/OrderSummary";
 import PaymentSelector from "../components/PaymentSelector";
-import { useCart } from "../context/CartContext";
+import CartItemCard from "../components/cart/CartItemCard";
+import CartSkeleton from "../components/cart/CartSkeleton";
+import EmptyCartState from "../components/cart/EmptyCartState";
+import OrderSummaryCard from "../components/cart/OrderSummaryCard";
+import RecentlyViewed from "../components/cart/RecentlyViewed";
+import SelectAllBar from "../components/cart/SelectAllBar";
+import Dialog from "../components/ui/Dialog";
+import Toast from "../components/ui/Toast";
+import Button from "../components/ui/Button";
+import { currencyFormatter } from "../components/ui/PriceDisplay";
+import { useCart } from "../hooks/useCart";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useToast } from "../hooks/useToast";
 import { createOrder, createRazorpayOrder, verifyRazorpayPayment } from "../lib/api";
 import { buildOrderFormData, loadRazorpayScript } from "../utils/checkout";
 import { validateCheckoutFile } from "../utils/orderValidation";
 
-const orderCurrency = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-const formatMoney = (value) => orderCurrency.format(value || 0);
-
-const RAZORPAY_THEME_COLOR = "#3b82f6";
-const SHIPPING_FEE = 120;
+const RAZORPAY_THEME_COLOR = "#b8461d";
 
 const emptyAddressState = {
   selectedAddress: null,
@@ -31,24 +31,13 @@ const emptyAddressState = {
   openForm: () => undefined,
 };
 
-const resolvePlaceOrderReason = ({
-  isPlacingOrder,
-  cartItems,
-  effectiveAddress,
-  selectedAddressErrors,
-}) => {
-  if (isPlacingOrder) return "Processing your order...";
-  if (cartItems.length === 0) return "Add at least one product to continue.";
-  if (!effectiveAddress) return "Add delivery details to continue.";
-  const firstError = Object.values(selectedAddressErrors).find((value) => value);
-  return firstError || "";
-};
-
 function CartPage() {
   const navigate = useNavigate();
-  const { cartItems, clearCart, removeFromCart, updateQuantity } = useCart();
-  const { isAuthenticated, user, token } = useUserAuth();
-  const { toast, pushToast } = useToast();
+  const queryClient = useQueryClient();
+  const { items, cartItems, pricing, isLoading, isAuthenticated, addToCart, removeFromCart, updateQuantity, toggleSaveForLater, clearCart } =
+    useCart();
+  const { user, token } = useUserAuth();
+  const { toast, pushToast, dismiss } = useToast();
 
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [addressState, setAddressState] = useState(emptyAddressState);
@@ -58,35 +47,47 @@ function CartPage() {
   const [orderMessage, setOrderMessage] = useState("");
   const [orderReceipt, setOrderReceipt] = useState(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-  const subtotal = useMemo(
-    () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
-    [cartItems],
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => items.some((item) => item.productId === id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
+
+  const activeItems = useMemo(() => items.filter((item) => !item.savedForLater), [items]);
+  const savedItems = useMemo(() => items.filter((item) => item.savedForLater), [items]);
+  const selectableItems = useMemo(() => activeItems.filter((item) => !item.isOutOfStock), [activeItems]);
+  const allSelected = selectableItems.length > 0 && selectableItems.every((item) => selectedIds.has(item.productId));
+
+  // Checkout only ever includes purchasable items — active, in-stock, not
+  // saved for later. Selection drives bulk delete, not partial checkout.
+  const purchasableCartItems = useMemo(
+    () =>
+      cartItems.filter((item) =>
+        activeItems.some((entry) => entry.productId === item.id && !entry.isOutOfStock && !entry.isMissing),
+      ),
+    [cartItems, activeItems],
   );
-  const shipping = cartItems.length > 0 ? SHIPPING_FEE : 0;
-  const total = subtotal + shipping;
+
+  const shipping = pricing.shipping;
+  const total = pricing.total;
 
   const canPlaceOrder =
     !isPlacingOrder &&
     Boolean(addressState.effectiveAddress) &&
-    cartItems.length > 0 &&
+    purchasableCartItems.length > 0 &&
     !addressState.hasErrors;
 
-  const placeOrderDisabledReason = useMemo(
-    () =>
-      resolvePlaceOrderReason({
-        isPlacingOrder,
-        cartItems,
-        effectiveAddress: addressState.effectiveAddress,
-        selectedAddressErrors: addressState.selectedAddressErrors,
-      }),
-    [
-      isPlacingOrder,
-      cartItems,
-      addressState.effectiveAddress,
-      addressState.selectedAddressErrors,
-    ],
-  );
+  const placeOrderDisabledReason = useMemo(() => {
+    if (isPlacingOrder) return "Processing your order...";
+    if (purchasableCartItems.length === 0) return "Add at least one available product to continue.";
+    if (!addressState.effectiveAddress) return "Add delivery details to continue.";
+    const firstError = Object.values(addressState.selectedAddressErrors).find((value) => value);
+    return firstError || "";
+  }, [isPlacingOrder, purchasableCartItems, addressState.effectiveAddress, addressState.selectedAddressErrors]);
 
   const handleAddressChange = useCallback((next) => setAddressState(next), []);
 
@@ -97,6 +98,43 @@ function CartPage() {
     setFileError(nextError);
     setOrderMessage("");
     setOrderReceipt(null);
+  };
+
+  const toggleSelect = (productId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableItems.map((item) => item.productId)));
+  };
+
+  const handleRemove = async (productId) => {
+    const removedItem = items.find((entry) => entry.productId === productId);
+    await removeFromCart(productId);
+
+    if (removedItem && !removedItem.isMissing) {
+      pushToast({
+        type: "info",
+        message: `${removedItem.product.name} removed from cart.`,
+        action: {
+          label: "Undo",
+          onClick: () => addToCart(removedItem.product, removedItem.quantity),
+        },
+      });
+    }
+  };
+
+  const handleBulkRemove = async () => {
+    const ids = [...selectedIds];
+    await Promise.all(ids.map((id) => removeFromCart(id)));
+    setSelectedIds(new Set());
+    setBulkDeleteOpen(false);
+    pushToast({ type: "success", message: `${ids.length} item${ids.length === 1 ? "" : "s"} removed.` });
   };
 
   const finalizeCodOrder = (order) => {
@@ -175,8 +213,8 @@ function CartPage() {
       addressState.openForm();
       return null;
     }
-    if (cartItems.length === 0) {
-      setOrderMessage("Add at least one product before placing an order.");
+    if (purchasableCartItems.length === 0) {
+      setOrderMessage("Add at least one available product before placing an order.");
       return null;
     }
     if (addressState.hasErrors) {
@@ -209,7 +247,7 @@ function CartPage() {
         paymentMethod,
         shipping,
         customInstructions,
-        cartItems,
+        cartItems: purchasableCartItems,
         designFile,
       });
       const orderToken = isAuthenticated && token ? token : null;
@@ -226,10 +264,18 @@ function CartPage() {
 
       finalizeCodOrder(response.order);
     } catch (submitError) {
-      const errorMessage =
-        submitError.payload?.message || submitError.message || "Unable to place the order.";
+      const errorMessage = submitError.payload?.message || submitError.message || "Unable to place the order.";
       setOrderMessage(errorMessage);
       pushToast({ type: "error", message: errorMessage });
+
+      // Server-validated stock/price rejections mean live product data has
+      // moved since it was last fetched — refetch so the offending
+      // CartItemCard(s) pick up the current isOutOfStock/isPriceChanged flags.
+      const errorCode = submitError.payload?.code;
+      if (errorCode === "OUT_OF_STOCK" || errorCode === "PRODUCT_NOT_FOUND") {
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+      }
     } finally {
       setIsPlacingOrder(false);
     }
@@ -237,44 +283,68 @@ function CartPage() {
 
   return (
     <main className="page-stack">
-      {toast ? (
-        <div className={`toast toast-${toast.type}`} role="status" aria-live="polite">
-          {toast.message}
-        </div>
-      ) : null}
+      <Toast toast={toast} onDismiss={dismiss} />
 
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">Cart + Checkout</p>
           <h2>Place print orders with delivery, payment, and production files in one flow.</h2>
           <p className="section-copy">
-            Customers can review products, attach design files, and send complete order details
-            directly to the admin dashboard.
+            Customers can review products, attach design files, and send complete order details directly to the
+            admin dashboard.
           </p>
         </div>
 
-        <div className="cart-layout">
-          <div className="cart-column">
-            {cartItems.length > 0 ? (
-              cartItems.map((item) => (
-                <CartItemRow
-                  key={item.id}
-                  item={item}
-                  onQuantityChange={updateQuantity}
-                  onRemove={removeFromCart}
-                  priceLabel={formatMoney(item.price * item.quantity)}
-                />
-              ))
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="flex flex-col gap-4">
+            {isLoading ? (
+              <CartSkeleton />
+            ) : items.length === 0 ? (
+              <EmptyCartState />
             ) : (
-              <div className="summary-card">
-                <p className="eyebrow">Cart empty</p>
-                <p className="section-copy">
-                  Your cart has no products right now. Browse the catalog to add items.
-                </p>
-                <div className="action-row">
-                  <Link className="primary-button" to="/products">Browse Products</Link>
-                </div>
-              </div>
+              <>
+                <SelectAllBar
+                  allSelected={allSelected}
+                  someSelected={selectedIds.size > 0}
+                  onToggleAll={toggleSelectAll}
+                  selectedCount={selectedIds.size}
+                  totalCount={selectableItems.length}
+                  onBulkRemove={() => setBulkDeleteOpen(true)}
+                />
+
+                {activeItems.map((item) => (
+                  <CartItemCard
+                    key={item.productId}
+                    item={item}
+                    selected={selectedIds.has(item.productId)}
+                    onToggleSelect={toggleSelect}
+                    onQuantityChange={updateQuantity}
+                    onRemove={handleRemove}
+                    onToggleSaveForLater={toggleSaveForLater}
+                    isAuthenticated={isAuthenticated}
+                  />
+                ))}
+
+                {savedItems.length > 0 ? (
+                  <div className="mt-4">
+                    <h3 className="mb-3 font-display text-lg text-ink-900">Saved for later ({savedItems.length})</h3>
+                    <div className="flex flex-col gap-4">
+                      {savedItems.map((item) => (
+                        <CartItemCard
+                          key={item.productId}
+                          item={item}
+                          selected={false}
+                          onToggleSelect={() => undefined}
+                          onQuantityChange={updateQuantity}
+                          onRemove={handleRemove}
+                          onToggleSaveForLater={toggleSaveForLater}
+                          isAuthenticated={isAuthenticated}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
             )}
 
             <OrderNotesCard
@@ -284,9 +354,11 @@ function CartPage() {
               fileError={fileError}
               onFileChange={handleFileChange}
             />
+
+            <RecentlyViewed excludeIds={items.map((item) => item.productId)} />
           </div>
 
-          <aside className="checkout-column">
+          <aside className="flex flex-col gap-4">
             <AddressManager
               user={user}
               isAuthenticated={isAuthenticated}
@@ -296,22 +368,48 @@ function CartPage() {
 
             <PaymentSelector paymentMethod={paymentMethod} onChange={setPaymentMethod} />
 
-            <OrderSummary
-              selectedAddress={addressState.selectedAddress}
-              subtotal={subtotal}
-              shipping={shipping}
-              total={total}
-              formatMoney={formatMoney}
-              orderMessage={orderMessage}
-              orderReceipt={orderReceipt}
-              canPlaceOrder={canPlaceOrder}
-              placeOrderDisabledReason={placeOrderDisabledReason}
+            {orderMessage ? (
+              <div className="rounded-xl border border-ink-100 bg-white px-4 py-3 text-sm text-ink-700">
+                {orderMessage}
+              </div>
+            ) : null}
+
+            {orderReceipt ? (
+              <div className="rounded-xl border border-success-100 bg-success-100/40 px-4 py-3 text-sm text-success-600">
+                Order {orderReceipt.orderId} total: {currencyFormatter.format(orderReceipt.price)}
+              </div>
+            ) : null}
+
+            <OrderSummaryCard
+              pricing={pricing}
+              itemCount={purchasableCartItems.length}
+              onCheckout={handlePlaceOrder}
+              canCheckout={canPlaceOrder}
+              checkoutDisabledReason={placeOrderDisabledReason}
               isPlacingOrder={isPlacingOrder}
-              onPlaceOrder={handlePlaceOrder}
             />
           </aside>
         </div>
       </section>
+
+      <Dialog
+        open={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        title="Remove selected items?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleBulkRemove}>
+              Remove {selectedIds.size} item{selectedIds.size === 1 ? "" : "s"}
+            </Button>
+          </>
+        }
+      >
+        This will remove {selectedIds.size} selected item{selectedIds.size === 1 ? "" : "s"} from your cart. You can
+        undo individual removals from the toast that appears after.
+      </Dialog>
     </main>
   );
 }

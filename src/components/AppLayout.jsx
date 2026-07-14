@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
+import { useCartMerge } from "../hooks/useCartMerge";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useHeaderSearch, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
 import AppHeader from "./AppHeader";
@@ -12,6 +13,8 @@ function AppLayout() {
   const isScrolled = useScrolled();
   const { searchTerm, setSearchTerm, submit: handleSearchSubmit } = useHeaderSearch();
   const { mobileOpen, toggle: toggleMobileMenu } = useMobileMenu();
+
+  useCartMerge();
 
   return (
     <div className="app-shell">
