@@ -4,6 +4,7 @@
  */
 export function buildOrderFormData({
   effectiveAddress,
+  email,
   paymentMethod,
   shipping,
   customInstructions,
@@ -11,15 +12,19 @@ export function buildOrderFormData({
   designFile,
   couponCode,
 }) {
+  const streetAddress = [effectiveAddress.addressLine1, effectiveAddress.addressLine2]
+    .filter(Boolean)
+    .join(", ");
+
   const formData = new FormData();
   formData.append("customerName", effectiveAddress.fullName);
   formData.append("phone", effectiveAddress.phoneNumber);
-  formData.append("email", effectiveAddress.email);
-  formData.append("streetAddress", effectiveAddress.address);
+  formData.append("email", email || effectiveAddress.email || "");
+  formData.append("streetAddress", streetAddress);
   formData.append("landmark", effectiveAddress.landmark || "");
   formData.append("city", effectiveAddress.city);
   formData.append("state", effectiveAddress.state);
-  formData.append("pincode", effectiveAddress.postalCode);
+  formData.append("pincode", effectiveAddress.pincode);
   formData.append("paymentMethod", paymentMethod);
   formData.append("shippingCharge", String(shipping));
   formData.append("customInstructions", customInstructions);

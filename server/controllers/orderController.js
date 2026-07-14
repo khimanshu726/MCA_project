@@ -192,7 +192,8 @@ export const createOrder = async (req, res, next) => {
       uploadedFileURL: createUploadedFileUrl(req, req.file),
       paymentMethod,
       paymentStatus,
-      orderStatus: "New",
+      orderStatus: "Placed",
+      statusHistory: [{ status: "Placed", changedAt: new Date().toISOString(), note: "Order placed." }],
       notificationStatus: "Unread",
       archived: false,
       lineItems,
@@ -286,6 +287,95 @@ export const getCustomerOrders = async (req, res, next) => {
   }
 };
 
+// Ownership-checked single-order lookup for the customer-facing order-success
+// / order-detail pages. Guest orders (no customerId) are reachable only by an
+// unauthenticated caller — the order id itself is the capability, same as
+// most guest-checkout confirmation links; an authenticated caller can only
+// see orders tied to their own account.
+export const getCustomerOrder = async (req, res, next) => {
+  try {
+    const order = await getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const isOwner = req.customer ? order.customerId === req.customer.id : !order.customerId;
+    if (!isOwner) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    return res.json({ order });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const CANCELLABLE_STATUSES = ["Placed", "Confirmed"];
+const RETURNABLE_STATUSES = ["Delivered"];
+
+const findOwnedOrder = async (req) => {
+  const order = await getOrderById(req.params.id);
+  if (!order) return null;
+  const isOwner = req.customer ? order.customerId === req.customer.id : !order.customerId;
+  return isOwner ? order : null;
+};
+
+export const cancelCustomerOrder = async (req, res, next) => {
+  try {
+    const order = await findOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    if (!CANCELLABLE_STATUSES.includes(order.orderStatus)) {
+      return res.status(409).json({ message: `Orders that are ${order.orderStatus} can no longer be cancelled.` });
+    }
+
+    await Promise.all((order.lineItems || []).map((item) => restoreStock(item.productId, item.quantity)));
+
+    const updatedOrder = await updateOrderRecord(order.id, (currentOrder) => ({
+      ...currentOrder,
+      orderStatus: "Cancelled",
+      statusHistory: [
+        ...(currentOrder.statusHistory || []),
+        { status: "Cancelled", changedAt: new Date().toISOString(), note: "Cancelled by customer." },
+      ],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    return res.json({ message: "Order cancelled.", order: updatedOrder });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const returnCustomerOrder = async (req, res, next) => {
+  try {
+    const order = await findOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    if (!RETURNABLE_STATUSES.includes(order.orderStatus)) {
+      return res.status(409).json({ message: "Only delivered orders can be returned." });
+    }
+
+    const updatedOrder = await updateOrderRecord(order.id, (currentOrder) => ({
+      ...currentOrder,
+      orderStatus: "Returned",
+      statusHistory: [
+        ...(currentOrder.statusHistory || []),
+        { status: "Returned", changedAt: new Date().toISOString(), note: "Return requested by customer." },
+      ],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    return res.json({ message: "Return requested.", order: updatedOrder });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getOrder = async (req, res, next) => {
   try {
     const order = await getOrderById(req.params.id);
@@ -301,7 +391,7 @@ export const getOrder = async (req, res, next) => {
 };
 
 export const updateOrder = async (req, res, next) => {
-  const { orderStatus, paymentStatus, archived, notificationStatus } = req.body;
+  const { orderStatus, paymentStatus, archived, notificationStatus, trackingId } = req.body;
 
   if (orderStatus && !allowedOrderStatuses.includes(orderStatus)) {
     return res.status(400).json({ message: "Invalid order status." });
@@ -316,14 +406,22 @@ export const updateOrder = async (req, res, next) => {
   }
 
   try {
-    const updatedOrder = await updateOrderRecord(req.params.id, (currentOrder) => ({
-      ...currentOrder,
-      orderStatus: orderStatus || currentOrder.orderStatus,
-      paymentStatus: paymentStatus || currentOrder.paymentStatus,
-      archived: typeof archived === "boolean" ? archived : currentOrder.archived,
-      notificationStatus: notificationStatus || currentOrder.notificationStatus,
-      updatedAt: new Date().toISOString(),
-    }));
+    const updatedOrder = await updateOrderRecord(req.params.id, (currentOrder) => {
+      const isStatusChange = orderStatus && orderStatus !== currentOrder.orderStatus;
+
+      return {
+        ...currentOrder,
+        orderStatus: orderStatus || currentOrder.orderStatus,
+        paymentStatus: paymentStatus || currentOrder.paymentStatus,
+        archived: typeof archived === "boolean" ? archived : currentOrder.archived,
+        notificationStatus: notificationStatus || currentOrder.notificationStatus,
+        trackingId: typeof trackingId === "string" ? trackingId.trim() : currentOrder.trackingId,
+        statusHistory: isStatusChange
+          ? [...(currentOrder.statusHistory || []), { status: orderStatus, changedAt: new Date().toISOString() }]
+          : currentOrder.statusHistory,
+        updatedAt: new Date().toISOString(),
+      };
+    });
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found." });

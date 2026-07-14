@@ -99,6 +99,7 @@ function OrderSummaryCard({
   isApplyingCoupon,
   onApplyCoupon,
   onRemoveCoupon,
+  ctaLabel = "Place order",
 }) {
   return (
     <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm lg:sticky lg:top-24">
@@ -149,7 +150,7 @@ function OrderSummaryCard({
       ) : null}
 
       <Button className="mt-5 w-full" size="lg" onClick={onCheckout} disabled={!canCheckout} loading={isPlacingOrder}>
-        Place order
+        {ctaLabel}
       </Button>
       {!canCheckout && checkoutDisabledReason ? (
         <p className="mt-2 text-center text-xs text-ink-400">{checkoutDisabledReason}</p>

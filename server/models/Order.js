@@ -1,5 +1,14 @@
 import mongoose from "mongoose";
 
+const statusHistoryEntrySchema = new mongoose.Schema(
+  {
+    status: { type: String, required: true },
+    changedAt: { type: Date, default: Date.now },
+    note: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
 const orderSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -36,6 +45,8 @@ const orderSchema = new mongoose.Schema(
     lineItems: { type: Array, default: [] },
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
+    trackingId: { type: String, default: "" },
+    statusHistory: { type: [statusHistoryEntrySchema], default: [] },
   },
   { timestamps: true }
 );

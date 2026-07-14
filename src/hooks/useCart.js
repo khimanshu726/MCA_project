@@ -191,6 +191,7 @@ export function useCart() {
     couponError: isAuthenticated ? server.cart?.couponError ?? null : null,
     isLoading: isAuthenticated ? server.isLoading : false,
     isApplyingCoupon: isAuthenticated ? server.isApplyingCoupon : false,
+    pendingQuantityProductId: isAuthenticated ? server.pendingQuantityProductId : null,
     isAuthenticated,
     addToCart,
     removeFromCart,

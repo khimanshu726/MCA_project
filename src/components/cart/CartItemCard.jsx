@@ -5,7 +5,16 @@ import Badge from "../ui/Badge";
 import PriceDisplay, { currencyFormatter } from "../ui/PriceDisplay";
 import QuantitySelector from "../ui/QuantitySelector";
 
-function CartItemCard({ item, selected, onToggleSelect, onQuantityChange, onRemove, onToggleSaveForLater, isAuthenticated }) {
+function CartItemCard({
+  item,
+  selected,
+  onToggleSelect,
+  onQuantityChange,
+  onRemove,
+  onToggleSaveForLater,
+  isAuthenticated,
+  isQuantityPending = false,
+}) {
   const { product, quantity, isOutOfStock, isLowStock, isPriceChanged, isMissing, savedForLater, priceAtAdd } = item;
 
   if (isMissing) {
@@ -88,6 +97,7 @@ function CartItemCard({ item, selected, onToggleSelect, onQuantityChange, onRemo
             min={product.minimumOrderQty || 1}
             max={Math.max(product.stock, 1)}
             disabled={isOutOfStock || savedForLater}
+            isPending={isQuantityPending}
             ariaLabel={`Quantity for ${product.name}`}
             onChange={(next) => onQuantityChange(item.productId, next)}
           />
