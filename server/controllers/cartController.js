@@ -1,11 +1,13 @@
 import { getProductsByIds } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
+import { findCouponByCode, validateCoupon } from "../services/couponStore.js";
 import {
   addItem,
   clearCart,
   getOrCreateCart,
   removeItem,
   replaceItems,
+  setAppliedCoupon,
   setItemQuantity,
   setSavedForLater,
 } from "../services/cartStore.js";
@@ -63,16 +65,35 @@ const resolveCartView = async (cart) => {
   const eligibleForPricing = items.filter(
     (item) => !item.savedForLater && !item.isMissing && !item.isOutOfStock,
   );
+  const pricingItems = eligibleForPricing.map((item) => ({
+    price: item.product.price,
+    mrp: item.product.mrp,
+    quantity: item.quantity,
+  }));
+  const subtotal = pricingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const pricing = computeCartPricing(
-    eligibleForPricing.map((item) => ({
-      price: item.product.price,
-      mrp: item.product.mrp,
-      quantity: item.quantity,
-    })),
-  );
+  // Re-validate the applied coupon against the *current* subtotal on every
+  // read — min-order/expiry/usage can all change between visits. If it's
+  // gone invalid, clear it from the cart and explain why, rather than
+  // silently keeping a stale discount or silently dropping it.
+  let coupon = null;
+  let couponError = null;
 
-  return { items, pricing };
+  if (cart.appliedCouponCode) {
+    const candidate = await findCouponByCode(cart.appliedCouponCode);
+    const validation = validateCoupon(candidate, subtotal);
+
+    if (validation.valid) {
+      coupon = candidate;
+    } else {
+      couponError = `Your coupon was removed: ${validation.reason}`;
+      await setAppliedCoupon(cart.customerId, null);
+    }
+  }
+
+  const pricing = computeCartPricing(pricingItems, coupon);
+
+  return { items, pricing, couponError };
 };
 
 export const getCart = async (req, res, next) => {
@@ -163,6 +184,49 @@ export const toggleSaveForLater = async (req, res, next) => {
       return res.status(404).json({ message: "Item not found in cart." });
     }
 
+    const view = await resolveCartView(cart);
+    return res.json(view);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const applyCoupon = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ message: "A coupon code is required." });
+    }
+
+    const cart = await getOrCreateCart(req.customer.id);
+    const activeItems = cart.items.filter((item) => !item.savedForLater);
+    const products = await getProductsByIds(activeItems.map((item) => item.productId));
+    const productsById = new Map(products.map((product) => [product.id, product]));
+    const subtotal = activeItems.reduce((sum, item) => {
+      const product = productsById.get(item.productId);
+      if (!product || product.status !== "active" || product.stock <= 0) return sum;
+      return sum + product.price * item.quantity;
+    }, 0);
+
+    const coupon = await findCouponByCode(code);
+    const validation = validateCoupon(coupon, subtotal);
+
+    if (!validation.valid) {
+      return res.status(400).json({ code: "COUPON_INVALID", message: validation.reason });
+    }
+
+    const updatedCart = await setAppliedCoupon(req.customer.id, coupon.code);
+    const view = await resolveCartView(updatedCart);
+    return res.json(view);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const removeCoupon = async (req, res, next) => {
+  try {
+    const cart = await setAppliedCoupon(req.customer.id, null);
     const view = await resolveCartView(cart);
     return res.json(view);
   } catch (error) {

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import AddToCartButton from "./AddToCartButton";
 import ResponsiveImage from "./ResponsiveImage";
+import WishlistButton from "./ui/WishlistButton";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -11,12 +12,15 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 function ProductCard({ product, className = "" }) {
   return (
     <article className={`product-card ${className}`.trim()}>
-      <ResponsiveImage
-        src={product.images[0]}
-        alt={product.name}
-        className="card-image"
-        aspectClassName="ratio-product"
-      />
+      <div className="product-card-media">
+        <ResponsiveImage
+          src={product.images[0]}
+          alt={product.name}
+          className="card-image"
+          aspectClassName="ratio-product"
+        />
+        <WishlistButton productId={product.id} className="wishlist-toggle-overlay" />
+      </div>
       <div className="card-content">
         <div className="card-topline">
           <p className="eyebrow">{product.category}</p>

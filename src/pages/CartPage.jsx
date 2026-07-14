@@ -7,9 +7,11 @@ import PaymentSelector from "../components/PaymentSelector";
 import CartItemCard from "../components/cart/CartItemCard";
 import CartSkeleton from "../components/cart/CartSkeleton";
 import EmptyCartState from "../components/cart/EmptyCartState";
+import FrequentlyBoughtTogether from "../components/cart/FrequentlyBoughtTogether";
 import OrderSummaryCard from "../components/cart/OrderSummaryCard";
 import RecentlyViewed from "../components/cart/RecentlyViewed";
 import SelectAllBar from "../components/cart/SelectAllBar";
+import YouMayAlsoLike from "../components/cart/YouMayAlsoLike";
 import Dialog from "../components/ui/Dialog";
 import Toast from "../components/ui/Toast";
 import Button from "../components/ui/Button";
@@ -34,8 +36,22 @@ const emptyAddressState = {
 function CartPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { items, cartItems, pricing, isLoading, isAuthenticated, addToCart, removeFromCart, updateQuantity, toggleSaveForLater, clearCart } =
-    useCart();
+  const {
+    items,
+    cartItems,
+    pricing,
+    couponError,
+    isLoading,
+    isApplyingCoupon,
+    isAuthenticated,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    toggleSaveForLater,
+    clearCart,
+    applyCoupon,
+    removeCoupon,
+  } = useCart();
   const { user, token } = useUserAuth();
   const { toast, pushToast, dismiss } = useToast();
 
@@ -56,6 +72,13 @@ function CartPage() {
       return next.size === prev.size ? prev : next;
     });
   }, [items]);
+
+  useEffect(() => {
+    if (couponError) {
+      pushToast({ type: "error", message: couponError });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couponError]);
 
   const activeItems = useMemo(() => items.filter((item) => !item.savedForLater), [items]);
   const savedItems = useMemo(() => items.filter((item) => item.savedForLater), [items]);
@@ -249,6 +272,7 @@ function CartPage() {
         customInstructions,
         cartItems: purchasableCartItems,
         designFile,
+        couponCode: pricing.couponCode,
       });
       const orderToken = isAuthenticated && token ? token : null;
 
@@ -272,7 +296,7 @@ function CartPage() {
       // moved since it was last fetched — refetch so the offending
       // CartItemCard(s) pick up the current isOutOfStock/isPriceChanged flags.
       const errorCode = submitError.payload?.code;
-      if (errorCode === "OUT_OF_STOCK" || errorCode === "PRODUCT_NOT_FOUND") {
+      if (errorCode === "OUT_OF_STOCK" || errorCode === "PRODUCT_NOT_FOUND" || errorCode === "COUPON_INVALID") {
         queryClient.invalidateQueries({ queryKey: ["cart"] });
         queryClient.invalidateQueries({ queryKey: ["products"] });
       }
@@ -355,6 +379,11 @@ function CartPage() {
               onFileChange={handleFileChange}
             />
 
+            <FrequentlyBoughtTogether
+              seedProductId={activeItems[0]?.productId}
+              excludeIds={items.map((item) => item.productId)}
+            />
+            <YouMayAlsoLike items={activeItems} excludeIds={items.map((item) => item.productId)} />
             <RecentlyViewed excludeIds={items.map((item) => item.productId)} />
           </div>
 
@@ -387,6 +416,10 @@ function CartPage() {
               canCheckout={canPlaceOrder}
               checkoutDisabledReason={placeOrderDisabledReason}
               isPlacingOrder={isPlacingOrder}
+              isAuthenticated={isAuthenticated}
+              isApplyingCoupon={isApplyingCoupon}
+              onApplyCoupon={applyCoupon}
+              onRemoveCoupon={removeCoupon}
             />
           </aside>
         </div>

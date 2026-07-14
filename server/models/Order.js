@@ -24,6 +24,8 @@ const orderSchema = new mongoose.Schema(
     platformFee: { type: Number, default: 0 },
     taxAmount: { type: Number, default: 0 },
     savings: { type: Number, default: 0 },
+    couponCode: { type: String, default: null },
+    couponDiscount: { type: Number, default: 0 },
     customizationDetails: { type: String },
     uploadedFileURL: { type: String },
     paymentMethod: { type: String, required: true },

@@ -9,6 +9,7 @@ export function buildOrderFormData({
   customInstructions,
   cartItems,
   designFile,
+  couponCode,
 }) {
   const formData = new FormData();
   formData.append("customerName", effectiveAddress.fullName);
@@ -40,6 +41,13 @@ export function buildOrderFormData({
 
   if (designFile) {
     formData.append("designFile", designFile);
+  }
+
+  // A hint only — the server independently re-validates this code against
+  // the resolved subtotal (server/controllers/orderController.js#createOrder)
+  // and rejects if it's no longer valid.
+  if (couponCode) {
+    formData.append("couponCode", couponCode);
   }
 
   return formData;

@@ -32,6 +32,10 @@ export function computeClientCartPricing(items = []) {
     subtotal: round2(subtotal),
     mrpTotal: round2(mrpTotal),
     discount: round2(discount),
+    // Coupons require the authenticated server cart (see useCart.js) — a
+    // guest estimate always shows no coupon applied.
+    couponCode: null,
+    couponDiscount: 0,
     platformFee: round2(platformFee),
     tax,
     shipping: round2(shipping),

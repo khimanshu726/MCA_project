@@ -149,6 +149,24 @@ export function useCart() {
     guest.clearCart();
   }, [isAuthenticated, server, guest]);
 
+  // Coupons only work against the authenticated server cart — same reason
+  // save-for-later is authenticated-only. The UI shows a "log in to apply a
+  // coupon" prompt instead of calling this for guests.
+  const applyCoupon = useCallback(
+    (code) => {
+      if (!isAuthenticated) {
+        return Promise.reject(new Error("Log in to apply a coupon."));
+      }
+      return server.applyCoupon(code);
+    },
+    [isAuthenticated, server],
+  );
+
+  const removeCoupon = useCallback(() => {
+    if (!isAuthenticated) return Promise.resolve();
+    return server.removeCoupon();
+  }, [isAuthenticated, server]);
+
   // Backward-compatible flat shape for call sites that only need id/name/price.
   const cartItems = useMemo(
     () =>
@@ -170,12 +188,16 @@ export function useCart() {
     cartItemIds,
     cartCount,
     pricing,
+    couponError: isAuthenticated ? server.cart?.couponError ?? null : null,
     isLoading: isAuthenticated ? server.isLoading : false,
+    isApplyingCoupon: isAuthenticated ? server.isApplyingCoupon : false,
     isAuthenticated,
     addToCart,
     removeFromCart,
     updateQuantity,
     toggleSaveForLater,
     clearCart,
+    applyCoupon,
+    removeCoupon,
   };
 }

@@ -12,6 +12,7 @@ import {
 } from "../services/orderStore.js";
 import { decrementStockAtomic, getProductsByIds, restoreStock } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
+import { findCouponByCode, incrementCouponUsage, validateCoupon } from "../services/couponStore.js";
 import { sendOrderNotifications } from "../services/notificationService.js";
 import {
   allowedNotificationStatuses,
@@ -84,6 +85,27 @@ export const createOrder = async (req, res, next) => {
     });
   }
 
+  // Coupon (if any) is re-validated independently server-side — the
+  // discount amount is never trusted from the client, only the code hint.
+  // Validated before stock is touched so an invalid coupon fails fast.
+  let coupon = null;
+
+  if (req.body.couponCode) {
+    const requestedSubtotal = requestedLineItems.reduce(
+      (sum, item) => sum + productsById.get(item.productId).price * item.quantity,
+      0,
+    );
+    const candidate = await findCouponByCode(req.body.couponCode);
+    const validation = validateCoupon(candidate, requestedSubtotal);
+
+    if (!validation.valid) {
+      await deleteUploadedFile(req.file?.path);
+      return res.status(409).json({ code: "COUPON_INVALID", message: validation.reason });
+    }
+
+    coupon = candidate;
+  }
+
   // Atomic, race-safe stock decrement per item (see productStore.decrementStockAtomic).
   // On any failure, compensate by restoring stock for every item already
   // decremented in this request before responding.
@@ -133,6 +155,7 @@ export const createOrder = async (req, res, next) => {
         const product = productsById.get(item.productId);
         return { price: product.price, mrp: product.mrp, quantity: item.quantity };
       }),
+      coupon,
     );
 
     const totalQuantity = lineItems.reduce((total, item) => total + item.quantity, 0);
@@ -163,6 +186,8 @@ export const createOrder = async (req, res, next) => {
       platformFee: pricing.platformFee,
       taxAmount: pricing.tax,
       savings: pricing.savings,
+      couponCode: pricing.couponCode,
+      couponDiscount: pricing.couponDiscount,
       customizationDetails: (req.body.customInstructions || "").trim(),
       uploadedFileURL: createUploadedFileUrl(req, req.file),
       paymentMethod,
@@ -198,6 +223,15 @@ export const createOrder = async (req, res, next) => {
     }
 
     const savedOrder = await createOrderRecord(order);
+
+    if (coupon) {
+      // Awaited (not fire-and-forget) so usage-limit enforcement is
+      // consistent for a rapid next order — the order itself is already
+      // placed at this point, so a failure here is logged, not fatal.
+      await incrementCouponUsage(coupon.code).catch((error) => {
+        console.error(`Failed to increment usage for coupon ${coupon.code}:`, error);
+      });
+    }
 
     sendOrderNotifications(savedOrder).catch(() => {
       // Local development should not fail when SMTP is not configured.

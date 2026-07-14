@@ -9,9 +9,11 @@ import orderRoutes from "./routes/orderRoutes.js";
 import checkoutRoutes from "./routes/checkoutRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
+import { ensureCouponsSeeded } from "./services/couponSeed.js";
 import { connectDB } from "./config/db.js";
 import { authenticateCustomer } from "./middleware/authenticateCustomer.js";
 
@@ -48,6 +50,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", authenticateCustomer, cartRoutes);
+app.use("/api/wishlist", authenticateCustomer, wishlistRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use("/admin", express.static(distAdminPath));
@@ -74,6 +77,7 @@ const startServer = async (port = appConfig.apiPort) => {
   await connectDB();
   await ensureDefaultAdminUser();
   await ensureProductsSeeded();
+  await ensureCouponsSeeded();
 
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {
