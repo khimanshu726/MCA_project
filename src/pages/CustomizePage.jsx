@@ -1,23 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AddToCartButton from "../components/AddToCartButton";
 import ResponsiveImage from "../components/ResponsiveImage";
-import { getProductById, products } from "../data";
+import { useProducts } from "../hooks/useProducts";
+import { useProduct } from "../hooks/useProduct";
 
 function CustomizePage() {
   const { productId } = useParams();
-  const initialProduct = useMemo(() => getProductById(productId) ?? products[0], [productId]);
-  const [selectedProductId, setSelectedProductId] = useState(initialProduct.id);
+  const { data: productsData, isLoading: isListLoading } = useProducts({ limit: 100 });
+  const items = productsData?.items ?? [];
+
+  const [selectedProductId, setSelectedProductId] = useState(productId || "");
   const [uploadedImage, setUploadedImage] = useState("");
 
-  const selectedProduct = useMemo(
-    () => getProductById(selectedProductId) ?? products[0],
-    [selectedProductId],
-  );
-
   useEffect(() => {
-    setSelectedProductId(initialProduct.id);
-  }, [initialProduct.id]);
+    if (productId) {
+      setSelectedProductId(productId);
+    } else if (!selectedProductId && items.length > 0) {
+      setSelectedProductId(items[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, items]);
+
+  const { data: selectedProduct, isLoading: isProductLoading } = useProduct(selectedProductId);
 
   useEffect(() => {
     return () => {
@@ -40,6 +45,16 @@ function CustomizePage() {
     setUploadedImage(URL.createObjectURL(file));
   };
 
+  if (isListLoading || (selectedProductId && isProductLoading && !selectedProduct)) {
+    return (
+      <main className="page-stack">
+        <section className="section-panel">
+          <p className="section-copy">Loading customization tools&hellip;</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="page-stack">
       <section className="customize-layout">
@@ -55,8 +70,12 @@ function CustomizePage() {
             <label className="field-label" htmlFor="product-select">
               Product
             </label>
-            <select id="product-select" value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)}>
-              {products.map((product) => (
+            <select
+              id="product-select"
+              value={selectedProductId}
+              onChange={(event) => setSelectedProductId(event.target.value)}
+            >
+              {items.map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.name}
                 </option>
@@ -88,28 +107,39 @@ function CustomizePage() {
 
         <article className="section-panel product-preview-panel">
           <p className="eyebrow">Overlay preview</p>
-          <div className="product-preview-stage">
-            <ResponsiveImage
-              src={selectedProduct.images[0]}
-              alt={`${selectedProduct.name} preview`}
-              className="product-preview-image"
-              aspectClassName="ratio-product"
-            />
-            {uploadedImage ? (
-              <img className="overlay-artwork" src={uploadedImage} alt="Uploaded artwork over product preview" loading="lazy" />
-            ) : (
-              <div className="overlay-placeholder">Upload image</div>
-            )}
-          </div>
-          <p className="section-copy">
-            Backend upload target reference: <code>uploads/</code>
-          </p>
-          <div className="action-row">
-            <AddToCartButton product={selectedProduct} className="primary-button" idleLabel="Add customized item" />
-            <Link className="secondary-button" to="/cart">
-              View cart
-            </Link>
-          </div>
+          {selectedProduct ? (
+            <>
+              <div className="product-preview-stage">
+                <ResponsiveImage
+                  src={selectedProduct.images[0]}
+                  alt={`${selectedProduct.name} preview`}
+                  className="product-preview-image"
+                  aspectClassName="ratio-product"
+                />
+                {uploadedImage ? (
+                  <img
+                    className="overlay-artwork"
+                    src={uploadedImage}
+                    alt="Uploaded artwork over product preview"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="overlay-placeholder">Upload image</div>
+                )}
+              </div>
+              <p className="section-copy">
+                Backend upload target reference: <code>uploads/</code>
+              </p>
+              <div className="action-row">
+                <AddToCartButton product={selectedProduct} className="primary-button" idleLabel="Add customized item" />
+                <Link className="secondary-button" to="/cart">
+                  View cart
+                </Link>
+              </div>
+            </>
+          ) : (
+            <p className="section-copy">Select a product to preview.</p>
+          )}
         </article>
       </section>
     </main>

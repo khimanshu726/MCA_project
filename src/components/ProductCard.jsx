@@ -26,7 +26,7 @@ function ProductCard({ product, className = "" }) {
         <p>{product.description}</p>
         <div className="product-meta-list">
           {product.leadTime ? <span className="meta-pill">{product.leadTime}</span> : null}
-          {product.minimum ? <span className="meta-pill">{product.minimum}</span> : null}
+          {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
         </div>
         <div className="product-card-footer">
           <div className="product-price-block">

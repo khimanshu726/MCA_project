@@ -25,7 +25,7 @@ const serializeRequestBody = (body) => {
   return JSON.stringify(body);
 };
 
-const request = async (path, { method = "GET", body, headers, token } = {}) => {
+export const request = async (path, { method = "GET", body, headers, token } = {}) => {
   let response;
 
   try {

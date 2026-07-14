@@ -1,0 +1,58 @@
+/*
+ * Tailwind is scoped to the storefront cart/design-system components only.
+ * Preflight (Tailwind's base reset) is intentionally skipped by importing
+ * the theme + utilities layers directly instead of the bundled entrypoint —
+ * the rest of the app already has its own reset in styles.css, and Tailwind's
+ * base layer would otherwise clobber bare tag selectors (button, input,
+ * h1-h3) used throughout the existing pages.
+ *
+ * Source scanning is explicit (source(none) + @source) rather than
+ * auto-detected, so admin-app/ is never scanned even though it lives in the
+ * same repo.
+ */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../../index.html";
+@source "../**/*.{js,jsx}";
+
+/* Brand tokens mirrored from styles.css so the new cart/design-system
+   components read as the same product, not a bolted-on template. */
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Fraunces", "Playfair Display", Georgia, serif;
+
+  --color-brand-50: #fbf1ec;
+  --color-brand-100: #f4e1d6;
+  --color-brand-400: #c86b3f;
+  --color-brand-500: #b8461d;
+  --color-brand-600: #953613;
+  --color-brand-700: #7a2c10;
+
+  --color-ink-50: #f6f6f7;
+  --color-ink-100: #eff0f2;
+  --color-ink-200: #e4e5e7;
+  --color-ink-300: #c7c8cc;
+  --color-ink-400: #9b9da4;
+  --color-ink-500: #74767d;
+  --color-ink-600: #55575e;
+  --color-ink-700: #3a3c43;
+  --color-ink-800: #2a2b30;
+  --color-ink-900: #17181b;
+  --color-ink-950: #0e0f11;
+
+  --color-bone: #faf8f4;
+  --color-bone-100: #f3efe7;
+  --color-bone-200: #ebe6dc;
+
+  --color-gold-500: #b58a34;
+  --color-sage-500: #4b6b5b;
+  --color-sage-600: #3a5548;
+  --color-sage-100: #dfe6e0;
+  --color-danger-500: #b23a2b;
+  --color-danger-600: #93301f;
+  --color-danger-100: #f6e3e0;
+  --color-success-500: #2e6a45;
+  --color-success-600: #245536;
+  --color-success-100: #e2ede5;
+}

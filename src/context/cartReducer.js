@@ -13,42 +13,29 @@ const normalizeCartItem = (product, quantity = 1) => ({
   quantity: Math.max(1, quantity),
 });
 
-const addItem = (state, product) => {
+const addItem = (state, product, quantity = 1) => {
   const existingItem = state.find((item) => item.id === product.id);
   if (!existingItem) {
-    return [...state, normalizeCartItem(product)];
+    return [...state, normalizeCartItem(product, quantity)];
   }
   return state.map((item) =>
-    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+    item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item,
   );
 };
 
-const incrementItem = (state, id) =>
-  state.map((item) =>
-    item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
-  );
-
-const decrementItem = (state, id) =>
-  state.flatMap((item) => {
-    if (item.id !== id) return [item];
-    if (item.quantity <= 1) return [];
-    return [{ ...item, quantity: item.quantity - 1 }];
-  });
-
-const updateQuantity = (state, id, mode) => {
-  if (mode === "increment") return incrementItem(state, id);
-  if (mode === "decrement") return decrementItem(state, id);
-  return state;
+const setQuantity = (state, id, quantity) => {
+  const safeQuantity = Math.max(1, Number(quantity) || 1);
+  return state.map((item) => (item.id === id ? { ...item, quantity: safeQuantity } : item));
 };
 
 export function cartReducer(state, action) {
   switch (action.type) {
     case "ADD_ITEM":
-      return addItem(state, action.payload.product);
+      return addItem(state, action.payload.product, action.payload.quantity);
     case "REMOVE_ITEM":
       return state.filter((item) => item.id !== action.payload.id);
-    case "UPDATE_QUANTITY":
-      return updateQuantity(state, action.payload.id, action.payload.mode);
+    case "SET_QUANTITY":
+      return setQuantity(state, action.payload.id, action.payload.quantity);
     case "CLEAR_CART":
       return [];
     default:

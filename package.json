@@ -11,6 +11,7 @@
     "server:dev": "node --watch server/index.js",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "dev:platform": "concurrently \"npm run server:dev\" \"npm run dev\" \"npm run dev:admin\"",
+    "migrate:products": "node server/scripts/migrateProducts.js",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "build": "vite build",
@@ -20,6 +21,7 @@
     "preview:admin": "vite preview --config vite.admin.config.js"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^1.41.3",
     "concurrently": "^9.2.1",
@@ -44,11 +46,15 @@
     "react-router-dom": "^7.6.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.5.2",
     "jsdom": "^29.0.2",
+    "postcss": "^8.5.19",
     "supertest": "^7.2.2",
+    "tailwindcss": "^4.3.2",
     "vite": "^7.0.0",
     "vitest": "^4.1.4"
   }

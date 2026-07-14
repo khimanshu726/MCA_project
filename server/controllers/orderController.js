@@ -10,6 +10,8 @@ import {
   bulkUpdateOrderRecords,
   bulkDeleteOrderRecords,
 } from "../services/orderStore.js";
+import { decrementStockAtomic, getProductsByIds, restoreStock } from "../services/productStore.js";
+import { computeCartPricing } from "../services/pricingService.js";
 import { sendOrderNotifications } from "../services/notificationService.js";
 import {
   allowedNotificationStatuses,
@@ -47,7 +49,7 @@ const deleteUploadedFile = async (fileUrl) => {
 
 export const createOrder = async (req, res, next) => {
   const rawLineItems = parseLineItems(req.body.lineItems);
-  const lineItems = normalizeLineItems(rawLineItems);
+  const requestedLineItems = normalizeLineItems(rawLineItems);
 
   const errors = validateOrderPayload({
     customerName: req.body.customerName,
@@ -57,7 +59,7 @@ export const createOrder = async (req, res, next) => {
     city: req.body.city,
     state: req.body.state,
     pincode: req.body.pincode,
-    lineItems,
+    lineItems: requestedLineItems,
     paymentMethod: req.body.paymentMethod,
   });
 
@@ -66,11 +68,74 @@ export const createOrder = async (req, res, next) => {
     return res.status(400).json({ message: "Please correct the order form fields.", errors });
   }
 
+  // Resolve every line item against the live Product record — the client's
+  // productId/quantity are trusted, nothing price-related is.
+  const productIds = [...new Set(requestedLineItems.map((item) => item.productId))];
+  const products = await getProductsByIds(productIds);
+  const productsById = new Map(products.map((product) => [product.id, product]));
+  const missingIds = productIds.filter((id) => !productsById.has(id) || productsById.get(id).status !== "active");
+
+  if (missingIds.length > 0) {
+    await deleteUploadedFile(req.file?.path);
+    return res.status(400).json({
+      code: "PRODUCT_NOT_FOUND",
+      message: "Some products in your cart are no longer available.",
+      productIds: missingIds,
+    });
+  }
+
+  // Atomic, race-safe stock decrement per item (see productStore.decrementStockAtomic).
+  // On any failure, compensate by restoring stock for every item already
+  // decremented in this request before responding.
+  const decremented = [];
+  let stockFailure = null;
+
+  for (const item of requestedLineItems) {
+    const updatedProduct = await decrementStockAtomic(item.productId, item.quantity);
+
+    if (!updatedProduct) {
+      stockFailure = {
+        productId: item.productId,
+        requested: item.quantity,
+        available: productsById.get(item.productId)?.stock ?? 0,
+      };
+      break;
+    }
+
+    decremented.push(item);
+  }
+
+  if (stockFailure) {
+    await Promise.all(decremented.map((item) => restoreStock(item.productId, item.quantity)));
+    await deleteUploadedFile(req.file?.path);
+    return res.status(409).json({
+      code: "OUT_OF_STOCK",
+      message: "One or more items in your cart are out of stock.",
+      items: [stockFailure],
+    });
+  }
+
   try {
+    const lineItems = requestedLineItems.map((item) => {
+      const product = productsById.get(item.productId);
+      return {
+        productId: item.productId,
+        name: product.name,
+        quantity: item.quantity,
+        unitPrice: product.price,
+        totalPrice: product.price * item.quantity,
+        customizationText: item.customizationText,
+      };
+    });
+
+    const pricing = computeCartPricing(
+      requestedLineItems.map((item) => {
+        const product = productsById.get(item.productId);
+        return { price: product.price, mrp: product.mrp, quantity: item.quantity };
+      }),
+    );
+
     const totalQuantity = lineItems.reduce((total, item) => total + item.quantity, 0);
-    const lineItemsTotal = lineItems.reduce((total, item) => total + item.totalPrice, 0);
-    const shippingCharge = Math.max(0, Number(req.body.shippingCharge) || 0);
-    const totalPrice = lineItemsTotal + shippingCharge;
     const paymentMethod = req.body.paymentMethod;
     const isOnlinePayment = paymentMethod !== "cod";
     const paymentStatus = "Pending";
@@ -91,8 +156,13 @@ export const createOrder = async (req, res, next) => {
       },
       productName: lineItems.map((item) => item.name).join(", "),
       quantity: totalQuantity,
-      price: totalPrice,
-      shippingCharge,
+      price: pricing.total,
+      shippingCharge: pricing.shipping,
+      subtotal: pricing.subtotal,
+      discountTotal: pricing.discount,
+      platformFee: pricing.platformFee,
+      taxAmount: pricing.tax,
+      savings: pricing.savings,
       customizationDetails: (req.body.customInstructions || "").trim(),
       uploadedFileURL: createUploadedFileUrl(req, req.file),
       paymentMethod,
@@ -106,13 +176,14 @@ export const createOrder = async (req, res, next) => {
 
     if (isOnlinePayment && !razorpayInstance) {
       await deleteUploadedFile(req.file?.path);
+      await Promise.all(decremented.map((item) => restoreStock(item.productId, item.quantity)));
       return res.status(503).json({ message: "Online payments are not configured on this server." });
     }
 
     if (isOnlinePayment && razorpayInstance) {
       try {
         const razorpayOrder = await razorpayInstance.orders.create({
-          amount: Math.round(totalPrice * 100),
+          amount: Math.round(pricing.total * 100),
           currency: "INR",
           receipt: order.orderId,
         });
@@ -121,6 +192,7 @@ export const createOrder = async (req, res, next) => {
       } catch (razorpayError) {
         console.error("Razorpay error:", razorpayError);
         await deleteUploadedFile(req.file?.path);
+        await Promise.all(decremented.map((item) => restoreStock(item.productId, item.quantity)));
         return res.status(500).json({ message: "Failed to initialize payment gateway." });
       }
     }
@@ -134,7 +206,7 @@ export const createOrder = async (req, res, next) => {
     const razorpayPayload = savedOrder.razorpayOrderId
       ? {
           order_id: savedOrder.razorpayOrderId,
-          amount: Math.round(totalPrice * 100),
+          amount: Math.round(pricing.total * 100),
           currency: "INR",
         }
       : null;
@@ -146,6 +218,7 @@ export const createOrder = async (req, res, next) => {
     });
   } catch (error) {
     await deleteUploadedFile(req.file?.path);
+    await Promise.all(decremented.map((item) => restoreStock(item.productId, item.quantity)));
     return next(error);
   }
 };
