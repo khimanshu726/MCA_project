@@ -48,7 +48,7 @@ function PreviewDialog({ open, onClose, design, template }) {
 
   return (
     <Dialog open={open} onClose={onClose} title="Design preview">
-      {error && <p className="text-sm text-danger-600">{error}</p>}
+      {error && <span className="block text-sm text-danger-600">{error}</span>}
       {!previews && !error && (
         <div className="flex items-center justify-center gap-2 py-8 text-sm text-ink-500">
           <Loader2 size={16} className="animate-spin" aria-hidden="true" /> Rendering preview…

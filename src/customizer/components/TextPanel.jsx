@@ -51,7 +51,11 @@ function TextPanel({ selectedLayer, actions }) {
               value={textLayer.text}
               rows={2}
               onChange={(event) => updateText({ text: event.target.value })}
-              className="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+              // styles.css sets `textarea { min-height: 120px }` unlayered,
+              // which outranks any utility; inline wins so the field can be
+              // two rows in a 256px inspector.
+              style={{ minHeight: 0 }}
+              className="rounded-lg bg-white px-2 py-1.5 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             />
           </label>
 
@@ -61,7 +65,7 @@ function TextPanel({ selectedLayer, actions }) {
               <select
                 value={textLayer.fontFamily}
                 onChange={(event) => updateText({ fontFamily: event.target.value })}
-                className="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+                className="rounded-lg bg-white px-2 py-1.5 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               >
                 {FONT_OPTIONS.map((font) => (
                   <option key={font.value} value={font.value}>
@@ -80,12 +84,12 @@ function TextPanel({ selectedLayer, actions }) {
                 step="0.5"
                 value={Number(textLayer.fontSize.toFixed(1))}
                 onChange={(event) => updateText({ fontSize: Math.max(2, Number(event.target.value) || 2) })}
-                className="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+                className="rounded-lg bg-white px-2 py-1.5 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <ToggleButton label="Bold" active={textLayer.fontWeight >= 600} onClick={() => updateText({ fontWeight: textLayer.fontWeight >= 600 ? 400 : 700 })}>
               <Bold size={14} aria-hidden="true" />
             </ToggleButton>
@@ -141,9 +145,9 @@ function TextPanel({ selectedLayer, actions }) {
             </label>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <FieldLabel>Colour</FieldLabel>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               {TEXT_COLOR_SWATCHES.map((swatch) => (
                 <button
                   key={swatch}
@@ -166,16 +170,16 @@ function TextPanel({ selectedLayer, actions }) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <FieldLabel>Gradient</FieldLabel>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {GRADIENT_PRESETS.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
                   aria-label={`Gradient ${preset.label}`}
                   onClick={() => updateText({ gradient: { from: preset.value, to: preset.value2, angle: preset.angle } })}
-                  className={`h-6 w-10 rounded-md border ${
+                  className={`h-6 w-10 rounded-lg border ${
                     textLayer.gradient?.from === preset.value ? "border-brand-500 ring-2 ring-brand-400/40" : "border-ink-200"
                   }`}
                   style={{ background: `linear-gradient(${preset.angle}deg, ${preset.value}, ${preset.value2})` }}
@@ -185,7 +189,7 @@ function TextPanel({ selectedLayer, actions }) {
                 <button
                   type="button"
                   onClick={() => updateText({ gradient: null })}
-                  className="rounded-md border border-ink-200 px-2 text-xs text-ink-600 hover:border-ink-400"
+                  className="rounded-lg bg-white px-2 text-xs text-ink-600 transition-colors hover:text-ink-900"
                 >
                   None
                 </button>
@@ -196,7 +200,7 @@ function TextPanel({ selectedLayer, actions }) {
           <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1">
               <FieldLabel>Outline</FieldLabel>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <input
                   type="range"
                   min="0"

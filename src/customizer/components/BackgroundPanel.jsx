@@ -10,9 +10,9 @@ function BackgroundPanel({ background, actions }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-ink-500">Solid colour</span>
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {BACKGROUND_SWATCHES.map((swatch) => (
             <button
               key={swatch}
@@ -35,9 +35,9 @@ function BackgroundPanel({ background, actions }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-ink-500">Gradient</span>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {GRADIENT_PRESETS.map((preset) => (
             <button
               key={preset.label}

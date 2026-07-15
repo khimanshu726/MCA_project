@@ -1,17 +1,27 @@
+import StudioHeading from "./StudioHeading.jsx";
+
 /**
- * The inspector's single grouping primitive. Deliberately NOT ui/Card —
- * that one is a storefront surface (rounded-2xl, bordered, shadow, p-5).
- * A property group is an inset panel: no border, no shadow, tighter.
+ * The inspector's grouping primitive, and the owner of its type scale.
  *
- * It also owns the one eyebrow recipe, which previously existed as three
- * hand-rolled copies at text-[10px]/text-[11px].
+ * Deliberately not ui/Card — that's a storefront surface (rounded-2xl,
+ * bordered, shadowed, p-5). A property group is an inset panel: tinted
+ * background, no border, tighter rhythm. Separating groups by value rather
+ * than stroke is what keeps the inspector from reading as a stack of
+ * outlined ecommerce boxes.
+ *
+ * Type scale (the whole inspector defers to this):
+ *   eyebrow  text-xs / semibold / uppercase / tracking-wide / ink-400
+ *   value    text-sm / medium   / ink-900
+ *   helper   text-xs / normal   / ink-400
  */
 function PropertyCard({ title, actions = null, children, inset = true }) {
   return (
     <section className={inset ? "rounded-xl bg-ink-50 p-3" : ""}>
       {title ? (
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">{title}</h4>
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <StudioHeading level={3} className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+            {title}
+          </StudioHeading>
           {actions}
         </div>
       ) : null}

@@ -28,7 +28,7 @@ function QualityBadge({ layer, template }) {
   const { classes, Icon } = LEVEL_STYLES[level];
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${classes}`}>
+    <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${classes}`}>
       <Icon size={13} aria-hidden="true" />
       {LEVEL_COPY[level](dpi)}
     </span>

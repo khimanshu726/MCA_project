@@ -12,7 +12,7 @@ function ShapeContext({ layer, actions }) {
   return (
     <div className="flex flex-col gap-3">
       <Section title="Fill">
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {TEXT_COLOR_SWATCHES.map((swatch) => (
             <button
               key={swatch}

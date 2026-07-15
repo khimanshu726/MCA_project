@@ -5,41 +5,39 @@ import { currencyFormatter } from "../../../components/ui/PriceDisplay.jsx";
 
 /**
  * Inspector content when nothing is selected: what am I printing, on what,
- * how many, and what will it cost.
+ * how many, what will it cost.
  *
- * The estimate is deliberately a LINE estimate only. computeClientCartPricing
- * exists, but its platform fee and shipping are cart-wide (shipping is waived
- * over ₹1000 across every item), so a studio-only total would contradict
- * checkout for anyone with a non-empty cart. Better to show the one number
- * we can state truthfully and say where the rest is decided.
+ * The identity block is intentionally untitled — the inspector header
+ * already says "Product", and repeating it produced a literal
+ * "PRODUCT / PRODUCT / Storefront Banner" stack.
+ *
+ * The estimate is a LINE estimate only. computeClientCartPricing exists,
+ * but its platform fee and shipping are cart-wide (shipping is waived over
+ * ₹1000 across every item), so a studio-only total would contradict
+ * checkout for anyone with a non-empty cart. Show the one number that can
+ * be stated truthfully, and say where the rest is decided.
  */
 function ProductContext({ product, template, design, quantity, onQuantityChange, actions, productSelector }) {
   const minQty = product.minimumOrderQty || 1;
   const lineTotal = product.price * quantity;
+  const sideLabels = template.sides.map((side) => side.label).join(" + ");
 
   return (
     <div className="flex flex-col gap-3">
-      <PropertyCard title="Product">
-        <div className="flex flex-col gap-2">
-          {productSelector}
-          <dl className="flex flex-col gap-1 text-xs">
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-500">Format</dt>
-              <dd className="truncate font-medium text-ink-800">{template.label}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-500">Trim size</dt>
-              <dd className="font-medium tabular-nums text-ink-800">
-                {template.trim.width} × {template.trim.height} mm
-              </dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-500">Sides</dt>
-              <dd className="font-medium text-ink-800">{template.sides.map((side) => side.label).join(" + ")}</dd>
-            </div>
-          </dl>
+      {/* Identity — no heading; the panel header already names this. */}
+      <div className="flex flex-col gap-2">
+        {productSelector}
+        <div className="flex flex-col gap-0.5 px-0.5">
+          <span className="block text-sm font-medium text-ink-900">{template.label}</span>
+          <span className="block text-xs text-ink-400">
+            <span className="tabular-nums">
+              {template.trim.width} × {template.trim.height} mm
+            </span>
+            {" · "}
+            {sideLabels}
+          </span>
         </div>
-      </PropertyCard>
+      </div>
 
       {template.options.length > 0 && (
         <PropertyCard title="Options">
@@ -53,9 +51,9 @@ function ProductContext({ product, template, design, quantity, onQuantityChange,
               />
             ))}
           </div>
-          <p className="mt-2.5 text-xs leading-relaxed text-ink-400">
+          <span className="block mt-3 text-xs leading-relaxed text-ink-400">
             Sent to production with your order. These don&rsquo;t change the price.
-          </p>
+          </span>
         </PropertyCard>
       )}
 
@@ -73,15 +71,15 @@ function ProductContext({ product, template, design, quantity, onQuantityChange,
       </PropertyCard>
 
       <PropertyCard title="Estimate">
-        <dl className="flex flex-col gap-1.5 text-xs">
-          <div className="flex justify-between gap-2">
-            <dt className="text-ink-500">
-              {currencyFormatter.format(product.price)} × {quantity}
-            </dt>
-            <dd className="font-semibold tabular-nums text-ink-900">{currencyFormatter.format(lineTotal)}</dd>
-          </div>
-        </dl>
-        <p className="mt-2 text-xs leading-relaxed text-ink-400">Taxes &amp; shipping calculated at checkout.</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-xs text-ink-400 tabular-nums">
+            {currencyFormatter.format(product.price)} × {quantity}
+          </span>
+          <span className="text-base font-semibold tabular-nums text-ink-900">
+            {currencyFormatter.format(lineTotal)}
+          </span>
+        </div>
+        <span className="block mt-2 text-xs leading-relaxed text-ink-400">Taxes &amp; shipping calculated at checkout.</span>
       </PropertyCard>
     </div>
   );

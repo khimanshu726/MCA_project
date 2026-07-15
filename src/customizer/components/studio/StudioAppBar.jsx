@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, ShoppingBag, Undo2 } from "lucide-react";
+import StudioTooltip from "./StudioTooltip.jsx";
 
 /**
  * The studio's only header. Three fixed zones that never wrap — an app bar
@@ -10,18 +11,21 @@ import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, ShoppingBag, Undo2 } fr
  * Zones: [brand · back · name · history · save state] [sides] [actions]
  */
 
-const IconButton = ({ label, onClick, disabled, children }) => (
+const IconButton = ({ label, shortcut, onClick, disabled, children }) => (
   <button
     type="button"
-    title={label}
     aria-label={label}
     onClick={onClick}
     disabled={disabled}
-    className="flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30"
+    className="group relative flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30"
   >
     {children}
+    <StudioTooltip label={label} shortcut={shortcut} side="bottom" />
   </button>
 );
+
+/** Groups are separated by a hairline so related actions read as a set. */
+const Divider = () => <span className="mx-1.5 h-5 w-px shrink-0 bg-ink-100" aria-hidden="true" />;
 
 function ProjectName({ value, onChange }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -101,34 +105,30 @@ function StudioAppBar({
   onAddToCart,
 }) {
   return (
-    <div className="relative flex w-full items-center gap-1">
-      {/* Zone 1 — identity + document */}
+    <div className="relative flex w-full items-center">
+      {/* Group 1 — navigation */}
       <button
         type="button"
         onClick={onBack}
-        title="Back to products"
-        className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-ink-100"
+        className="group relative flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900"
+        aria-label="Back to product"
       >
-        <ChevronLeft size={16} className="text-ink-500" aria-hidden="true" />
-        <span className="size-6 shrink-0 rounded-md bg-brand-500" aria-hidden="true" />
-        <span className="hidden font-display text-sm text-ink-900 sm:inline">Elite Empressions</span>
-        <span className="sr-only">Back to products</span>
+        <ChevronLeft size={17} aria-hidden="true" />
+        <StudioTooltip label="Back to product" side="bottom" />
       </button>
 
-      <span className="mx-1 h-5 w-px shrink-0 bg-ink-100" aria-hidden="true" />
+      <span className="ml-1 mr-2 flex shrink-0 items-center gap-2" aria-hidden="true">
+        <span className="size-6 shrink-0 rounded-lg bg-brand-500" />
+        <span className="hidden font-display text-sm text-ink-900 xl:inline">Elite Empressions</span>
+      </span>
 
+      <Divider />
+
+      {/* Group 2 — project */}
       <ProjectName value={projectName} onChange={onProjectNameChange} />
-
-      <IconButton label="Undo (Ctrl+Z)" onClick={onUndo} disabled={!canUndo}>
-        <Undo2 size={15} aria-hidden="true" />
-      </IconButton>
-      <IconButton label="Redo (Ctrl+Y)" onClick={onRedo} disabled={!canRedo}>
-        <Redo2 size={15} aria-hidden="true" />
-      </IconButton>
-
       <span
         aria-live="polite"
-        className="ml-1 hidden items-center gap-1.5 text-xs text-ink-400 md:flex"
+        className="ml-1 hidden shrink-0 items-center gap-2 text-xs text-ink-400 md:flex"
       >
         {isDirty ? (
           <>
@@ -143,7 +143,7 @@ function StudioAppBar({
         )}
       </span>
 
-      {/* Zone 2 — artboard identity, dead centre */}
+      {/* Group 3 — artboard identity, dead centre */}
       {sides.length > 1 && (
         <div
           role="tablist"
@@ -157,8 +157,8 @@ function StudioAppBar({
               role="tab"
               aria-selected={activeSideId === side.id}
               onClick={() => onSideChange(side.id)}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                activeSideId === side.id ? "bg-white text-ink-900 shadow-panel" : "text-ink-500 hover:text-ink-800"
+              className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors duration-150 ${
+                activeSideId === side.id ? "bg-white text-ink-900 shadow-panel" : "text-ink-500 hover:text-ink-900"
               }`}
             >
               {side.label}
@@ -167,30 +167,40 @@ function StudioAppBar({
         </div>
       )}
 
-      {/* Zone 3 — actions */}
-      <div className="ml-auto flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onPreview}
-          className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-ink-100"
-        >
-          <Eye size={14} aria-hidden="true" />
-          <span className="hidden sm:inline">Preview</span>
-        </button>
+      <div className="ml-auto flex items-center">
+        {/* Group 4 — history */}
+        <IconButton label="Undo" shortcut="⌘Z" onClick={onUndo} disabled={!canUndo}>
+          <Undo2 size={15} aria-hidden="true" />
+        </IconButton>
+        <IconButton label="Redo" shortcut="⌘⇧Z" onClick={onRedo} disabled={!canRedo}>
+          <Redo2 size={15} aria-hidden="true" />
+        </IconButton>
+
+        <Divider />
+
+        {/* Group 5 — output. Three tiers: tertiary / secondary / primary. */}
         <button
           type="button"
           onClick={onSave}
           disabled={isPersisting}
-          className="flex h-8 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 text-xs font-medium text-ink-800 transition-colors hover:border-ink-300 hover:bg-ink-50 disabled:opacity-50"
+          className="flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-ink-500 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:opacity-50"
         >
           {isPersisting ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : null}
           Save
         </button>
         <button
           type="button"
+          onClick={onPreview}
+          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-medium text-ink-800 transition-colors duration-150 hover:bg-ink-200"
+        >
+          <Eye size={14} aria-hidden="true" />
+          <span className="hidden sm:inline">Preview</span>
+        </button>
+        <button
+          type="button"
           onClick={onAddToCart}
           disabled={isExporting}
-          className="flex h-8 items-center gap-1.5 rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
+          className="ml-2 flex h-8 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />

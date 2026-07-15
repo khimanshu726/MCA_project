@@ -88,7 +88,7 @@ function SelectionFrame({ layer, scale, onHandlePointerDown, onRotatePointerDown
       )}
 
       <span
-        className="absolute left-1/2 rounded-md bg-ink-900/85 px-1.5 py-0.5 text-[10px] font-medium text-white"
+        className="absolute left-1/2 rounded-lg bg-ink-900/85 px-1.5 py-0.5 text-[10px] font-medium text-white"
         style={{ top: "100%", marginTop: 6, transform: "translateX(-50%)", whiteSpace: "nowrap" }}
       >
         {Math.round(layer.width)} × {Math.round(layer.height)} mm

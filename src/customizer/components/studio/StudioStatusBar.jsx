@@ -66,7 +66,7 @@ function StudioStatusBar({ template, validation, layerCount }) {
           disabled={!hasIssues}
           onClick={() => setIsOpen((value) => !value)}
           aria-expanded={hasIssues ? isOpen : undefined}
-          className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-medium transition-colors ${toneClasses} ${
+          className={`flex items-center gap-2 rounded-lg px-1.5 py-0.5 font-medium transition-colors ${toneClasses} ${
             hasIssues ? "" : "cursor-default"
           }`}
         >

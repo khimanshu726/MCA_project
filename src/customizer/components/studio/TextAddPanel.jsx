@@ -40,7 +40,7 @@ function TextAddPanel({ template, actions }) {
           </span>
         </button>
       ))}
-      <p className="text-xs leading-relaxed text-ink-400">Double-click any text on the canvas to edit it in place.</p>
+      <span className="block text-xs leading-relaxed text-ink-400">Double-click any text on the canvas to edit it in place.</span>
     </div>
   );
 }

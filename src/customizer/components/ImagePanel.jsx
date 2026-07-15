@@ -11,7 +11,7 @@ function ImagePanel({ selectedLayer, actions }) {
   const imageLayer = selectedLayer?.type === "image" ? selectedLayer : null;
 
   if (!imageLayer) {
-    return <p className="px-1 py-4 text-center text-xs text-ink-500">Select an image layer to adjust it.</p>;
+    return <span className="block px-1 py-4 text-center text-xs text-ink-500">Select an image layer to adjust it.</span>;
   }
 
   const filters = imageLayer.filters || DEFAULT_FILTERS;

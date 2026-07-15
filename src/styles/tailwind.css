@@ -88,3 +88,27 @@
     transform: translateY(0);
   }
 }
+
+/* Studio motion. Kept short (<200ms) and easing-matched to the site's
+   --ease-out so the editor feels responsive rather than animated. */
+@keyframes studio-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes studio-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

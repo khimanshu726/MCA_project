@@ -28,7 +28,7 @@ const longest = (values) => values.reduce((max, value) => Math.max(max, value.le
 
 function Swatches({ option, value, onChange }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       {option.values.map((entry) => {
         const hex = COLOR_HEXES[entry.toLowerCase()] || "#e4e5e7";
         const isActive = value === entry;
@@ -67,7 +67,7 @@ function Segmented({ option, value, onChange }) {
             role="radio"
             aria-checked={isActive}
             onClick={() => onChange(option.id, entry)}
-            className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+            className={`flex-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
               isActive ? "bg-white text-ink-900 shadow-panel" : "text-ink-500 hover:text-ink-800"
             }`}
           >
@@ -81,7 +81,7 @@ function Segmented({ option, value, onChange }) {
 
 function Chips({ option, value, onChange }) {
   return (
-    <div role="radiogroup" aria-label={option.label} className="flex flex-wrap gap-1.5">
+    <div role="radiogroup" aria-label={option.label} className="flex flex-wrap gap-2">
       {option.values.map((entry) => {
         const isActive = value === entry;
         return (
@@ -182,7 +182,7 @@ function OptionField({ option, value, onChange }) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-ink-500">{option.label}</span>
       <Control option={option} value={value} onChange={onChange} />
     </div>

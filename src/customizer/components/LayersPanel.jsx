@@ -8,7 +8,7 @@ const IconButton = ({ label, onClick, children, disabled }) => (
     aria-label={label}
     onClick={onClick}
     disabled={disabled}
-    className="flex size-6 items-center justify-center rounded-md text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30"
+    className="flex size-6 items-center justify-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 disabled:opacity-30"
   >
     {children}
   </button>
@@ -47,7 +47,7 @@ function LayersPanel({ layers, selectedLayerId, actions }) {
   };
 
   if (layers.length === 0) {
-    return <p className="px-1 py-6 text-center text-xs text-ink-500">No layers yet. Upload artwork or add text to get started.</p>;
+    return <span className="block px-1 py-6 text-center text-xs text-ink-500">No layers yet. Upload artwork or add text to get started.</span>;
   }
 
   const ordered = [...layers].reverse();
@@ -87,13 +87,13 @@ function LayersPanel({ layers, selectedLayerId, actions }) {
                   actions.selectLayer(layer.id);
                 }
               }}
-              className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 transition ${
-                isSelected ? "border-brand-400 bg-brand-50/60" : "border-transparent hover:bg-ink-50"
-              } ${draggingId === layer.id ? "opacity-50" : ""} ${
-                dropTargetId === layer.id && draggingId !== layer.id ? "border-brand-400 border-dashed" : ""
+              className={`flex cursor-grab items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 ${
+                isSelected ? "bg-ink-100" : "hover:bg-ink-50"
+              } ${draggingId === layer.id ? "opacity-40" : ""} ${
+                dropTargetId === layer.id && draggingId !== layer.id ? "ring-2 ring-brand-400" : ""
               }`}
             >
-              <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink-100 bg-white text-ink-400">
+              <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white text-ink-400">
                 {layer.type === "image" ? (
                   layer.src ? (
                     <img src={layer.src} alt="" className="size-full object-cover" draggable={false} />
@@ -121,7 +121,7 @@ function LayersPanel({ layers, selectedLayerId, actions }) {
                     if (event.key === "Escape") setRenamingId(null);
                   }}
                   onClick={(event) => event.stopPropagation()}
-                  className="min-w-0 flex-1 rounded-md border border-brand-300 px-1.5 py-0.5 text-xs text-ink-900 focus:outline-none"
+                  className="min-w-0 flex-1 rounded-lg border border-brand-300 px-1.5 py-0.5 text-xs text-ink-900 focus:outline-none"
                 />
               ) : (
                 <span

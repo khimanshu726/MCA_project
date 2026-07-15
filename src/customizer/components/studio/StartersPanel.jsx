@@ -81,7 +81,7 @@ function StartersPanel({ template, productName, actions }) {
           {starter.label}
         </button>
       ))}
-      <p className="text-xs leading-relaxed text-ink-400">Starters drop editable layers onto the canvas — nothing is fixed.</p>
+      <span className="block text-xs leading-relaxed text-ink-400">Starters drop editable layers onto the canvas — nothing is fixed.</span>
     </div>
   );
 }

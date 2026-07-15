@@ -9,21 +9,21 @@ function MyDesignsPanel() {
 
   if (!isAuthenticated) {
     return (
-      <p className="px-1 py-4 text-center text-xs text-ink-500">
+      <span className="block px-1 py-4 text-center text-xs text-ink-500">
         <Link to="/login" className="font-semibold text-brand-600 hover:underline">
           Log in
         </Link>{" "}
         to save designs and reopen them here.
-      </p>
+      </span>
     );
   }
 
   if (isLoading) {
-    return <p className="px-1 py-4 text-center text-xs text-ink-500">Loading your designs…</p>;
+    return <span className="block px-1 py-4 text-center text-xs text-ink-500">Loading your designs…</span>;
   }
 
   if (designs.length === 0) {
-    return <p className="px-1 py-4 text-center text-xs text-ink-500">No saved designs yet — click "Save design" in the toolbar.</p>;
+    return <span className="block px-1 py-4 text-center text-xs text-ink-500">No saved designs yet — click "Save design" in the toolbar.</span>;
   }
 
   return (
@@ -33,7 +33,7 @@ function MyDesignsPanel() {
           key={design.id}
           type="button"
           onClick={() => navigate(`/customize/${design.productId}?design=${design.id}`)}
-          className="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-white p-2 text-left transition hover:border-brand-400"
+          className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white p-2 text-left transition hover:border-brand-400"
         >
           <span className="flex h-10 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-bone-100 text-ink-300">
             {design.previewImage ? (

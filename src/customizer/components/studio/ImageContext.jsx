@@ -30,7 +30,7 @@ function ImageContext({ layer, template, actions, onReplaceImage }) {
       <QualityBadge layer={layer} template={template} />
 
       <Section title="Transform">
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <ToolButton label="Crop" disabled={disabled} onClick={() => actions.setCropMode(layer.id)}>
             <Crop size={14} aria-hidden="true" />
           </ToolButton>

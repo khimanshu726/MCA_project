@@ -22,8 +22,8 @@ function ArrangeSection({ layer, actions }) {
   const disabled = layer.locked;
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <ActionButton
           label={layer.locked ? "Unlock layer" : "Lock layer"}
           active={layer.locked}

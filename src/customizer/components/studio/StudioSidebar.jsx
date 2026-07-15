@@ -1,5 +1,7 @@
 import { memo } from "react";
 import { Image as ImageIcon, Layers, LayoutTemplate, Palette, Shapes, Sparkles, Type, Upload, X } from "lucide-react";
+import StudioTooltip from "./StudioTooltip.jsx";
+import StudioHeading from "./StudioHeading.jsx";
 import UploadsPanel from "./UploadsPanel.jsx";
 import BackgroundPanel from "../BackgroundPanel.jsx";
 import LayersPanel from "../LayersPanel.jsx";
@@ -21,21 +23,18 @@ export const RAIL_ITEMS = [
 ];
 
 /**
- * Content tools. The rail is icons-only; clicking opens a drawer beside it
- * and clicking the active item closes it, so the canvas can have the room.
+ * Tool rail — icon-only with tooltips.
  *
- * Active state is neutral (ink), not brand-tinted: terracotta is reserved
- * for selection on the canvas and the primary action, so a tinted nav item
- * would compete for the same signal.
+ * It previously carried text labels under each icon in a 64px column:
+ * "Background" needs 91px to render, so seven of eight labels were clipped.
+ * Icons alone are legible at any width, the tooltip carries the full name,
+ * and the rail drops to 56px — width the canvas gets back.
  */
 export const StudioRail = memo(function StudioRail({ activePanel, onPanelChange }) {
   return (
-    // Shrinks and scrolls as a horizontal bar on mobile — `shrink-0` there
-    // would push the last four tools past the shell's clipped edge, making
-    // them unreachable — but holds its width as a column from lg up.
     <nav
       aria-label="Studio tools"
-      className="flex h-full w-full min-w-0 flex-row items-center gap-1 overflow-x-auto px-2 lg:w-16 lg:shrink-0 lg:flex-col lg:items-stretch lg:overflow-visible lg:py-2"
+      className="flex h-full w-full min-w-0 flex-row items-center gap-1 overflow-x-auto px-2 lg:w-14 lg:shrink-0 lg:flex-col lg:items-center lg:overflow-visible lg:py-3"
     >
       {RAIL_ITEMS.map(({ id, label, Icon }) => {
         const isActive = activePanel === id;
@@ -44,14 +43,14 @@ export const StudioRail = memo(function StudioRail({ activePanel, onPanelChange 
             key={id}
             type="button"
             aria-pressed={isActive}
-            title={label}
+            aria-label={label}
             onClick={() => onPanelChange(isActive ? null : id)}
-            className={`flex shrink-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors lg:w-full ${
-              isActive ? "bg-ink-100 text-ink-900" : "text-ink-500 hover:bg-ink-50 hover:text-ink-800"
+            className={`group relative flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 ${
+              isActive ? "bg-ink-900 text-white" : "text-ink-500 hover:bg-ink-100 hover:text-ink-900"
             }`}
           >
             <Icon size={18} aria-hidden="true" />
-            {label}
+            <StudioTooltip label={label} side="right" />
           </button>
         );
       })}
@@ -60,9 +59,9 @@ export const StudioRail = memo(function StudioRail({ activePanel, onPanelChange 
 });
 
 /**
- * The drawer body. Takes only what each panel needs — notably `background`
- * and `layers` rather than the whole `activeSide`, whose identity churns on
- * every pointermove of a drag and would defeat memoisation here.
+ * The tool drawer. Takes `background` and `layers` rather than the whole
+ * `activeSide`, whose identity churns on every pointermove of a drag and
+ * would defeat memoisation here.
  */
 export const StudioPanel = memo(function StudioPanel({
   activePanel,
@@ -120,16 +119,18 @@ export const StudioPanel = memo(function StudioPanel({
   }
 
   return (
-    <div className="flex h-full w-64 min-h-0 flex-col border-l border-ink-100 bg-white">
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">{item?.label}</h3>
+    <div className="flex h-full w-64 min-h-0 flex-col bg-white motion-safe:animate-[studio-panel-in_180ms_cubic-bezier(0.22,1,0.36,1)]">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-4">
+        <StudioHeading level={2} className="text-sm font-semibold text-ink-900">
+          {item?.label}
+        </StudioHeading>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close panel"
-          className="flex size-6 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-900"
         >
-          <X size={13} aria-hidden="true" />
+          <X size={14} aria-hidden="true" />
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{body}</div>

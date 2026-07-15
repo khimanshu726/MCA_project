@@ -3,6 +3,7 @@ import ImageContext from "./ImageContext.jsx";
 import ShapeContext from "./ShapeContext.jsx";
 import ProductContext from "./ProductContext.jsx";
 import PropertyCard from "./PropertyCard.jsx";
+import StudioHeading from "./StudioHeading.jsx";
 import TextPanel from "../TextPanel.jsx";
 
 /**
@@ -59,8 +60,10 @@ function StudioInspector({
 
   return (
     <aside aria-label={`${title} properties`} className="flex h-full min-h-0 w-72 flex-col bg-white">
-      <div className="flex h-10 shrink-0 items-center px-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">{title}</h3>
+      <div className="flex h-12 shrink-0 items-center px-4">
+        <StudioHeading level={2} className="text-sm font-semibold text-ink-900">
+          {title}
+        </StudioHeading>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{body}</div>
     </aside>

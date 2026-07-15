@@ -14,7 +14,8 @@ import Toast from "../../components/ui/Toast.jsx";
 import { useEditorStore } from "../state/useEditorStore.js";
 import { useAutosave, clearDraft } from "../hooks/useAutosave.js";
 import { useRecentUploads } from "../hooks/useRecentUploads.js";
-import { createImageLayer, nextLayerId } from "../state/editorReducer.js";
+import { createImageLayer, createTextLayer, nextLayerId } from "../state/editorReducer.js";
+import { measureTextLayerHeight } from "../engine/textMetrics.js";
 import { exportDesign } from "../engine/exportDesign.js";
 import { validateDesignForPrint } from "../engine/validation.js";
 import { storePendingDesign } from "../pendingDesign.js";
@@ -57,7 +58,11 @@ function DesignStudio({
   const { uploads, rememberUpload, attachAssetUrl } = useRecentUploads({ isAuthenticated });
 
   const [projectName, setProjectName] = useState(initialDesignName || `${product.name} design`);
-  const [activePanel, setActivePanel] = useState("uploads");
+  // Closed by default: an always-open drawer cost the canvas ~256px to say
+  // "upload something". The canvas empty state carries that invitation now,
+  // which hands the width back to the workspace and makes the artboard the
+  // first thing the eye lands on.
+  const [activePanel, setActivePanel] = useState(null);
   const [quantity, setQuantity] = useState(product.minimumOrderQty || 1);
   const [showGrid, setShowGrid] = useState(false);
   const [showGuides, setShowGuides] = useState(true);
@@ -326,6 +331,13 @@ function DesignStudio({
   const handleToggleRulers = useCallback(() => setShowRulers((value) => !value), []);
   const handleClosePanel = useCallback(() => setActivePanel(null), []);
   const handleTriggerReplace = useCallback(() => replaceInputRef.current?.click(), []);
+  const handleOpenUploads = useCallback(() => setActivePanel("uploads"), []);
+  const handleOpenTemplates = useCallback(() => setActivePanel("starters"), []);
+  const handleAddFirstText = useCallback(() => {
+    const layer = createTextLayer({ template });
+    layer.height = measureTextLayerHeight(layer);
+    actions.addLayer(layer);
+  }, [actions, template]);
 
   const sheetTitle = selectedLayer
     ? "Properties"
@@ -387,6 +399,9 @@ function DesignStudio({
             onToggleGuides={handleToggleGuides}
             showRulers={showRulers}
             onToggleRulers={handleToggleRulers}
+            onUpload={handleOpenUploads}
+            onAddText={handleAddFirstText}
+            onBrowseTemplates={handleOpenTemplates}
           />
         }
         inspector={
@@ -490,7 +505,7 @@ function DesignStudio({
             <button
               type="button"
               onClick={() => setValidationResult(null)}
-              className="rounded-xl border border-ink-200 px-4 py-2 text-xs font-semibold text-ink-700 transition-colors hover:border-ink-400"
+              className="rounded-lg bg-ink-100 px-4 py-2 text-xs font-semibold text-ink-800 transition-colors hover:bg-ink-200"
             >
               Keep editing
             </button>
@@ -501,7 +516,7 @@ function DesignStudio({
                   setValidationResult(null);
                   runAddToCart();
                 }}
-                className="rounded-xl bg-brand-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"
+                className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"
               >
                 Add to cart anyway
               </button>

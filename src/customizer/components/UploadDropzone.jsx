@@ -118,7 +118,7 @@ function UploadDropzone({ onImagesReady, isBusy = false }) {
         }}
       />
 
-      {error && <p className="mt-2 text-xs text-danger-600">{error}</p>}
+      {error && <span className="block mt-2 text-xs text-danger-600">{error}</span>}
     </div>
   );
 }
