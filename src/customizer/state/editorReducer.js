@@ -14,6 +14,19 @@ import { initialImagePlacement } from "../engine/geometry.js";
 export const MAX_HISTORY = 100;
 export const STATE_VERSION = 1;
 
+/**
+ * `ui.zoom` is a MULTIPLIER ON FIT, not an absolute scale, so its bounds
+ * can't be a plain 0.1–4: fit varies ~20x across products. A 6ft banner
+ * fits at 0.48 px/mm and needs ~7.9x fit just to reach actual printed
+ * size, which the old max of 4 silently capped — "Actual size" landed on
+ * 50%. The range is wide enough that any template can reach 100% and well
+ * past it; the +/- steps stay conservative, and presets compute exact
+ * targets.
+ */
+export const MIN_ZOOM = 0.05;
+export const MAX_ZOOM = 64;
+export const clampZoom = (zoom) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
+
 let uidCounter = 0;
 export const nextLayerId = () => `layer-${Date.now().toString(36)}-${(uidCounter += 1)}`;
 
@@ -460,7 +473,7 @@ export function editorReducer(state, action) {
     case "SET_ZOOM": {
       return {
         ...state,
-        ui: { ...state.ui, zoom: Math.min(4, Math.max(0.1, action.zoom)) },
+        ui: { ...state.ui, zoom: clampZoom(action.zoom) },
       };
     }
 

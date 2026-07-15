@@ -31,9 +31,14 @@ function StudioCanvas({
   onUpload,
   onAddText,
   onBrowseTemplates,
+  showEmptyState,
+  onDismissEmptyState,
 }) {
-  const [fitScale, setFitScale] = useState(1);
-  const handleFitScaleChange = useCallback((next) => setFitScale(next), []);
+  const [fit, setFit] = useState({ fitScale: 1, fitWidthScale: 1 });
+  const handleFitScaleChange = useCallback(
+    (next) => setFit((current) => (current.fitScale === next.fitScale && current.fitWidthScale === next.fitWidthScale ? current : next)),
+    [],
+  );
   const isEmpty = side.layers.length === 0;
 
   return (
@@ -53,13 +58,19 @@ function StudioCanvas({
         onFitScaleChange={handleFitScaleChange}
       />
 
-      {isEmpty && (
-        <CanvasEmptyState onUpload={onUpload} onAddText={onAddText} onBrowseTemplates={onBrowseTemplates} />
+      {isEmpty && showEmptyState && (
+        <CanvasEmptyState
+          onUpload={onUpload}
+          onAddText={onAddText}
+          onBrowseTemplates={onBrowseTemplates}
+          onDismiss={onDismissEmptyState}
+        />
       )}
 
       <StudioViewControls
         zoom={ui.zoom}
-        fitScale={fitScale}
+        fitScale={fit.fitScale}
+        fitWidthScale={fit.fitWidthScale}
         onZoomChange={actions.setZoom}
         showGrid={showGrid}
         onToggleGrid={onToggleGrid}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, SearchX } from "lucide-react";
 import ProductOptionRow from "./ProductOptionRow";
 import ProductOptionSkeleton from "./ProductOptionSkeleton";
@@ -7,7 +8,10 @@ function OptionSection({ label, products, value, activeId, onSelect, onHover }) 
 
   return (
     <div role="group" aria-label={label} className="mb-1 last:mb-0">
-      <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-ink-400">{label}</p>
+      {/* Sticky so the group a row belongs to stays visible while scrolling. */}
+      <p className="sticky top-0 z-10 bg-white/95 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-400 backdrop-blur">
+        {label}
+      </p>
       {products.map((product) => (
         <ProductOptionRow
           key={product.id}
@@ -40,11 +44,22 @@ function ProductSelectorPanel({
   style,
 }) {
   const activeProduct = flatOptions[activeIndex];
+  // The shortcut legend is only useful once someone is actually driving the
+  // list from the keyboard, and it cost ~34px of browsing height on every
+  // open. Reveal it on first arrow key instead.
+  const [isKeyboardNav, setIsKeyboardNav] = useState(false);
+
+  const handleKeyDown = (event) => {
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      setIsKeyboardNav(true);
+    }
+    onKeyDown(event);
+  };
 
   return (
     <div
       style={style || undefined}
-      className="animate-[product-selector-sheet-in_200ms_ease-out] sm:animate-[product-selector-in_150ms_ease-out] fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-3xl border border-ink-100 bg-white shadow-2xl sm:z-20 sm:max-h-96 sm:rounded-2xl sm:border sm:shadow-xl"
+      className="animate-[product-selector-sheet-in_200ms_ease-out] sm:animate-[product-selector-in_150ms_ease-out] fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-3xl bg-white shadow-overlay sm:z-20 sm:max-h-96 sm:rounded-2xl"
       role="presentation"
     >
       <span
@@ -52,9 +67,11 @@ function ProductSelectorPanel({
         aria-hidden="true"
       />
 
-      <div className="shrink-0 border-b border-ink-100 p-2.5">
-        <div className="flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 focus-within:border-brand-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-500/20">
-          <Search size={16} className="shrink-0 text-ink-400" aria-hidden="true" />
+      <div className="shrink-0 p-2">
+        {/* Single boundary: the field is a tinted well, not a bordered box
+            inside a bordered panel (which read as a double border). */}
+        <div className="flex items-center gap-2 rounded-lg bg-ink-50 px-3 py-2 transition-shadow focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-500/30">
+          <Search size={15} className="shrink-0 text-ink-400" aria-hidden="true" />
           <input
             ref={searchInputRef}
             type="text"
@@ -63,16 +80,22 @@ function ProductSelectorPanel({
             aria-controls={listboxId}
             aria-activedescendant={activeProduct ? `product-option-${activeProduct.id}` : undefined}
             autoComplete="off"
-            placeholder="Search products by name or category..."
+            placeholder="Search products"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            onKeyDown={onKeyDown}
+            onKeyDown={handleKeyDown}
             className="min-w-0 flex-1 bg-transparent text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
           />
         </div>
       </div>
 
-      <div ref={listRef} id={listboxId} role="listbox" aria-label="Products" className="flex-1 overflow-y-auto p-2">
+      <div
+        ref={listRef}
+        id={listboxId}
+        role="listbox"
+        aria-label="Products"
+        className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-2"
+      >
         {isLoading ? (
           <div>
             {Array.from({ length: 5 }).map((_, index) => (
@@ -85,8 +108,8 @@ function ProductSelectorPanel({
             <span className="flex size-11 items-center justify-center rounded-full bg-ink-50 text-ink-400">
               <SearchX size={20} aria-hidden="true" />
             </span>
-            <p className="font-display text-base text-ink-900">No products found</p>
-            <p className="text-xs text-ink-500">Try a different name or category.</p>
+            <span className="text-sm font-medium text-ink-900">No products found</span>
+            <span className="text-xs text-ink-400">Try a different name or category.</span>
           </div>
         ) : (
           <>
@@ -122,20 +145,22 @@ function ProductSelectorPanel({
         )}
       </div>
 
-      <div className="hidden shrink-0 items-center gap-3 border-t border-ink-100 px-3 py-2 text-[11px] text-ink-400 sm:flex">
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-sans">&uarr;&darr;</kbd>
-          Navigate
-        </span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-sans">Enter</kbd>
-          Select
-        </span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-sans">Esc</kbd>
-          Close
-        </span>
-      </div>
+      {isKeyboardNav ? (
+        <div className="hidden shrink-0 items-center gap-3 px-3 py-1.5 text-xs text-ink-400 sm:flex">
+          <span className="flex items-center gap-1">
+            <kbd className="rounded bg-ink-100 px-1.5 py-0.5 font-sans text-ink-500">&uarr;&darr;</kbd>
+            Navigate
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded bg-ink-100 px-1.5 py-0.5 font-sans text-ink-500">&crarr;</kbd>
+            Select
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded bg-ink-100 px-1.5 py-0.5 font-sans text-ink-500">Esc</kbd>
+            Close
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }

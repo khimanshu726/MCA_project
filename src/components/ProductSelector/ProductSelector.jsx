@@ -10,6 +10,14 @@ import { useProductSelector } from "./useProductSelector";
 // above it, it's a dropdown anchored under the trigger.
 const MOBILE_BREAKPOINT = 640;
 
+// The panel's content (thumbnail + name + badge + category + price) needs
+// real room. It used to inherit the trigger's width, which was fine on a
+// page-width selector but collapsed to ~250px once the trigger moved into
+// the studio inspector — badges then overlapped prices and names truncated
+// to "Marke...". Width is now driven by content, not by the trigger.
+const PANEL_MIN_WIDTH = 340;
+const VIEWPORT_MARGIN = 8;
+
 /**
  * Searchable product combobox — replaces a plain <select> with thumbnails,
  * category/price context, recent + popular quick-picks, and full keyboard
@@ -69,6 +77,19 @@ function ProductSelector({ products, value, onChange, isLoading = false, label, 
       }
       const rect = triggerRef.current?.getBoundingClientRect();
       if (!rect) return;
+
+      const width = Math.min(
+        Math.max(rect.width, PANEL_MIN_WIDTH),
+        window.innerWidth - VIEWPORT_MARGIN * 2,
+      );
+      // Prefer left-aligned to the trigger; flip to right-aligned when that
+      // would run off-screen (the studio inspector sits against the right
+      // edge, so a 340px panel anchored left would overflow).
+      const left = Math.min(
+        Math.max(VIEWPORT_MARGIN, rect.left),
+        window.innerWidth - width - VIEWPORT_MARGIN,
+      );
+
       // right/bottom explicitly cleared: the panel's base classes include
       // inset-x-0 bottom-0 for the mobile sheet, which would otherwise
       // stretch this fixed box down to the viewport bottom instead of
@@ -76,8 +97,8 @@ function ProductSelector({ products, value, onChange, isLoading = false, label, 
       setPanelStyle({
         position: "fixed",
         top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
+        left,
+        width,
         right: "auto",
         bottom: "auto",
       });

@@ -27,21 +27,27 @@ function ProductOptionRow({ product, isActive, isSelected, onSelect, onMouseEnte
         <ResponsiveImage src={product.images?.[0]} alt="" aspectClassName="ratio-square" />
       </div>
 
-      <div className="min-w-0 flex-1">
+      {/* Name and price share the primary line; category and badge sit on
+          the secondary one. Everything used to compete in a single
+          horizontal band, so a long badge ("Campaign Favorite") collided
+          with the price and names truncated to "Classic Vistin...". Split
+          across two bands, the badge can't reach the price at any width,
+          and the name gets the room it needs. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex items-baseline gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{product.name}</span>
+          <span className="shrink-0 whitespace-nowrap text-xs text-ink-500">
+            from <span className="font-semibold text-ink-900">{currencyFormatter.format(product.price)}</span>
+          </span>
+        </div>
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium text-ink-900">{product.name}</p>
+          <span className="min-w-0 flex-1 truncate text-xs text-ink-400">{product.category}</span>
           {product.badge ? (
             <Badge tone="brand" className="shrink-0 whitespace-nowrap">
               {product.badge}
             </Badge>
           ) : null}
         </div>
-        <p className="truncate text-xs text-ink-500">{product.category}</p>
-      </div>
-
-      <div className="flex shrink-0 flex-col items-end gap-0.5">
-        <span className="text-[11px] text-ink-400">Starting at</span>
-        <span className="text-sm font-semibold text-ink-900">{currencyFormatter.format(product.price)}</span>
       </div>
 
       <span className="flex size-4 shrink-0 items-center justify-center">

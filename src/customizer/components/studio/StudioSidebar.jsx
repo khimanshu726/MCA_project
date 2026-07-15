@@ -133,7 +133,7 @@ export const StudioPanel = memo(function StudioPanel({
           <X size={14} aria-hidden="true" />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{body}</div>
+      <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4">{body}</div>
     </div>
   );
 });

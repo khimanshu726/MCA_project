@@ -69,22 +69,18 @@ function EditorStage({
     return () => observer.disconnect();
   }, []);
 
-  const rawFitScale = Math.max(
-    0.05,
-    Math.min(
-      (containerSize.width - STAGE_PADDING) / canvas.width,
-      (containerSize.height - STAGE_PADDING) / canvas.height,
-    ),
-  );
+  const fitWidthRaw = (containerSize.width - STAGE_PADDING) / canvas.width;
+  const rawFitScale = Math.max(0.05, Math.min(fitWidthRaw, (containerSize.height - STAGE_PADDING) / canvas.height));
   const fitScale = Number.isFinite(rawFitScale) && rawFitScale > 0 ? rawFitScale : 1;
+  const fitWidthScale = Number.isFinite(fitWidthRaw) && fitWidthRaw > 0 ? fitWidthRaw : 1;
   const scale = fitScale * ui.zoom;
 
-  // Reported up so the view controls can show the REAL scale. `ui.zoom` is a
-  // multiplier on fit, not an absolute — without this the readout says
-  // "100%" while a 1830mm banner sits at ~34% of actual size.
+  // Both reported up so the view controls can label presets and show a true
+  // percentage. `ui.zoom` is a multiplier on fit, not an absolute, so
+  // neither number can be derived outside this component.
   useEffect(() => {
-    onFitScaleChange?.(fitScale);
-  }, [fitScale, onFitScaleChange]);
+    onFitScaleChange?.({ fitScale, fitWidthScale });
+  }, [fitScale, fitWidthScale, onFitScaleChange]);
 
   const screenToMm = useCallback(
     (clientX, clientY) => {
@@ -393,8 +389,13 @@ function EditorStage({
       ref={containerRef}
       data-stagebg
       onPointerDown={handleStagePointerDown}
-      className="relative flex h-full w-full items-center justify-center overflow-auto"
-      style={{ touchAction: "none" }}
+      className="scrollbar-thin relative flex h-full w-full items-center justify-center overflow-auto"
+      // scrollbar-gutter breaks a feedback loop: zooming in overflows the
+      // container, a scrollbar appears, the content box narrows, fitScale
+      // recomputes — so a zoom target derived from fitScale (like "Actual
+      // size") lands ~2% off and the artboard jumps. Reserving the gutter
+      // keeps the measured box constant at every zoom.
+      style={{ touchAction: "none", scrollbarGutter: "stable both-edges" }}
     >
       <div
         ref={surfaceRef}

@@ -9,16 +9,20 @@ import {
   getTrimRect,
 } from "../customizer/templates.js";
 import {
+  CSS_PX_PER_MM,
   effectiveDpi,
   initialImagePlacement,
   qualityLevel,
   resizeLayer,
   rotatePoint,
   rotationFromPointer,
+  scaleToZoomPercent,
   snapCenter,
   snapRotation,
 } from "../customizer/engine/geometry.js";
 import {
+  MAX_ZOOM,
+  MIN_ZOOM,
   canRedo,
   canUndo,
   createImageLayer,
@@ -343,8 +347,18 @@ describe("editor reducer", () => {
   it("clamps zoom and records option changes in history", () => {
     const { state } = setup();
 
-    expect(editorReducer(state, { type: "SET_ZOOM", zoom: 99 }).ui.zoom).toBe(4);
-    expect(editorReducer(state, { type: "SET_ZOOM", zoom: 0 }).ui.zoom).toBe(0.1);
+    expect(editorReducer(state, { type: "SET_ZOOM", zoom: 999 }).ui.zoom).toBe(MAX_ZOOM);
+    expect(editorReducer(state, { type: "SET_ZOOM", zoom: 0 }).ui.zoom).toBe(MIN_ZOOM);
+
+    // zoom is a multiplier on fit, and fit varies ~20x by product. A banner
+    // fits at ~0.48 px/mm, so reaching actual printed size (3.78 px/mm)
+    // needs ~7.9x — the old ceiling of 4 silently capped it at 50%.
+    const bannerFitScale = 0.48;
+    const actualSizeZoom = CSS_PX_PER_MM / bannerFitScale;
+    expect(actualSizeZoom).toBeGreaterThan(4);
+    const zoomed = editorReducer(state, { type: "SET_ZOOM", zoom: actualSizeZoom });
+    expect(zoomed.ui.zoom).toBeCloseTo(actualSizeZoom, 5);
+    expect(scaleToZoomPercent(bannerFitScale * zoomed.ui.zoom)).toBe(100);
 
     const withOption = editorReducer(state, { type: "SET_OPTION", optionId: "paper", value: "Textured Ivory" });
     expect(withOption.design.options.paper).toBe("Textured Ivory");

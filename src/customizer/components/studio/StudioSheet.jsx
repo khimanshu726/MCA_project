@@ -35,7 +35,7 @@ function StudioSheet({ open, title, onClose, children }) {
             <X size={14} aria-hidden="true" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
       </div>
     </div>
   );

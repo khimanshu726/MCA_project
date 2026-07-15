@@ -73,6 +73,7 @@ function DesignStudio({
   const [validationResult, setValidationResult] = useState(null);
   const [serverDesignId, setServerDesignId] = useState(initialDesignId);
   const [showDraftNotice, setShowDraftNotice] = useState(recoveredDraft);
+  const [showEmptyState, setShowEmptyState] = useState(true);
   const replaceInputRef = useRef(null);
 
   useAutosave({ productId: product.id, design, isDirty });
@@ -333,6 +334,7 @@ function DesignStudio({
   const handleTriggerReplace = useCallback(() => replaceInputRef.current?.click(), []);
   const handleOpenUploads = useCallback(() => setActivePanel("uploads"), []);
   const handleOpenTemplates = useCallback(() => setActivePanel("starters"), []);
+  const handleDismissEmptyState = useCallback(() => setShowEmptyState(false), []);
   const handleAddFirstText = useCallback(() => {
     const layer = createTextLayer({ template });
     layer.height = measureTextLayerHeight(layer);
@@ -402,6 +404,8 @@ function DesignStudio({
             onUpload={handleOpenUploads}
             onAddText={handleAddFirstText}
             onBrowseTemplates={handleOpenTemplates}
+            showEmptyState={showEmptyState}
+            onDismissEmptyState={handleDismissEmptyState}
           />
         }
         inspector={

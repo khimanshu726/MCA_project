@@ -6,6 +6,20 @@
 
 export const MM_PER_INCH = 25.4;
 
+/**
+ * CSS pixels per millimetre at 100% — i.e. the scale at which the artboard
+ * is displayed at its true physical size (CSS defines 1in = 96px).
+ *
+ * The studio's `scale` is px-per-mm, which is NOT a percentage. Reporting
+ * it as one made a business card read "935%" and a banner "48%" — numbers
+ * that describe nothing a customer can act on. Zoom percentages are
+ * computed against this constant so 100% means "actual printed size".
+ */
+export const CSS_PX_PER_MM = 96 / MM_PER_INCH;
+
+/** Convert an internal px-per-mm scale to a human zoom percentage. */
+export const scaleToZoomPercent = (scale) => Math.round((scale / CSS_PX_PER_MM) * 100);
+
 export const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 export const degToRad = (deg) => (deg * Math.PI) / 180;

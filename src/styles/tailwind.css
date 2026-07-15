@@ -89,6 +89,34 @@
   }
 }
 
+/* Thin, low-contrast scrollbars for editor surfaces. The platform default
+   is a heavy bar that reads as a browser artifact next to the studio's
+   chrome. Firefox uses scrollbar-width; Chromium needs the pseudo-elements. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(23, 24, 27, 0.18) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(23, 24, 27, 0.16);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(23, 24, 27, 0.28);
+}
+
 /* Studio motion. Kept short (<200ms) and easing-matched to the site's
    --ease-out so the editor feels responsive rather than animated. */
 @keyframes studio-panel-in {
