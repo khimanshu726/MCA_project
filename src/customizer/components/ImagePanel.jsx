@@ -17,10 +17,10 @@ function ImagePanel({ selectedLayer, actions }) {
   const filters = imageLayer.filters || DEFAULT_FILTERS;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-ink-100 bg-white p-3">
+    <div className="flex flex-col gap-3">
       {FILTERS.map((filter) => (
         <label key={filter.id} className="flex flex-col gap-1">
-          <span className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+          <span className="flex items-center justify-between text-xs font-medium text-ink-500">
             {filter.label}
             <span className="tabular-nums text-ink-400">{filters[filter.id] ?? 100}%</span>
           </span>
@@ -49,7 +49,7 @@ function ImagePanel({ selectedLayer, actions }) {
         type="button"
         disabled={imageLayer.locked}
         onClick={() => actions.updateLayer(imageLayer.id, { filters: { ...DEFAULT_FILTERS } })}
-        className="self-start rounded-lg border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-brand-300 hover:text-brand-600 disabled:opacity-40"
+        className="self-start rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-ink-700 transition-colors hover:text-ink-900 disabled:opacity-40"
       >
         Reset adjustments
       </button>

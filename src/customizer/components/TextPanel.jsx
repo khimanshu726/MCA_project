@@ -1,7 +1,6 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Type, Underline } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, Italic, Underline } from "lucide-react";
 import { FONT_OPTIONS, GRADIENT_PRESETS, TEXT_COLOR_SWATCHES } from "../fonts.js";
 import { measureTextLayerHeight } from "../engine/textMetrics.js";
-import { createTextLayer } from "../state/editorReducer.js";
 
 const ToggleButton = ({ label, active, onClick, children }) => (
   <button
@@ -10,8 +9,8 @@ const ToggleButton = ({ label, active, onClick, children }) => (
     aria-label={label}
     aria-pressed={active}
     onClick={onClick}
-    className={`flex size-8 items-center justify-center rounded-lg border transition ${
-      active ? "border-brand-400 bg-brand-50 text-brand-600" : "border-ink-200 bg-white text-ink-600 hover:border-brand-300"
+    className={`flex size-8 items-center justify-center rounded-lg transition-colors ${
+      active ? "bg-ink-900 text-white" : "bg-white text-ink-600 hover:text-ink-900"
     }`}
   >
     {children}
@@ -19,29 +18,23 @@ const ToggleButton = ({ label, active, onClick, children }) => (
 );
 
 const FieldLabel = ({ children }) => (
-  <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">{children}</span>
+  <span className="text-xs font-medium text-ink-500">{children}</span>
 );
 
 /**
- * Text tools: an "add text" entry point plus full styling controls for the
- * selected text layer. Every content/metric change re-measures the layer's
- * auto height so DOM and print render stay in lockstep.
+ * Full styling controls for the selected text layer. Every content/metric
+ * change re-measures the layer's auto height so DOM and print render stay
+ * in lockstep. Adding text lives in the left rail's Text panel.
  */
-function TextPanel({ template, selectedLayer, actions }) {
+function TextPanel({ selectedLayer, actions }) {
   const textLayer = selectedLayer?.type === "text" ? selectedLayer : null;
-
-  const addText = () => {
-    const layer = createTextLayer({ template });
-    layer.height = measureTextLayerHeight(layer);
-    actions.addLayer(layer);
-  };
 
   const updateText = (patch, options = {}) => {
     if (!textLayer) {
       return;
     }
     const merged = { ...textLayer, ...patch };
-    const heightAffecting = ["text", "fontFamily", "fontSize", "fontWeight", "italic", "letterSpacing", "lineHeight"];
+    const heightAffecting = ["text", "fontFamily", "fontSize", "fontWeight", "italic", "letterSpacing", "lineHeight", "uppercase"];
     if (heightAffecting.some((key) => key in patch)) {
       patch.height = measureTextLayerHeight(merged);
     }
@@ -50,24 +43,15 @@ function TextPanel({ template, selectedLayer, actions }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        onClick={addText}
-        className="flex items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm font-medium text-ink-800 transition hover:border-brand-400 hover:text-brand-600"
-      >
-        <Type size={15} aria-hidden="true" />
-        Add a text layer
-      </button>
-
       {textLayer && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-ink-100 bg-white p-3">
+        <div className="flex flex-col gap-3 rounded-xl bg-ink-50 p-3">
           <label className="flex flex-col gap-1">
             <FieldLabel>Content</FieldLabel>
             <textarea
               value={textLayer.text}
               rows={2}
               onChange={(event) => updateText({ text: event.target.value })}
-              className="rounded-xl border border-ink-200 px-2.5 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+              className="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
             />
           </label>
 
@@ -77,7 +61,7 @@ function TextPanel({ template, selectedLayer, actions }) {
               <select
                 value={textLayer.fontFamily}
                 onChange={(event) => updateText({ fontFamily: event.target.value })}
-                className="rounded-xl border border-ink-200 px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+                className="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
               >
                 {FONT_OPTIONS.map((font) => (
                   <option key={font.value} value={font.value}>
@@ -96,7 +80,7 @@ function TextPanel({ template, selectedLayer, actions }) {
                 step="0.5"
                 value={Number(textLayer.fontSize.toFixed(1))}
                 onChange={(event) => updateText({ fontSize: Math.max(2, Number(event.target.value) || 2) })}
-                className="rounded-xl border border-ink-200 px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+                className="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
               />
             </label>
           </div>
@@ -110,6 +94,9 @@ function TextPanel({ template, selectedLayer, actions }) {
             </ToggleButton>
             <ToggleButton label="Underline" active={textLayer.underline} onClick={() => updateText({ underline: !textLayer.underline })}>
               <Underline size={14} aria-hidden="true" />
+            </ToggleButton>
+            <ToggleButton label="Uppercase" active={textLayer.uppercase} onClick={() => updateText({ uppercase: !textLayer.uppercase })}>
+              <CaseUpper size={14} aria-hidden="true" />
             </ToggleButton>
             <span className="mx-1 h-5 w-px bg-ink-100" aria-hidden="true" />
             <ToggleButton label="Align left" active={textLayer.align === "left"} onClick={() => updateText({ align: "left" })}>
@@ -163,7 +150,7 @@ function TextPanel({ template, selectedLayer, actions }) {
                   type="button"
                   aria-label={`Text colour ${swatch}`}
                   onClick={() => updateText({ color: swatch, gradient: null })}
-                  className={`size-6 rounded-full border ${
+                  className={`size-6 rounded-lg border ${
                     textLayer.color === swatch && !textLayer.gradient ? "border-brand-500 ring-2 ring-brand-400/40" : "border-ink-200"
                   }`}
                   style={{ background: swatch }}
@@ -174,7 +161,7 @@ function TextPanel({ template, selectedLayer, actions }) {
                 value={textLayer.color}
                 aria-label="Custom text colour"
                 onChange={(event) => updateText({ color: event.target.value, gradient: null })}
-                className="size-6 cursor-pointer rounded-full border border-ink-200"
+                className="size-6 cursor-pointer rounded-lg border border-ink-200"
               />
             </div>
           </div>
@@ -226,7 +213,7 @@ function TextPanel({ template, selectedLayer, actions }) {
                   value={textLayer.strokeColor}
                   aria-label="Outline colour"
                   onChange={(event) => updateText({ strokeColor: event.target.value })}
-                  className="size-6 cursor-pointer rounded-full border border-ink-200"
+                  className="size-6 cursor-pointer rounded-lg border border-ink-200"
                 />
               </div>
             </label>
@@ -249,6 +236,19 @@ function TextPanel({ template, selectedLayer, actions }) {
               </div>
             </label>
           </div>
+
+          <label className="flex flex-col gap-1">
+            <FieldLabel>Rotation (°)</FieldLabel>
+            <input
+              type="number"
+              min="-360"
+              max="360"
+              step="1"
+              value={Math.round(textLayer.rotation || 0)}
+              onChange={(event) => updateText({ rotation: ((Number(event.target.value) || 0) % 360 + 360) % 360 })}
+              className="w-24 rounded-xl border border-ink-200 px-2 py-1.5 text-sm text-ink-900 focus:border-brand-400 focus:outline-none"
+            />
+          </label>
         </div>
       )}
     </div>

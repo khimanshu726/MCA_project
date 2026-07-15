@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react";
 import LayerView, { layerBoxStyle, textLayerStyle } from "./LayerView.jsx";
 import SelectionFrame from "./SelectionFrame.jsx";
 import StageGuides from "./StageGuides.jsx";
+import StageRulers from "./StageRulers.jsx";
 import { getCanvasSize } from "../templates.js";
 import { clamp, resizeLayer, rotatePoint, rotationFromPointer, snapCenter, snapRotation } from "../engine/geometry.js";
 import { measureTextLayerHeight } from "../engine/textMetrics.js";
@@ -28,7 +29,20 @@ const backgroundCss = (background) => {
  * move (with snapping), resize, rotate, crop pan, pinch zoom, inline text
  * editing, and the keyboard shortcut map.
  */
-function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected, canUndoNow, canRedoNow }) {
+function EditorStage({
+  template,
+  side,
+  ui,
+  selectedLayer,
+  actions,
+  nudgeSelected,
+  canUndoNow,
+  canRedoNow,
+  showGrid = false,
+  showRulers = false,
+  showGuides = true,
+  onFitScaleChange,
+}) {
   const containerRef = useRef(null);
   const surfaceRef = useRef(null);
   const dragRef = useRef(null);
@@ -55,14 +69,22 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
     return () => observer.disconnect();
   }, []);
 
-  const fitScale = Math.max(
+  const rawFitScale = Math.max(
     0.05,
     Math.min(
       (containerSize.width - STAGE_PADDING) / canvas.width,
       (containerSize.height - STAGE_PADDING) / canvas.height,
     ),
   );
-  const scale = (Number.isFinite(fitScale) && fitScale > 0 ? fitScale : 1) * ui.zoom;
+  const fitScale = Number.isFinite(rawFitScale) && rawFitScale > 0 ? rawFitScale : 1;
+  const scale = fitScale * ui.zoom;
+
+  // Reported up so the view controls can show the REAL scale. `ui.zoom` is a
+  // multiplier on fit, not an absolute — without this the readout says
+  // "100%" while a 1830mm banner sits at ~34% of actual size.
+  useEffect(() => {
+    onFitScaleChange?.(fitScale);
+  }, [fitScale, onFitScaleChange]);
 
   const screenToMm = useCallback(
     (clientX, clientY) => {
@@ -71,6 +93,15 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
     },
     [scale],
   );
+
+  // A fresh array every pointermove would defeat React's bail-out and force
+  // StageGuides to rebuild its grid (~248 <line> elements on a banner) on
+  // every frame of a drag. Only set when the guide set actually changes.
+  const setSnapGuidesIfChanged = useCallback((next) => {
+    setSnapGuides((current) =>
+      current.length === next.length && current.every((guide, index) => guide === next[index]) ? current : next,
+    );
+  }, []);
 
   const stopDrag = useCallback(() => {
     if (dragRef.current) {
@@ -114,11 +145,11 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
         };
 
         if (event.altKey) {
-          setSnapGuides([]);
+          setSnapGuidesIfChanged([]);
           actions.updateLayer(start.id, proposed, { transient: true });
         } else {
           const snapped = snapCenter(start, proposed, template, SNAP_THRESHOLD_PX / scale);
-          setSnapGuides(snapped.guides);
+          setSnapGuidesIfChanged(snapped.guides);
           actions.updateLayer(start.id, { x: snapped.x, y: snapped.y }, { transient: true });
         }
       } else if (drag.mode === "resize") {
@@ -362,12 +393,12 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
       ref={containerRef}
       data-stagebg
       onPointerDown={handleStagePointerDown}
-      className="relative flex h-full w-full items-center justify-center overflow-auto bg-bone-100"
+      className="relative flex h-full w-full items-center justify-center overflow-auto"
       style={{ touchAction: "none" }}
     >
       <div
         ref={surfaceRef}
-        className="relative shrink-0 shadow-[0_12px_40px_rgba(23,24,27,0.14)]"
+        className="relative shrink-0 shadow-overlay"
         style={{
           width: canvas.width * scale,
           height: canvas.height * scale,
@@ -420,7 +451,14 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
           </div>
         ))}
 
-        <StageGuides template={template} scale={scale} snapGuides={snapGuides} />
+        <StageGuides
+          template={template}
+          scale={scale}
+          snapGuides={snapGuides}
+          showGrid={showGrid}
+          showGuides={showGuides}
+        />
+        {showRulers && <StageRulers template={template} scale={scale} />}
 
         {selectedLayer && !selectedLayer.hidden && (
           <SelectionFrame
@@ -434,7 +472,7 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
       </div>
 
       {croppingLayer && (
-        <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-ink-200 bg-white px-4 py-2 shadow-lg">
+        <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-overlay">
           <span className="text-xs font-medium text-ink-600">Crop</span>
           <input
             type="range"
@@ -449,14 +487,14 @@ function EditorStage({ template, side, ui, selectedLayer, actions, nudgeSelected
           <button
             type="button"
             onClick={applyCrop}
-            className="flex items-center gap-1 rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-600"
+            className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-600"
           >
             <Check size={12} aria-hidden="true" /> Apply
           </button>
           <button
             type="button"
             onClick={cancelCrop}
-            className="flex items-center gap-1 rounded-full border border-ink-200 px-3 py-1 text-xs font-medium text-ink-600 hover:border-ink-400"
+            className="flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
           >
             <X size={12} aria-hidden="true" /> Cancel
           </button>

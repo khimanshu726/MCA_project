@@ -49,6 +49,14 @@ const drawImageLayer = async (ctx, layer, pxPerMm) => {
 
   const filters = layer.filters || {};
   ctx.filter = `brightness(${(filters.brightness ?? 100) / 100}) contrast(${(filters.contrast ?? 100) / 100}) saturate(${(filters.saturation ?? 100) / 100})`;
+
+  if (layer.shadow) {
+    ctx.shadowColor = layer.shadow.color;
+    ctx.shadowOffsetX = layer.shadow.x * pxPerMm;
+    ctx.shadowOffsetY = layer.shadow.y * pxPerMm;
+    ctx.shadowBlur = layer.shadow.blur * pxPerMm;
+  }
+
   ctx.scale(layer.flipH ? -1 : 1, layer.flipV ? -1 : 1);
 
   ctx.drawImage(
@@ -62,6 +70,57 @@ const drawImageLayer = async (ctx, layer, pxPerMm) => {
     destW,
     destH,
   );
+
+  if (layer.border?.width) {
+    ctx.shadowColor = "transparent";
+    ctx.filter = "none";
+    const borderPx = layer.border.width * pxPerMm;
+    ctx.lineWidth = borderPx;
+    ctx.strokeStyle = layer.border.color;
+    // Border sits inside the frame, matching CSS box-sizing: border-box.
+    ctx.strokeRect(-destW / 2 + borderPx / 2, -destH / 2 + borderPx / 2, destW - borderPx, destH - borderPx);
+  }
+};
+
+const drawShapeLayer = (ctx, layer, pxPerMm) => {
+  const w = layer.width * pxPerMm;
+  const h = layer.height * pxPerMm;
+  const strokePx = (layer.strokeWidth || 0) * pxPerMm;
+  const inset = strokePx / 2;
+
+  ctx.beginPath();
+  if (layer.kind === "ellipse") {
+    ctx.ellipse(0, 0, Math.max(w / 2 - inset, 0), Math.max(h / 2 - inset, 0), 0, 0, Math.PI * 2);
+  } else if (layer.kind === "triangle") {
+    ctx.moveTo(0, -h / 2 + inset);
+    ctx.lineTo(w / 2 - inset, h / 2 - inset);
+    ctx.lineTo(-w / 2 + inset, h / 2 - inset);
+    ctx.closePath();
+  } else if (layer.kind === "line") {
+    ctx.rect(-w / 2, -h / 2, w, h);
+  } else {
+    const radius = Math.min((layer.cornerRadius || 0) * pxPerMm, Math.min(w, h) / 2);
+    ctx.roundRect(-w / 2 + inset, -h / 2 + inset, Math.max(w - strokePx, 0), Math.max(h - strokePx, 0), radius);
+  }
+
+  ctx.fillStyle = layer.fill;
+  ctx.fill();
+  if (strokePx > 0 && layer.kind !== "line") {
+    ctx.lineWidth = strokePx;
+    ctx.strokeStyle = layer.stroke;
+    ctx.stroke();
+  }
+};
+
+const drawIconLayer = (ctx, layer, pxPerMm) => {
+  const w = layer.width * pxPerMm;
+  const h = layer.height * pxPerMm;
+  const path = new Path2D(layer.pathData);
+
+  ctx.translate(-w / 2, -h / 2);
+  ctx.scale(w / layer.viewBox, h / layer.viewBox);
+  ctx.fillStyle = layer.fill;
+  ctx.fill(path);
 };
 
 const drawTextLayer = (ctx, layer, pxPerMm) => {
@@ -164,6 +223,10 @@ export async function renderSideToCanvas(design, sideId, template, { dpi }) {
         await drawImageLayer(ctx, layer, pxPerMm);
       } else if (layer.type === "text") {
         drawTextLayer(ctx, layer, pxPerMm);
+      } else if (layer.type === "shape") {
+        drawShapeLayer(ctx, layer, pxPerMm);
+      } else if (layer.type === "icon") {
+        drawIconLayer(ctx, layer, pxPerMm);
       }
     } finally {
       ctx.restore();

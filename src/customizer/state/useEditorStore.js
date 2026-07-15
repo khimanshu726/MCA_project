@@ -29,6 +29,7 @@ export function useEditorStore({ template, productId, productName, initialDesign
     () => ({
       hydrate: (design) => dispatch({ type: "HYDRATE", design, template }),
       addLayer: (layer, sideId) => dispatch({ type: "ADD_LAYER", layer, sideId }),
+      addLayers: (layers, sideId) => dispatch({ type: "ADD_LAYERS", layers, sideId }),
       updateLayer: (layerId, patch, options = {}) =>
         dispatch({ type: "UPDATE_LAYER", layerId, patch, transient: options.transient, sideId: options.sideId }),
       removeLayer: (layerId) => dispatch({ type: "REMOVE_LAYER", layerId }),

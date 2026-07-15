@@ -7,19 +7,28 @@ const TONE_CLASSES = {
   info: "bg-ink-900 text-white",
 };
 
+// Default stays bottom-center for every storefront page; the studio moves
+// it to the top so it can't cover the status bar or the floating view
+// controls pinned to the bottom of the canvas.
+const PLACEMENTS = {
+  "bottom-center": "bottom-6 left-1/2 -translate-x-1/2",
+  "top-center": "top-20 left-1/2 -translate-x-1/2",
+};
+
 // Tailwind-styled shell around useToast.js's push/dismiss/timer logic —
 // that hook's state management is reused as-is, only this markup is new.
-function Toast({ toast, onDismiss }) {
+function Toast({ toast, onDismiss, placement = "bottom-center" }) {
   if (!toast) return null;
 
   const Icon = ICONS[toast.type] || Info;
   const toneClass = TONE_CLASSES[toast.type] || TONE_CLASSES.info;
+  const placementClass = PLACEMENTS[placement] || PLACEMENTS["bottom-center"];
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`pointer-events-auto fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl px-4 py-3 text-sm shadow-lg ${toneClass}`}
+      className={`pointer-events-auto fixed z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm shadow-lg ${placementClass} ${toneClass}`}
     >
       <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
       <span>{toast.message}</span>

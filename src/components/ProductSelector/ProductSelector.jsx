@@ -26,7 +26,7 @@ const MOBILE_BREAKPOINT = 640;
  * transform/overflow/z-index issues, which is why Dialog.jsx and other
  * floating UI in mature component libraries do the same.
  */
-function ProductSelector({ products, value, onChange, isLoading = false, label, id }) {
+function ProductSelector({ products, value, onChange, isLoading = false, label, id, compact = false }) {
   const generatedId = useId();
   const triggerId = id || `product-selector-${generatedId}`;
   const listboxId = `${triggerId}-listbox`;
@@ -99,18 +99,22 @@ function ProductSelector({ products, value, onChange, isLoading = false, label, 
 
   return (
     <div ref={containerRef} className="relative">
-      {label ? (
+      {label && !compact ? (
         <label htmlFor={triggerId} className="mb-1.5 block text-sm font-medium text-ink-700">
           {label}
         </label>
       ) : null}
 
       {isLoading && !selectedProduct ? (
-        <div className="flex h-[68px] items-center gap-3 rounded-2xl border border-ink-200 bg-white px-3 shadow-xs">
-          <Skeleton className="h-11 w-11 shrink-0" />
+        <div
+          className={`flex items-center gap-3 rounded-2xl border border-ink-200 bg-white px-3 shadow-xs ${
+            compact ? "h-11" : "h-[68px]"
+          }`}
+        >
+          <Skeleton className={compact ? "h-7 w-7 shrink-0" : "h-11 w-11 shrink-0"} />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-3.5 w-2/5" />
-            <Skeleton className="h-3 w-1/4" />
+            {!compact && <Skeleton className="h-3 w-1/4" />}
           </div>
         </div>
       ) : (
@@ -122,21 +126,21 @@ function ProductSelector({ products, value, onChange, isLoading = false, label, 
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-controls={listboxId}
-          aria-label={!label ? "Select a product" : undefined}
+          aria-label={!label || compact ? label || "Select a product" : undefined}
           onClick={() => (isOpen ? close() : open())}
           onKeyDown={handleTriggerKeyDown}
-          className={`flex w-full items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-left shadow-xs transition-all duration-150 hover:border-brand-300 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${
-            isOpen ? "border-brand-400 ring-2 ring-brand-500/20" : "border-ink-200"
-          }`}
+          className={`flex w-full items-center gap-3 rounded-2xl border bg-white text-left shadow-xs transition-all duration-150 hover:border-brand-300 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${
+            compact ? "px-2.5 py-1.5" : "px-3 py-2.5"
+          } ${isOpen ? "border-brand-400 ring-2 ring-brand-500/20" : "border-ink-200"}`}
         >
           {selectedProduct ? (
             <>
-              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-ink-50">
+              <div className={`shrink-0 overflow-hidden rounded-lg bg-ink-50 ${compact ? "h-7 w-7" : "h-11 w-11"}`}>
                 <ResponsiveImage src={selectedProduct.images?.[0]} alt="" aspectClassName="ratio-square" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-ink-900">{selectedProduct.name}</p>
-                <p className="truncate text-xs text-ink-500">{selectedProduct.category}</p>
+                {!compact && <p className="truncate text-xs text-ink-500">{selectedProduct.category}</p>}
               </div>
             </>
           ) : (

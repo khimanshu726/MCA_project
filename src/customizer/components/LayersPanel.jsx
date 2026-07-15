@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Image as ImageIcon, Lock, LockOpen, Trash2, Type } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Image as ImageIcon, Lock, LockOpen, Shapes, Sparkles, Trash2, Type } from "lucide-react";
 
 const IconButton = ({ label, onClick, children, disabled }) => (
   <button
@@ -16,11 +16,27 @@ const IconButton = ({ label, onClick, children, disabled }) => (
 
 /**
  * Layer list, top-most first (mirrors render order). Double-click a name to
- * rename. Every object on the canvas is a layer.
+ * rename; drag rows to reorder. Every object on the canvas is a layer.
  */
 function LayersPanel({ layers, selectedLayerId, actions }) {
   const [renamingId, setRenamingId] = useState(null);
   const [draftName, setDraftName] = useState("");
+  const [draggingId, setDraggingId] = useState(null);
+  const [dropTargetId, setDropTargetId] = useState(null);
+
+  // The list renders top-most first, so a displayed row index maps to the
+  // real layers array as (length - 1 - rowIndex).
+  const handleDrop = (targetLayerId) => {
+    if (!draggingId || draggingId === targetLayerId) {
+      setDraggingId(null);
+      setDropTargetId(null);
+      return;
+    }
+    const targetIndex = layers.findIndex((layer) => layer.id === targetLayerId);
+    actions.reorderLayer(draggingId, undefined, targetIndex);
+    setDraggingId(null);
+    setDropTargetId(null);
+  };
 
   const commitRename = (layer) => {
     const trimmed = draftName.trim();
@@ -46,6 +62,24 @@ function LayersPanel({ layers, selectedLayerId, actions }) {
             <div
               role="button"
               tabIndex={0}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                setDraggingId(layer.id);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDropTargetId(layer.id);
+              }}
+              onDragLeave={() => setDropTargetId((current) => (current === layer.id ? null : current))}
+              onDrop={(event) => {
+                event.preventDefault();
+                handleDrop(layer.id);
+              }}
+              onDragEnd={() => {
+                setDraggingId(null);
+                setDropTargetId(null);
+              }}
               onClick={() => actions.selectLayer(layer.id)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -55,6 +89,8 @@ function LayersPanel({ layers, selectedLayerId, actions }) {
               }}
               className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 transition ${
                 isSelected ? "border-brand-400 bg-brand-50/60" : "border-transparent hover:bg-ink-50"
+              } ${draggingId === layer.id ? "opacity-50" : ""} ${
+                dropTargetId === layer.id && draggingId !== layer.id ? "border-brand-400 border-dashed" : ""
               }`}
             >
               <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink-100 bg-white text-ink-400">
@@ -64,6 +100,10 @@ function LayersPanel({ layers, selectedLayerId, actions }) {
                   ) : (
                     <ImageIcon size={13} aria-hidden="true" />
                   )
+                ) : layer.type === "shape" ? (
+                  <Shapes size={13} aria-hidden="true" />
+                ) : layer.type === "icon" ? (
+                  <Sparkles size={13} aria-hidden="true" />
                 ) : (
                   <Type size={13} aria-hidden="true" />
                 )}

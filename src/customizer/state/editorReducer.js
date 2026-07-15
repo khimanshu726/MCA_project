@@ -44,6 +44,54 @@ export function createImageLayer({ src, assetUrl = null, naturalWidth, naturalHe
   };
 }
 
+export function createShapeLayer({ template, kind = "rect", name }) {
+  const canvas = getCanvasSize(template);
+  const base = Math.min(template.trim.width, template.trim.height) * 0.35;
+
+  return {
+    id: nextLayerId(),
+    type: "shape",
+    kind, // rect | ellipse | line | triangle
+    name: name || "Shape",
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    width: kind === "line" ? base * 2 : base,
+    height: kind === "line" ? Math.max(base * 0.06, 1.5) : base,
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    hidden: false,
+    fill: "#b8461d",
+    stroke: "#17181b",
+    strokeWidth: 0,
+    cornerRadius: 0,
+    aspectLocked: false,
+  };
+}
+
+export function createIconLayer({ template, pathData, viewBox = 24, name }) {
+  const canvas = getCanvasSize(template);
+  const size = Math.min(template.trim.width, template.trim.height) * 0.3;
+
+  return {
+    id: nextLayerId(),
+    type: "icon",
+    name: name || "Graphic",
+    pathData,
+    viewBox,
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    width: size,
+    height: size,
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    hidden: false,
+    fill: "#17181b",
+    aspectLocked: true,
+  };
+}
+
 export function createTextLayer({ template, text = "Your text", name }) {
   const canvas = getCanvasSize(template);
   const width = Math.min(canvas.width * 0.6, 120);
@@ -69,6 +117,7 @@ export function createTextLayer({ template, text = "Your text", name }) {
     fontWeight: 400,
     italic: false,
     underline: false,
+    uppercase: false,
     align: "center",
     letterSpacing: 0,
     lineHeight: 1.25,
@@ -158,6 +207,23 @@ export function editorReducer(state, action) {
         ...pushHistory(state, state.design),
         dirty: true,
         ui: { ...state.ui, selectedLayerId: action.layer.id, cropLayerId: null },
+      };
+    }
+
+    case "ADD_LAYERS": {
+      // Multiple layers in one history step (design starters).
+      if (!action.layers?.length) {
+        return state;
+      }
+      const sideId = action.sideId || state.ui.activeSideId;
+      const nextDesign = updateLayers(state.design, sideId, (layers) => [...layers, ...action.layers]);
+
+      return {
+        ...state,
+        design: nextDesign,
+        ...pushHistory(state, state.design),
+        dirty: true,
+        ui: { ...state.ui, selectedLayerId: action.layers[action.layers.length - 1].id, cropLayerId: null },
       };
     }
 

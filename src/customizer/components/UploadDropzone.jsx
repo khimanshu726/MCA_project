@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 
-const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+export const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-const readImage = (file) =>
+export const readImage = (file) =>
   new Promise((resolve, reject) => {
     const src = URL.createObjectURL(file);
     const image = new Image();
@@ -18,10 +18,42 @@ const readImage = (file) =>
   });
 
 /**
- * Artwork intake: click, drag-and-drop, or paste from the clipboard.
- * Multiple files are accepted in one drop; each becomes its own layer via
- * onImagesReady. Validation (type/size) happens here so every entry path
- * shares the same rules.
+ * Shared type/size gate, so click, drop, and paste can't drift apart.
+ * Returns `{images, error}` rather than throwing — every caller wants to
+ * surface the message, not crash.
+ */
+export async function readImageFiles(fileList) {
+  const valid = [];
+  let error = "";
+
+  for (const file of [...fileList]) {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      error = "Only PNG, JPG, and WebP images are supported.";
+      continue;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      error = "Images must be 10 MB or smaller.";
+      continue;
+    }
+    valid.push(file);
+  }
+
+  if (valid.length === 0) {
+    return { images: [], error };
+  }
+
+  try {
+    return { images: await Promise.all(valid.map(readImage)), error };
+  } catch (readError) {
+    return { images: [], error: readError.message };
+  }
+}
+
+/**
+ * Artwork intake: click or drag-and-drop. Presentational by design —
+ * paste-from-clipboard is owned by DesignStudio, because this component
+ * only mounts while the Uploads panel is open and a window listener living
+ * here meant paste silently stopped working on every other panel.
  */
 function UploadDropzone({ onImagesReady, isBusy = false }) {
   const inputRef = useRef(null);
@@ -31,53 +63,16 @@ function UploadDropzone({ onImagesReady, isBusy = false }) {
   const processFiles = useCallback(
     async (fileList) => {
       setError("");
-      const files = [...fileList];
-      const valid = [];
-
-      for (const file of files) {
-        if (!ACCEPTED_TYPES.includes(file.type)) {
-          setError("Only PNG, JPG, and WebP images are supported.");
-          continue;
-        }
-        if (file.size > MAX_FILE_BYTES) {
-          setError("Images must be 10 MB or smaller.");
-          continue;
-        }
-        valid.push(file);
+      const { images, error: readError } = await readImageFiles(fileList);
+      if (readError) {
+        setError(readError);
       }
-
-      if (valid.length === 0) {
-        return;
-      }
-
-      try {
-        const images = await Promise.all(valid.map(readImage));
+      if (images.length > 0) {
         onImagesReady(images);
-      } catch (readError) {
-        setError(readError.message);
       }
     },
     [onImagesReady],
   );
-
-  // Paste-from-clipboard support (screenshots, copied images).
-  useEffect(() => {
-    const onPaste = (event) => {
-      const items = [...(event.clipboardData?.items || [])];
-      const imageFiles = items
-        .filter((item) => item.kind === "file" && ACCEPTED_TYPES.includes(item.type))
-        .map((item) => item.getAsFile())
-        .filter(Boolean);
-
-      if (imageFiles.length > 0) {
-        event.preventDefault();
-        processFiles(imageFiles);
-      }
-    };
-
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-  }, [processFiles]);
 
   return (
     <div>
@@ -95,19 +90,19 @@ function UploadDropzone({ onImagesReady, isBusy = false }) {
           setIsDragOver(false);
           processFiles(event.dataTransfer.files);
         }}
-        className={`flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition ${
-          isDragOver ? "border-brand-500 bg-brand-50/60" : "border-ink-300 bg-white hover:border-brand-400"
+        className={`flex w-full flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center transition ${
+          isDragOver ? "border-brand-500 bg-brand-50" : "border-ink-300 bg-ink-50 hover:border-ink-400 hover:bg-ink-100"
         } ${isBusy ? "opacity-60" : ""}`}
       >
         {isBusy ? (
-          <Loader2 size={22} className="animate-spin text-brand-500" aria-hidden="true" />
+          <Loader2 size={20} className="animate-spin text-ink-500" aria-hidden="true" />
         ) : (
-          <ImagePlus size={22} className="text-brand-500" aria-hidden="true" />
+          <ImagePlus size={20} className="text-ink-500" aria-hidden="true" />
         )}
         <span className="text-sm font-medium text-ink-800">
           {isBusy ? "Adding your image…" : "Upload artwork"}
         </span>
-        <span className="text-xs text-ink-500">Click, drag &amp; drop, or paste · PNG, JPG, WebP · up to 10 MB</span>
+        <span className="text-xs leading-relaxed text-ink-400">Click, drop, or paste · PNG, JPG, WebP · 10 MB</span>
       </button>
 
       <input

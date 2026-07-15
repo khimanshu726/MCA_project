@@ -1,7 +1,16 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-function Dialog({ open, onClose, title, children, footer }) {
+// Default stays "sm" so every existing storefront dialog renders unchanged;
+// the studio opts into wider ones (a print preview of a 1830mm banner in a
+// 384px box is a postage stamp).
+const SIZES = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-2xl",
+};
+
+function Dialog({ open, onClose, title, children, footer, size = "sm" }) {
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -31,7 +40,7 @@ function Dialog({ open, onClose, title, children, footer }) {
         aria-modal="true"
         aria-labelledby="dialog-title"
         tabIndex={-1}
-        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl outline-none"
+        className={`w-full ${SIZES[size] || SIZES.sm} rounded-2xl bg-white p-5 shadow-xl outline-none`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

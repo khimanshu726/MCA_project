@@ -27,10 +27,13 @@ export const fontShorthand = (layer, pxPerMm) =>
 export function wrapTextLayer(layer) {
   const context = getContext();
   const maxWidthPx = layer.width * MEASURE_SCALE;
+  // Uppercase transforms happen before measuring so wrap points match the
+  // rendered glyph widths.
+  const content = layer.uppercase ? layer.text.toUpperCase() : layer.text;
 
   if (!context) {
     // jsdom without canvas: fall back to explicit line breaks only.
-    return layer.text.split("\n");
+    return content.split("\n");
   }
 
   context.font = fontShorthand(layer, MEASURE_SCALE);
@@ -39,7 +42,7 @@ export function wrapTextLayer(layer) {
   const measure = (text) => context.measureText(text).width + letterSpacingPx * Math.max(0, text.length - 1);
 
   const lines = [];
-  for (const paragraph of layer.text.split("\n")) {
+  for (const paragraph of content.split("\n")) {
     if (!paragraph) {
       lines.push("");
       continue;

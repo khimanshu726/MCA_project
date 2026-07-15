@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { BACKGROUND_SWATCHES, GRADIENT_PRESETS } from "../fonts.js";
 
 /**
@@ -10,7 +11,7 @@ function BackgroundPanel({ background, actions }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">Solid colour</span>
+        <span className="text-xs font-medium text-ink-500">Solid colour</span>
         <div className="flex flex-wrap items-center gap-1.5">
           {BACKGROUND_SWATCHES.map((swatch) => (
             <button
@@ -35,7 +36,7 @@ function BackgroundPanel({ background, actions }) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">Gradient</span>
+        <span className="text-xs font-medium text-ink-500">Gradient</span>
         <div className="flex flex-wrap gap-1.5">
           {GRADIENT_PRESETS.map((preset) => (
             <button
@@ -60,4 +61,4 @@ function BackgroundPanel({ background, actions }) {
   );
 }
 
-export default BackgroundPanel;
+export default memo(BackgroundPanel);

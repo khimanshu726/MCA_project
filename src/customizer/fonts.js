@@ -1,12 +1,14 @@
 /**
- * Curated font list for text layers. Inter and Fraunces are the site's own
- * loaded webfonts (index.html); the rest are cross-platform system faces so
- * on-screen text and the canvas print render never silently diverge from a
- * missing font file.
+ * Curated font list for text layers. Inter, Fraunces, Poppins, and
+ * Playfair Display are Google Fonts loaded by the site (index.html); the
+ * rest are cross-platform system faces so on-screen text and the canvas
+ * print render never silently diverge from a missing font file.
  */
 export const FONT_OPTIONS = [
   { value: "Inter", label: "Inter", stack: '"Inter", sans-serif' },
   { value: "Fraunces", label: "Fraunces", stack: '"Fraunces", serif' },
+  { value: "Poppins", label: "Poppins", stack: '"Poppins", sans-serif' },
+  { value: "Playfair Display", label: "Playfair Display", stack: '"Playfair Display", serif' },
   { value: "Georgia", label: "Georgia", stack: "Georgia, serif" },
   { value: "Times New Roman", label: "Times New Roman", stack: '"Times New Roman", serif' },
   { value: "Arial", label: "Arial", stack: "Arial, sans-serif" },

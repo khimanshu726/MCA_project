@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ProductSelector from "../components/ProductSelector";
 import DesignStudio from "../customizer/components/DesignStudio.jsx";
@@ -11,10 +11,10 @@ import { useProduct } from "../hooks/useProduct";
 import { useUserAuth } from "../context/UserAuthContext";
 
 /**
- * Customization studio host: product picker on top, the design studio
- * below. Designs can arrive three ways — fresh, recovered from the
- * autosave draft, or hydrated from a saved "My Designs" document
- * (?design=<id>).
+ * Design Studio host. The studio fills the viewport below the site header
+ * — a workspace, not a marketing page. Designs arrive three ways: fresh,
+ * recovered from the autosave draft, or hydrated from a saved
+ * "My Designs" document (?design=<id>).
  */
 function CustomizePage() {
   const { productId } = useParams();
@@ -77,48 +77,40 @@ function CustomizePage() {
   const draft = !savedDesign && selectedProduct ? loadDraft(selectedProduct.id) : null;
   const initialDesign = savedDesign?.state || draft?.design || null;
 
-  return (
-    <main className="page-stack">
-      <section className="section-panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Customization studio</p>
-            <h2>Design it exactly how you want it printed.</h2>
-          </div>
-        </div>
-
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="w-full sm:max-w-sm">
-            <ProductSelector
-              id="product-select"
-              label="Product"
-              products={items}
-              value={selectedProductId}
-              onChange={handleProductChange}
-              isLoading={isListLoading}
-            />
-          </div>
-          {isAuthenticated && (
-            <Link to="/account/designs" className="text-sm font-semibold text-brand-600 hover:underline">
-              My designs →
-            </Link>
-          )}
-        </div>
-
-        {selectedProduct ? (
-          <DesignStudio
-            key={`${selectedProduct.id}:${savedDesign?.id || "new"}`}
-            product={selectedProduct}
-            template={template}
-            initialDesign={initialDesign}
-            initialDesignId={savedDesign?.id || null}
-            recoveredDraft={Boolean(draft && !savedDesign)}
-          />
-        ) : (
+  if (!selectedProduct) {
+    return (
+      <main className="page-stack">
+        <section className="section-panel">
           <p className="section-copy">Select a product to start designing.</p>
-        )}
-      </section>
-    </main>
+        </section>
+      </main>
+    );
+  }
+
+  // No wrapper and no viewport math: StudioShell claims the full dvh itself.
+  // The old `calc(100dvh - 150px)` guessed at the storefront chrome and
+  // guessed wrong (promo + header measure 206px), so the editor overflowed
+  // into the footer.
+  return (
+    <DesignStudio
+      key={`${selectedProduct.id}:${savedDesign?.id || "new"}`}
+      product={selectedProduct}
+      template={template}
+      initialDesign={initialDesign}
+      initialDesignId={savedDesign?.id || null}
+      initialDesignName={savedDesign?.name || null}
+      recoveredDraft={Boolean(draft && !savedDesign)}
+      productSelector={
+        <ProductSelector
+          id="product-select"
+          products={items}
+          value={selectedProductId}
+          onChange={handleProductChange}
+          isLoading={isListLoading}
+          compact
+        />
+      }
+    />
   );
 }
 

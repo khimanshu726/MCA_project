@@ -29,7 +29,8 @@ import {
   getSelectedLayer,
 } from "../customizer/state/editorReducer.js";
 import { validateDesignForPrint } from "../customizer/engine/validation.js";
-import { createInitialDesign } from "../customizer/state/editorReducer.js";
+import { createInitialDesign, createIconLayer, createShapeLayer } from "../customizer/state/editorReducer.js";
+import { wrapTextLayer } from "../customizer/engine/textMetrics.js";
 
 const cardTemplate = TEMPLATES["visiting-cards"];
 
@@ -271,6 +272,43 @@ describe("editor reducer", () => {
 
     const unknown = editorReducer(state, { type: "SET_ACTIVE_SIDE", sideId: "inside" });
     expect(unknown).toBe(state);
+  });
+
+  it("creates shape and icon layers centred on the canvas with sane defaults", () => {
+    const shape = createShapeLayer({ template: cardTemplate, kind: "ellipse" });
+    expect(shape.type).toBe("shape");
+    expect(shape.kind).toBe("ellipse");
+    expect(shape.fill).toBeTruthy();
+    expect(shape.width).toBeGreaterThan(0);
+
+    const line = createShapeLayer({ template: cardTemplate, kind: "line" });
+    expect(line.width).toBeGreaterThan(line.height);
+
+    const icon = createIconLayer({ template: cardTemplate, pathData: "M12 2L2 22h20Z", name: "Star" });
+    expect(icon.type).toBe("icon");
+    expect(icon.viewBox).toBe(24);
+    expect(icon.aspectLocked).toBe(true);
+
+    const state = createInitialState({ template: cardTemplate, productId: "p1" });
+    const withShape = editorReducer(state, { type: "ADD_LAYER", layer: shape });
+    expect(getActiveSide(withShape).layers[0].kind).toBe("ellipse");
+  });
+
+  it("wraps uppercase text using transformed glyph widths", () => {
+    const layer = {
+      text: "wide text line",
+      uppercase: true,
+      width: 40,
+      fontSize: 6,
+      fontFamily: "Inter",
+      fontWeight: 400,
+      italic: false,
+      letterSpacing: 0,
+      lineHeight: 1.25,
+    };
+
+    const lines = wrapTextLayer(layer);
+    expect(lines.join(" ")).toBe(lines.join(" ").toUpperCase());
   });
 
   it("validates print readiness: empty designs error, low DPI and cut-off layers warn", () => {
