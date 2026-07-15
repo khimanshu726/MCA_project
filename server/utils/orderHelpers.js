@@ -1,7 +1,27 @@
 import crypto from "node:crypto";
 
-export const allowedPaymentMethods = ["cod", "upi", "card"];
-export const allowedOrderStatuses = ["New", "Processing", "Completed", "Cancelled"];
+export const allowedPaymentMethods = ["cod", "upi", "card", "netbanking", "wallet"];
+export const allowedOrderStatuses = [
+  "PaymentPending",
+  "PaymentFailed",
+  "Placed",
+  "Confirmed",
+  "Packed",
+  "Shipped",
+  "OutForDelivery",
+  "Delivered",
+  "Cancelled",
+  "Returned",
+  "Refunded",
+];
+// Terminal statuses render as a distinct end state on the customer timeline
+// rather than a linear step — an order doesn't pass "through" Cancelled on
+// its way to Delivered.
+export const terminalOrderStatuses = ["Cancelled", "Returned", "Refunded", "PaymentFailed"];
+// Online orders sit in these states until (or unless) the gateway confirms
+// payment — they are reservations, not confirmed orders, so the customer
+// order history and fulfilment flows exclude them.
+export const unconfirmedOrderStatuses = ["PaymentPending", "PaymentFailed"];
 export const allowedPaymentStatuses = ["Pending", "Paid", "Refunded", "Failed"];
 export const allowedNotificationStatuses = ["Unread", "Seen"];
 

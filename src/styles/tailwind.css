@@ -56,3 +56,27 @@
   --color-success-600: #245536;
   --color-success-100: #e2ede5;
 }
+
+/* ProductSelector open animations: fade+scale for the desktop dropdown,
+   slide-up for the mobile bottom sheet. Defined here (rather than pulling
+   in a Tailwind animation plugin) since Tailwind v4 picks up @keyframes by
+   name via the arbitrary animate-[name_duration_easing] syntax. */
+@keyframes product-selector-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes product-selector-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

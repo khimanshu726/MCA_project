@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { onIdTokenChanged, signInWithPhoneNumber, signOut as firebaseSignOut } from "firebase/auth";
+import { useQueryClient } from "@tanstack/react-query";
 import { fetchCustomerProfile } from "../lib/api";
 import { ensureFirebaseAuth, ensureFirebasePersistence, firebaseAuth } from "../lib/firebase";
 import { loadCustomerProfile, mapFirebaseUserFallback } from "../hooks/useCustomerProfile";
@@ -11,6 +12,7 @@ function UserAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let isActive = true;
@@ -91,7 +93,12 @@ function UserAuthProvider({ children }) {
     setAuthUser(null);
     setUser(null);
     setToken("");
-  }, []);
+    // Evict the signed-out user's server-state caches immediately, so a
+    // different user signing in on the same device never sees a stale
+    // flash of the previous user's cart/wishlist before the refetch lands.
+    queryClient.removeQueries({ queryKey: ["cart"] });
+    queryClient.removeQueries({ queryKey: ["wishlist"] });
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({

@@ -76,3 +76,10 @@ export const replaceItems = async (customerId, items) => {
   await cart.save();
   return cart;
 };
+
+export const setAppliedCoupon = async (customerId, code) => {
+  const cart = await getOrCreateCart(customerId);
+  cart.appliedCouponCode = code;
+  await cart.save();
+  return cart;
+};

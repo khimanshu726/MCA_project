@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useCartMerge } from "../hooks/useCartMerge";
+import { useWishlist } from "../hooks/useWishlist";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useHeaderSearch, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
 import AppHeader from "./AppHeader";
@@ -9,6 +10,7 @@ import SiteFooter from "./SiteFooter";
 
 function AppLayout() {
   const { cartCount } = useCart();
+  const { items: wishlistItems } = useWishlist();
   const { isAuthenticated, signOut } = useUserAuth();
   const isScrolled = useScrolled();
   const { searchTerm, setSearchTerm, submit: handleSearchSubmit } = useHeaderSearch();
@@ -27,6 +29,7 @@ function AppLayout() {
         onSearchSubmit={handleSearchSubmit}
         isAuthenticated={isAuthenticated}
         cartCount={cartCount}
+        wishlistCount={wishlistItems.length}
         onSignOut={signOut}
         mobileOpen={mobileOpen}
         onToggleMobile={toggleMobileMenu}

@@ -12,6 +12,7 @@ import {
 } from "../services/orderStore.js";
 import { decrementStockAtomic, getProductsByIds, restoreStock } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
+import { findCouponByCode, incrementCouponUsage, validateCoupon } from "../services/couponStore.js";
 import { sendOrderNotifications } from "../services/notificationService.js";
 import {
   allowedNotificationStatuses,
@@ -22,8 +23,10 @@ import {
   hasErrors,
   normalizeLineItems,
   parseLineItems,
+  unconfirmedOrderStatuses,
   validateOrderPayload,
 } from "../utils/orderHelpers.js";
+import { recordPaymentCaptured, verifyPaymentSignature } from "../services/paymentService.js";
 
 const extractPublicIdFromUrl = (url) => {
   if (!url || !url.includes("/upload/")) return null;
@@ -84,6 +87,27 @@ export const createOrder = async (req, res, next) => {
     });
   }
 
+  // Coupon (if any) is re-validated independently server-side — the
+  // discount amount is never trusted from the client, only the code hint.
+  // Validated before stock is touched so an invalid coupon fails fast.
+  let coupon = null;
+
+  if (req.body.couponCode) {
+    const requestedSubtotal = requestedLineItems.reduce(
+      (sum, item) => sum + productsById.get(item.productId).price * item.quantity,
+      0,
+    );
+    const candidate = await findCouponByCode(req.body.couponCode);
+    const validation = validateCoupon(candidate, requestedSubtotal);
+
+    if (!validation.valid) {
+      await deleteUploadedFile(req.file?.path);
+      return res.status(409).json({ code: "COUPON_INVALID", message: validation.reason });
+    }
+
+    coupon = candidate;
+  }
+
   // Atomic, race-safe stock decrement per item (see productStore.decrementStockAtomic).
   // On any failure, compensate by restoring stock for every item already
   // decremented in this request before responding.
@@ -133,6 +157,7 @@ export const createOrder = async (req, res, next) => {
         const product = productsById.get(item.productId);
         return { price: product.price, mrp: product.mrp, quantity: item.quantity };
       }),
+      coupon,
     );
 
     const totalQuantity = lineItems.reduce((total, item) => total + item.quantity, 0);
@@ -163,11 +188,22 @@ export const createOrder = async (req, res, next) => {
       platformFee: pricing.platformFee,
       taxAmount: pricing.tax,
       savings: pricing.savings,
+      couponCode: pricing.couponCode,
+      couponDiscount: pricing.couponDiscount,
       customizationDetails: (req.body.customInstructions || "").trim(),
       uploadedFileURL: createUploadedFileUrl(req, req.file),
       paymentMethod,
       paymentStatus,
-      orderStatus: "New",
+      // Online orders are NOT confirmed at creation: they sit in
+      // PaymentPending (stock reserved, excluded from customer history and
+      // fulfilment) until signature verification or the payment.captured
+      // webhook promotes them to Placed. Only COD confirms immediately.
+      orderStatus: isOnlinePayment ? "PaymentPending" : "Placed",
+      statusHistory: [
+        isOnlinePayment
+          ? { status: "PaymentPending", changedAt: new Date().toISOString(), note: "Awaiting payment confirmation." }
+          : { status: "Placed", changedAt: new Date().toISOString(), note: "Order placed." },
+      ],
       notificationStatus: "Unread",
       archived: false,
       lineItems,
@@ -198,6 +234,15 @@ export const createOrder = async (req, res, next) => {
     }
 
     const savedOrder = await createOrderRecord(order);
+
+    if (coupon) {
+      // Awaited (not fire-and-forget) so usage-limit enforcement is
+      // consistent for a rapid next order — the order itself is already
+      // placed at this point, so a failure here is logged, not fatal.
+      await incrementCouponUsage(coupon.code).catch((error) => {
+        console.error(`Failed to increment usage for coupon ${coupon.code}:`, error);
+      });
+    }
 
     sendOrderNotifications(savedOrder).catch(() => {
       // Local development should not fail when SMTP is not configured.
@@ -246,7 +291,101 @@ export const getCustomerOrders = async (req, res, next) => {
       includeArchived: true, // customers should see all their history
     });
 
-    return res.json({ orders });
+    // PaymentPending/PaymentFailed records are payment reservations, not
+    // orders the customer placed — a confirmed order only exists after the
+    // gateway signature verified. They never appear in "My Orders".
+    const confirmedOrders = orders.filter((order) => !unconfirmedOrderStatuses.includes(order.orderStatus));
+
+    return res.json({ orders: confirmedOrders });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Ownership-checked single-order lookup for the customer-facing order-success
+// / order-detail pages. Guest orders (no customerId) are reachable only by an
+// unauthenticated caller — the order id itself is the capability, same as
+// most guest-checkout confirmation links; an authenticated caller can only
+// see orders tied to their own account.
+export const getCustomerOrder = async (req, res, next) => {
+  try {
+    const order = await getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const isOwner = req.customer ? order.customerId === req.customer.id : !order.customerId;
+    if (!isOwner) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    return res.json({ order });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const CANCELLABLE_STATUSES = ["Placed", "Confirmed"];
+const RETURNABLE_STATUSES = ["Delivered"];
+
+const findOwnedOrder = async (req) => {
+  const order = await getOrderById(req.params.id);
+  if (!order) return null;
+  const isOwner = req.customer ? order.customerId === req.customer.id : !order.customerId;
+  return isOwner ? order : null;
+};
+
+export const cancelCustomerOrder = async (req, res, next) => {
+  try {
+    const order = await findOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    if (!CANCELLABLE_STATUSES.includes(order.orderStatus)) {
+      return res.status(409).json({ message: `Orders that are ${order.orderStatus} can no longer be cancelled.` });
+    }
+
+    await Promise.all((order.lineItems || []).map((item) => restoreStock(item.productId, item.quantity)));
+
+    const updatedOrder = await updateOrderRecord(order.id, (currentOrder) => ({
+      ...currentOrder,
+      orderStatus: "Cancelled",
+      statusHistory: [
+        ...(currentOrder.statusHistory || []),
+        { status: "Cancelled", changedAt: new Date().toISOString(), note: "Cancelled by customer." },
+      ],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    return res.json({ message: "Order cancelled.", order: updatedOrder });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const returnCustomerOrder = async (req, res, next) => {
+  try {
+    const order = await findOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    if (!RETURNABLE_STATUSES.includes(order.orderStatus)) {
+      return res.status(409).json({ message: "Only delivered orders can be returned." });
+    }
+
+    const updatedOrder = await updateOrderRecord(order.id, (currentOrder) => ({
+      ...currentOrder,
+      orderStatus: "Returned",
+      statusHistory: [
+        ...(currentOrder.statusHistory || []),
+        { status: "Returned", changedAt: new Date().toISOString(), note: "Return requested by customer." },
+      ],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    return res.json({ message: "Return requested.", order: updatedOrder });
   } catch (error) {
     return next(error);
   }
@@ -267,7 +406,7 @@ export const getOrder = async (req, res, next) => {
 };
 
 export const updateOrder = async (req, res, next) => {
-  const { orderStatus, paymentStatus, archived, notificationStatus } = req.body;
+  const { orderStatus, paymentStatus, archived, notificationStatus, trackingId } = req.body;
 
   if (orderStatus && !allowedOrderStatuses.includes(orderStatus)) {
     return res.status(400).json({ message: "Invalid order status." });
@@ -282,14 +421,22 @@ export const updateOrder = async (req, res, next) => {
   }
 
   try {
-    const updatedOrder = await updateOrderRecord(req.params.id, (currentOrder) => ({
-      ...currentOrder,
-      orderStatus: orderStatus || currentOrder.orderStatus,
-      paymentStatus: paymentStatus || currentOrder.paymentStatus,
-      archived: typeof archived === "boolean" ? archived : currentOrder.archived,
-      notificationStatus: notificationStatus || currentOrder.notificationStatus,
-      updatedAt: new Date().toISOString(),
-    }));
+    const updatedOrder = await updateOrderRecord(req.params.id, (currentOrder) => {
+      const isStatusChange = orderStatus && orderStatus !== currentOrder.orderStatus;
+
+      return {
+        ...currentOrder,
+        orderStatus: orderStatus || currentOrder.orderStatus,
+        paymentStatus: paymentStatus || currentOrder.paymentStatus,
+        archived: typeof archived === "boolean" ? archived : currentOrder.archived,
+        notificationStatus: notificationStatus || currentOrder.notificationStatus,
+        trackingId: typeof trackingId === "string" ? trackingId.trim() : currentOrder.trackingId,
+        statusHistory: isStatusChange
+          ? [...(currentOrder.statusHistory || []), { status: orderStatus, changedAt: new Date().toISOString() }]
+          : currentOrder.statusHistory,
+        updatedAt: new Date().toISOString(),
+      };
+    });
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found." });
@@ -363,24 +510,84 @@ export const verifyPayment = async (req, res, next) => {
       return res.status(400).json({ message: "Missing payment verification parameters." });
     }
 
-    const shasum = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
-    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const digest = shasum.digest("hex");
-
-    if (digest !== razorpay_signature) {
+    if (
+      !verifyPaymentSignature({
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        signature: razorpay_signature,
+      })
+    ) {
       return res.status(400).json({ message: "Payment verification failed: Invalid signature." });
     }
 
-    const updatedOrder = await updateOrderRecord(razorpay_order_id, {
-      paymentStatus: "Paid",
+    // Enrich the payment record with gateway detail (method, card network,
+    // full entity) when reachable — verification itself never depends on
+    // this round-trip, only on the signature above.
+    let gatewayResponse = null;
+    let method = "";
+    if (razorpayInstance) {
+      try {
+        gatewayResponse = await razorpayInstance.payments.fetch(razorpay_payment_id);
+        method = gatewayResponse?.method || "";
+      } catch {
+        // Offline/test environments: record the capture without gateway detail.
+      }
+    }
+
+    const { order, payment } = await recordPaymentCaptured({
+      razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+      method,
+      gatewayResponse,
     });
 
-    if (!updatedOrder) {
+    if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
 
-    return res.json({ message: "Payment verified successfully.", order: updatedOrder });
+    return res.json({
+      message: "Payment verified successfully.",
+      order,
+      payment: payment ? { id: payment.id, status: payment.status, method: payment.method } : null,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Explicit customer bail-out from an online payment: releases the stock the
+// PaymentPending order was reserving and marks it PaymentFailed so it never
+// surfaces as a real order. This is the ONLY path that releases a payment
+// reservation — a declined attempt keeps the reservation so the customer
+// can retry against the same Razorpay order.
+export const cancelPendingPayment = async (req, res, next) => {
+  try {
+    const order = await findOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    if (order.orderStatus !== "PaymentPending") {
+      return res.status(409).json({ message: "Only orders awaiting payment can be cancelled this way." });
+    }
+
+    await Promise.all((order.lineItems || []).map((item) => restoreStock(item.productId, item.quantity)));
+
+    const updatedOrder = await updateOrderRecord(order.id, (currentOrder) => ({
+      ...currentOrder,
+      orderStatus: "PaymentFailed",
+      statusHistory: [
+        ...(currentOrder.statusHistory || []),
+        {
+          status: "PaymentFailed",
+          changedAt: new Date().toISOString(),
+          note: "Payment cancelled by customer; reserved stock released.",
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    return res.json({ message: "Payment cancelled.", order: updatedOrder });
   } catch (error) {
     return next(error);
   }

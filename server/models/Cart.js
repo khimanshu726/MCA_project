@@ -17,6 +17,7 @@ const cartSchema = new mongoose.Schema(
   {
     customerId: { type: String, required: true, unique: true },
     items: { type: [cartItemSchema], default: [] },
+    appliedCouponCode: { type: String, default: null },
   },
   { timestamps: true },
 );

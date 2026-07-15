@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AddToCartButton from "../components/AddToCartButton";
 import ProductGallery from "../components/ProductGallery";
+import WishlistButton from "../components/ui/WishlistButton";
 import { useProduct } from "../hooks/useProduct";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 
@@ -80,6 +81,7 @@ function ProductDetailPage() {
               Customize this product
             </Link>
             <AddToCartButton product={product} className="secondary-button" />
+            <WishlistButton productId={product.id} className="wishlist-toggle-inline" />
             <Link className="secondary-button" to="/cart">
               View cart
             </Link>

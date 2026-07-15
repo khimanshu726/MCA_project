@@ -16,3 +16,6 @@ export const listProducts = ({ category, q, sort, page, limit, featured, ids } =
 };
 
 export const getProduct = (id) => request(`/products/${id}`);
+
+export const getFrequentlyBoughtTogether = (id, limit = 4) =>
+  request(`/products/${id}/frequently-bought-together?limit=${limit}`);

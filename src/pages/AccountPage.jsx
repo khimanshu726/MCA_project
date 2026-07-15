@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
+import { PackageSearch } from "lucide-react";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import { useUserAuth } from "../context/UserAuthContext";
-import { useCustomerOrders } from "../hooks/useCustomerOrders";
-import OrdersList from "../components/OrdersList";
+import { useOrders } from "../hooks/useOrders";
 
 const formatDate = (isoString) =>
   new Date(isoString).toLocaleDateString("en-IN", {
@@ -19,8 +19,8 @@ const PROVIDER_LABELS = {
 };
 
 function AccountPage() {
-  const { authUser, refreshProfile, signOut, user, token } = useUserAuth();
-  const { orders, isLoading, error } = useCustomerOrders(token);
+  const { authUser, refreshProfile, signOut, user } = useUserAuth();
+  const { orders } = useOrders();
 
   const accountName = user?.displayName || authUser?.displayName || user?.email || user?.mobile || "Customer";
   const contactLabel = user?.email || authUser?.email || user?.mobile || "Customer";
@@ -68,10 +68,20 @@ function AccountPage() {
             </div>
           </div>
 
-          <div className="summary-card">
+          <Link to="/account/orders" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
             <p className="eyebrow">Order History</p>
-            <OrdersList orders={orders} isLoading={isLoading} error={error} />
-          </div>
+            <div className="account-detail-list">
+              <div className="summary-line">
+                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <PackageSearch size={16} aria-hidden="true" /> Total orders
+                </span>
+                <strong>{orders.length}</strong>
+              </div>
+            </div>
+            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
+              View, track, cancel, or return your orders &rarr;
+            </p>
+          </Link>
         </div>
       </section>
     </main>
