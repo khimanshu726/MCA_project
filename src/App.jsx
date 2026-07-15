@@ -9,6 +9,7 @@ import HomePage from "./pages/HomePage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductsPage from "./pages/ProductsPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
+import PaymentFailedPage from "./pages/PaymentFailedPage";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import UserLoginPage from "./pages/UserLoginPage";
@@ -74,6 +75,7 @@ function App() {
         />
         <Route path="/order-success" element={<OrderSuccessPage />} />
         <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+        <Route path="/payment-failed" element={<PaymentFailedPage />} />
       </Route>
       <Route path="/login" element={<UserLoginPage />} />
       <Route path="/register" element={<UserRegisterPage />} />

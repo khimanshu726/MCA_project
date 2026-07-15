@@ -5,6 +5,7 @@ import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import EmptyState from "../components/ui/EmptyState";
 import PriceDisplay from "../components/ui/PriceDisplay";
+import ResponsiveImage from "../components/ResponsiveImage";
 import { useWishlist } from "../hooks/useWishlist";
 import { useCart } from "../hooks/useCart";
 import { useToast } from "../hooks/useToast";
@@ -27,7 +28,7 @@ function WishlistItemCard({ item, onMoveToCart, onRemove }) {
   return (
     <Card className="flex flex-col gap-4 sm:flex-row sm:items-center">
       <Link to={`/products/${product.id}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-ink-50">
-        <img src={product.images?.[0]} alt={product.name} className="h-full w-full object-cover" />
+        <ResponsiveImage src={product.images?.[0]} alt={product.name} aspectClassName="ratio-square" width={96} />
       </Link>
 
       <div className="flex flex-1 flex-col gap-2">

@@ -1,15 +1,32 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
 
 const categoryOptionsFromItems = (items) => ["All", ...new Set(items.map((product) => product.category))];
+const SEARCH_DEBOUNCE_MS = 300;
 
 function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const category = searchParams.get("category") ?? "All";
   const query = searchParams.get("q") ?? "";
   const sort = searchParams.get("sort") ?? "featured";
+
+  // The search box updates its own local state on every keystroke (so
+  // typing never feels laggy) but only pushes into the URL — and therefore
+  // into useProducts' queryKey — after the user pauses. Without this, every
+  // keystroke fired a brand-new query; the product grid would re-diff by
+  // key on each response, unmounting/remounting any card not in both the
+  // old and new result sets and re-triggering its ResponsiveImage skeleton,
+  // which is what "images disappear/reload while searching" actually was.
+  const [searchInput, setSearchInput] = useState(query);
+  const searchDebounceRef = useRef(null);
+
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
 
   const { data, isLoading, isError, refetch } = useProducts({ category, q: query, limit: 100 });
   const items = data?.items ?? [];
@@ -50,6 +67,13 @@ function ProductsPage() {
     setSearchParams(nextParams);
   };
 
+  const handleSearchChange = (event) => {
+    const nextValue = event.target.value;
+    setSearchInput(nextValue);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => updateParams({ q: nextValue }), SEARCH_DEBOUNCE_MS);
+  };
+
   return (
     <main className="page-stack">
       <section className="section-panel">
@@ -69,9 +93,9 @@ function ProductsPage() {
             <input
               id="catalog-search"
               type="search"
-              value={query}
+              value={searchInput}
               placeholder="Search visiting cards, banners, packaging..."
-              onChange={(event) => updateParams({ q: event.target.value })}
+              onChange={handleSearchChange}
             />
           </div>
 

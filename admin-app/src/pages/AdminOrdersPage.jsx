@@ -4,6 +4,8 @@ import { useAdminAuth } from "../context/AdminAuthContext";
 
 const statusOptions = [
   "All",
+  "PaymentPending",
+  "PaymentFailed",
   "Placed",
   "Confirmed",
   "Packed",
@@ -14,7 +16,11 @@ const statusOptions = [
   "Returned",
   "Refunded",
 ];
-const STATUS_LABELS = { OutForDelivery: "Out for Delivery" };
+const STATUS_LABELS = {
+  OutForDelivery: "Out for Delivery",
+  PaymentPending: "Payment Pending",
+  PaymentFailed: "Payment Failed",
+};
 const statusLabel = (status) => STATUS_LABELS[status] || status;
 // Manual forward progression only — an admin moves an order one step at a
 // time; there's no carrier integration, so "shipped"/"delivered" here just
@@ -26,7 +32,9 @@ const FORWARD_STATUS_STEPS = {
   Shipped: "OutForDelivery",
   OutForDelivery: "Delivered",
 };
-const TERMINAL_ORDER_STATUSES = ["Cancelled", "Returned", "Refunded"];
+// PaymentPending is also excluded from admin actions: an unpaid reservation
+// must be confirmed by the payment gateway, never by hand.
+const TERMINAL_ORDER_STATUSES = ["Cancelled", "Returned", "Refunded", "PaymentFailed", "PaymentPending"];
 const orderCurrency = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
