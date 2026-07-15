@@ -12,6 +12,7 @@ import OrderSuccessPage from "./pages/OrderSuccessPage";
 import PaymentFailedPage from "./pages/PaymentFailedPage";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
+import MyDesignsPage from "./pages/MyDesignsPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import UserRegisterPage from "./pages/UserRegisterPage";
 import WishlistPage from "./pages/WishlistPage";
@@ -62,6 +63,14 @@ function App() {
           element={
             <ProtectedRoute>
               <OrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account/designs"
+          element={
+            <ProtectedRoute>
+              <MyDesignsPage />
             </ProtectedRoute>
           }
         />
