@@ -9,6 +9,7 @@ function ProductGallery({ images, productName, activeImage, onSelect }) {
         className="gallery-image"
         aspectClassName="ratio-gallery"
         priority
+        width={800}
       />
 
       <div className="gallery-strip">
@@ -25,6 +26,7 @@ function ProductGallery({ images, productName, activeImage, onSelect }) {
               alt={`${productName} thumbnail ${index + 1}`}
               className="thumb-image"
               aspectClassName="ratio-thumb"
+              width={82}
             />
           </button>
         ))}

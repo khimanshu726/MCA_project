@@ -55,7 +55,7 @@ function CartItemCard({
       )}
 
       <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-ink-50 sm:h-28 sm:w-28">
-        <ResponsiveImage src={product.images?.[0]} alt={product.name} aspectClassName="ratio-square" />
+        <ResponsiveImage src={product.images?.[0]} alt={product.name} aspectClassName="ratio-square" width={112} />
       </div>
 
       <div className="flex flex-1 flex-col gap-2">

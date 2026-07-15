@@ -12,17 +12,16 @@ import { useCheckout } from "../context/CheckoutContext";
 import { useCart } from "../hooks/useCart";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useToast } from "../hooks/useToast";
-import { createOrder, createRazorpayOrder, verifyRazorpayPayment } from "../lib/api";
-import { buildOrderFormData, loadRazorpayScript } from "../utils/checkout";
+import { createOrder, createRazorpayOrder } from "../lib/api";
+import { buildOrderFormData } from "../utils/checkout";
+import { openRazorpayCheckout } from "../utils/razorpayCheckout";
 import { validateCheckoutFile } from "../utils/orderValidation";
-
-const RAZORPAY_THEME_COLOR = "#b8461d";
 
 function ReviewLineItem({ item }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-ink-100 bg-white p-3">
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-ink-50">
-        <ResponsiveImage src={item.images?.[0]} alt={item.name} aspectClassName="ratio-square" />
+        <ResponsiveImage src={item.images?.[0]} alt={item.name} aspectClassName="ratio-square" width={56} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-ink-900">{item.name}</p>
@@ -79,7 +78,6 @@ function CheckoutReviewPage() {
   );
 
   const shipping = pricing.shipping;
-  const total = pricing.total;
   const effectiveAddress = addressState.effectiveAddress;
 
   // Same race as CheckoutAddressPage: check the raw (synchronous) item
@@ -112,60 +110,38 @@ function CheckoutReviewPage() {
     navigate(`/order-success/${order.orderId}`, { replace: true, state: { order } });
   };
 
-  const openRazorpayCheckout = async (response) => {
-    const scriptLoaded = await loadRazorpayScript();
-    if (!scriptLoaded) {
-      setOrderMessage("Failed to load payment gateway. Please try again.");
-      setIsPlacingOrder(false);
-      return;
-    }
-
-    const options = {
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-      amount: response.razorpay?.amount ?? Math.round(total * 100),
-      currency: response.razorpay?.currency ?? "INR",
-      name: "Elite Empressions",
-      description: "Print Shop Order",
-      order_id: response.order.razorpayOrderId,
-      modal: {
-        ondismiss: () => pushToast({ type: "error", message: "Payment cancelled." }),
-      },
-      handler: async (paymentResponse) => {
-        try {
-          const verifyData = await verifyRazorpayPayment({
-            razorpay_order_id: paymentResponse.razorpay_order_id,
-            razorpay_payment_id: paymentResponse.razorpay_payment_id,
-            razorpay_signature: paymentResponse.razorpay_signature,
-          });
-          setHasCompletedOrder(true);
-          pushToast({ type: "success", message: "Payment successful." });
-          clearCart();
-          navigate(`/order-success/${verifyData.order.orderId}`, { replace: true, state: { order: verifyData.order } });
-        } catch (err) {
-          const message = err.message || "Server error during payment verification.";
-          setOrderMessage(message);
-          pushToast({ type: "error", message });
-        }
-      },
-      prefill: {
-        name: effectiveAddress.fullName,
-        email: effectiveAddress.email || user?.email || "",
-        contact: effectiveAddress.phoneNumber,
-      },
-      theme: { color: RAZORPAY_THEME_COLOR },
+  const startOnlinePayment = async (response) => {
+    const prefill = {
+      name: effectiveAddress.fullName,
+      email: effectiveAddress.email || user?.email || "",
+      contact: effectiveAddress.phoneNumber,
     };
-
-    const razorpayInstance = new window.Razorpay(options);
-    razorpayInstance.on("payment.failed", () => {
-      setOrderMessage("Payment failed. Please try again.");
-      pushToast({ type: "error", message: "Payment failed." });
+    // Everything the failed-payment page needs to retry against the SAME
+    // Razorpay order (or cancel it and release the stock reservation).
+    const failureState = (reason) => ({
+      reason,
+      orderResponse: { order: response.order, razorpay: response.razorpay },
+      prefill,
     });
 
-    razorpayInstance.open();
     setIsPlacingOrder(false);
-    setCustomInstructions("");
-    setDesignFile(null);
-    setFileError("");
+
+    await openRazorpayCheckout({
+      orderResponse: response,
+      prefill,
+      onVerified: (order) => {
+        setHasCompletedOrder(true);
+        pushToast({ type: "success", message: "Payment successful." });
+        setCustomInstructions("");
+        setDesignFile(null);
+        setFileError("");
+        clearCart();
+        navigate(`/order-success/${order.orderId}`, { replace: true, state: { order } });
+      },
+      onTerminalFailure: (reason) => {
+        navigate("/payment-failed", { state: failureState(reason) });
+      },
+    });
   };
 
   const handlePlaceOrder = async () => {
@@ -198,7 +174,7 @@ function CheckoutReviewPage() {
           : await createRazorpayOrder(formData, orderToken);
 
       if (response.order.paymentMethod !== "cod" && response.order.razorpayOrderId) {
-        await openRazorpayCheckout(response);
+        await startOnlinePayment(response);
         return;
       }
 

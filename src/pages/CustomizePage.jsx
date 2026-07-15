@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AddToCartButton from "../components/AddToCartButton";
 import ResponsiveImage from "../components/ResponsiveImage";
+import ProductSelector from "../components/ProductSelector";
 import { useProducts } from "../hooks/useProducts";
 import { useProduct } from "../hooks/useProduct";
 
@@ -67,20 +68,14 @@ function CustomizePage() {
           </div>
 
           <div className="customize-controls">
-            <label className="field-label" htmlFor="product-select">
-              Product
-            </label>
-            <select
+            <ProductSelector
               id="product-select"
+              label="Product"
+              products={items}
               value={selectedProductId}
-              onChange={(event) => setSelectedProductId(event.target.value)}
-            >
-              {items.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedProductId}
+              isLoading={isListLoading}
+            />
 
             <label className="field-label" htmlFor="design-upload">
               Upload logo or design

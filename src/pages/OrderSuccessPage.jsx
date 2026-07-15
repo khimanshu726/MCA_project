@@ -122,7 +122,7 @@ function OrderSuccessPage() {
                 return (
                   <div key={item.productId} className="flex items-center gap-3">
                     <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-ink-50">
-                      <ResponsiveImage src={product?.images?.[0]} alt={item.name} aspectClassName="ratio-square" />
+                      <ResponsiveImage src={product?.images?.[0]} alt={item.name} aspectClassName="ratio-square" width={48} />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
                       <p className="truncate text-sm font-medium text-ink-900">{item.name}</p>

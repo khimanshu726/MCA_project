@@ -69,7 +69,7 @@ export function useServerCart() {
               quantity,
               savedForLater: false,
               product: product || null,
-              isMissing: false,
+              isMissing: !product,
               isOutOfStock: false,
               isPriceChanged: false,
               isLowStock: false,

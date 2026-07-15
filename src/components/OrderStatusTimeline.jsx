@@ -2,8 +2,10 @@ import { Check } from "lucide-react";
 import Badge from "./ui/Badge";
 
 const TIMELINE_STEPS = ["Placed", "Confirmed", "Packed", "Shipped", "OutForDelivery", "Delivered"];
-const TERMINAL_STATUSES = ["Cancelled", "Returned", "Refunded"];
-const STATUS_LABELS = { OutForDelivery: "Out for Delivery" };
+// Customers normally never see PaymentFailed orders (they're excluded from
+// order history), but render it as a terminal state defensively.
+const TERMINAL_STATUSES = ["Cancelled", "Returned", "Refunded", "PaymentFailed"];
+const STATUS_LABELS = { OutForDelivery: "Out for Delivery", PaymentFailed: "Payment Failed" };
 const statusLabel = (status) => STATUS_LABELS[status] || status;
 
 const formatTimestamp = (value) =>

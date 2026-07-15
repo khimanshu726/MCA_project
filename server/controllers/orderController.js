@@ -23,8 +23,10 @@ import {
   hasErrors,
   normalizeLineItems,
   parseLineItems,
+  unconfirmedOrderStatuses,
   validateOrderPayload,
 } from "../utils/orderHelpers.js";
+import { recordPaymentCaptured, verifyPaymentSignature } from "../services/paymentService.js";
 
 const extractPublicIdFromUrl = (url) => {
   if (!url || !url.includes("/upload/")) return null;
@@ -192,8 +194,16 @@ export const createOrder = async (req, res, next) => {
       uploadedFileURL: createUploadedFileUrl(req, req.file),
       paymentMethod,
       paymentStatus,
-      orderStatus: "Placed",
-      statusHistory: [{ status: "Placed", changedAt: new Date().toISOString(), note: "Order placed." }],
+      // Online orders are NOT confirmed at creation: they sit in
+      // PaymentPending (stock reserved, excluded from customer history and
+      // fulfilment) until signature verification or the payment.captured
+      // webhook promotes them to Placed. Only COD confirms immediately.
+      orderStatus: isOnlinePayment ? "PaymentPending" : "Placed",
+      statusHistory: [
+        isOnlinePayment
+          ? { status: "PaymentPending", changedAt: new Date().toISOString(), note: "Awaiting payment confirmation." }
+          : { status: "Placed", changedAt: new Date().toISOString(), note: "Order placed." },
+      ],
       notificationStatus: "Unread",
       archived: false,
       lineItems,
@@ -281,7 +291,12 @@ export const getCustomerOrders = async (req, res, next) => {
       includeArchived: true, // customers should see all their history
     });
 
-    return res.json({ orders });
+    // PaymentPending/PaymentFailed records are payment reservations, not
+    // orders the customer placed — a confirmed order only exists after the
+    // gateway signature verified. They never appear in "My Orders".
+    const confirmedOrders = orders.filter((order) => !unconfirmedOrderStatuses.includes(order.orderStatus));
+
+    return res.json({ orders: confirmedOrders });
   } catch (error) {
     return next(error);
   }
@@ -495,24 +510,84 @@ export const verifyPayment = async (req, res, next) => {
       return res.status(400).json({ message: "Missing payment verification parameters." });
     }
 
-    const shasum = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
-    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const digest = shasum.digest("hex");
-
-    if (digest !== razorpay_signature) {
+    if (
+      !verifyPaymentSignature({
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        signature: razorpay_signature,
+      })
+    ) {
       return res.status(400).json({ message: "Payment verification failed: Invalid signature." });
     }
 
-    const updatedOrder = await updateOrderRecord(razorpay_order_id, {
-      paymentStatus: "Paid",
+    // Enrich the payment record with gateway detail (method, card network,
+    // full entity) when reachable — verification itself never depends on
+    // this round-trip, only on the signature above.
+    let gatewayResponse = null;
+    let method = "";
+    if (razorpayInstance) {
+      try {
+        gatewayResponse = await razorpayInstance.payments.fetch(razorpay_payment_id);
+        method = gatewayResponse?.method || "";
+      } catch {
+        // Offline/test environments: record the capture without gateway detail.
+      }
+    }
+
+    const { order, payment } = await recordPaymentCaptured({
+      razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+      method,
+      gatewayResponse,
     });
 
-    if (!updatedOrder) {
+    if (!order) {
       return res.status(404).json({ message: "Order not found." });
     }
 
-    return res.json({ message: "Payment verified successfully.", order: updatedOrder });
+    return res.json({
+      message: "Payment verified successfully.",
+      order,
+      payment: payment ? { id: payment.id, status: payment.status, method: payment.method } : null,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Explicit customer bail-out from an online payment: releases the stock the
+// PaymentPending order was reserving and marks it PaymentFailed so it never
+// surfaces as a real order. This is the ONLY path that releases a payment
+// reservation — a declined attempt keeps the reservation so the customer
+// can retry against the same Razorpay order.
+export const cancelPendingPayment = async (req, res, next) => {
+  try {
+    const order = await findOwnedOrder(req);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    if (order.orderStatus !== "PaymentPending") {
+      return res.status(409).json({ message: "Only orders awaiting payment can be cancelled this way." });
+    }
+
+    await Promise.all((order.lineItems || []).map((item) => restoreStock(item.productId, item.quantity)));
+
+    const updatedOrder = await updateOrderRecord(order.id, (currentOrder) => ({
+      ...currentOrder,
+      orderStatus: "PaymentFailed",
+      statusHistory: [
+        ...(currentOrder.statusHistory || []),
+        {
+          status: "PaymentFailed",
+          changedAt: new Date().toISOString(),
+          note: "Payment cancelled by customer; reserved stock released.",
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    return res.json({ message: "Payment cancelled.", order: updatedOrder });
   } catch (error) {
     return next(error);
   }

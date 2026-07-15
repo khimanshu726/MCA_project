@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   cancelCustomerOrder,
+  cancelPendingPayment,
   createOrder,
   getCustomerOrder,
   getCustomerOrders,
@@ -33,6 +34,9 @@ router.get("/customer/:id", optionalAuthenticateCustomer, getCustomerOrder);
 // (guest orders reachable by id, authenticated orders scoped to the owner).
 router.post("/customer/:id/cancel", optionalAuthenticateCustomer, cancelCustomerOrder);
 router.post("/customer/:id/return", optionalAuthenticateCustomer, returnCustomerOrder);
+// Bail out of an unpaid online checkout: releases reserved stock and marks
+// the PaymentPending order PaymentFailed (see cancelPendingPayment).
+router.post("/customer/:id/cancel-payment", optionalAuthenticateCustomer, cancelPendingPayment);
 
 export default router;
 

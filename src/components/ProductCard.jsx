@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import AddToCartButton from "./AddToCartButton";
 import ResponsiveImage from "./ResponsiveImage";
 import WishlistButton from "./ui/WishlistButton";
+import { warmImageCache } from "../utils/imageUrl";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -10,14 +11,21 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 });
 
 function ProductCard({ product, className = "" }) {
+  // Warm the browser cache for this product's secondary gallery images
+  // before the detail page ever mounts — the listing thumbnail only ever
+  // requests images[0], so images[1+] would otherwise start loading from
+  // zero the moment someone lands on the product page.
+  const handlePrefetch = () => warmImageCache(product.images?.slice(1, 4));
+
   return (
-    <article className={`product-card ${className}`.trim()}>
+    <article className={`product-card ${className}`.trim()} onMouseEnter={handlePrefetch} onFocus={handlePrefetch}>
       <div className="product-card-media">
         <ResponsiveImage
-          src={product.images[0]}
+          src={product.images?.[0]}
           alt={product.name}
           className="card-image"
           aspectClassName="ratio-product"
+          width={360}
         />
         <WishlistButton productId={product.id} className="wishlist-toggle-overlay" />
       </div>

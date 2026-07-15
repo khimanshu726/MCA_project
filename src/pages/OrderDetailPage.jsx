@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Download, Mail, RotateCcw, ShoppingBag, XCircle } from "lucide-react";
 import Badge from "../components/ui/Badge";
@@ -10,6 +10,7 @@ import { currencyFormatter } from "../components/ui/PriceDisplay";
 import OrderStatusTimeline from "../components/OrderStatusTimeline";
 import { useOrder } from "../hooks/useOrder";
 import { useCart } from "../hooks/useCart";
+import { useProducts } from "../hooks/useProducts";
 import { useToast } from "../hooks/useToast";
 
 const SUPPORT_EMAIL = "hello@elite-empressions.com";
@@ -22,6 +23,20 @@ function OrderDetailPage() {
   const { order, isLoading, cancelOrder, isCancelling, returnOrder, isReturning } = useOrder(orderId);
   const { addToCart } = useCart();
   const { toast, pushToast, dismiss } = useToast();
+
+  // Order line items are a price/quantity snapshot taken at purchase time —
+  // they were never guaranteed to carry an `images` field. Resolve each
+  // item's thumbnail against the live Product record instead, the same way
+  // OrderSuccessPage/CheckoutReviewPage do, rather than rendering
+  // <ResponsiveImage> with no src (which can never load or fall back — see
+  // ResponsiveImage.jsx's missing-src guard for why that used to hang forever).
+  const lineItemProductIds = useMemo(() => (order?.lineItems || []).map((item) => item.productId), [order]);
+  const { data: lineItemProductsData } = useProducts({ ids: lineItemProductIds });
+  const lineItemProductsById = useMemo(() => {
+    const map = new Map();
+    (lineItemProductsData?.items ?? []).forEach((product) => map.set(product.id, product));
+    return map;
+  }, [lineItemProductsData]);
 
   const [confirmAction, setConfirmAction] = useState(null); // "cancel" | "return" | null
   const [actionMessage, setActionMessage] = useState("");
@@ -129,7 +144,12 @@ function OrderDetailPage() {
                 {(order.lineItems || []).map((item) => (
                   <div key={item.productId} className="flex items-center gap-3 rounded-xl border border-ink-100 p-3">
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-ink-50">
-                      <ResponsiveImage alt={item.name} aspectClassName="ratio-square" />
+                      <ResponsiveImage
+                        src={lineItemProductsById.get(item.productId)?.images?.[0]}
+                        alt={item.name}
+                        aspectClassName="ratio-square"
+                        width={56}
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-ink-900">{item.name}</p>
