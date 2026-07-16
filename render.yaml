@@ -3,7 +3,14 @@ services:
     name: elite-empressions
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && npm run build && npm run build:admin
+    # `npm run build` builds BOTH the storefront and the admin app. It used to
+    # build only the storefront, with `npm run build:admin` appended here — which
+    # meant the admin app existed on a deploy only if this file was actually in
+    # effect. It isn't, for a service created by hand rather than from a
+    # Blueprint, and the admin app survived purely because a stale dist-admin was
+    # committed to git. When that was removed, /admin 404'd. Building both from
+    # one script makes the deploy correct regardless of the build command used.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     autoDeploy: true
     envVars:
