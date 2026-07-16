@@ -11,3 +11,30 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
+
+      # `sync: false` means Render prompts for the value instead of storing it
+      # here, so these stay out of git while still being *declared*. Declaring
+      # them is the point: an undeclared var that nobody set produces a green
+      # deploy of a broken feature, which is exactly how payments shipped dead.
+      - key: MONGO_URI
+        sync: false
+
+      # Server-side. Read at boot by config/razorpay.js; if either is missing
+      # the Razorpay client is never constructed and online payments 503.
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      # Separate secret from the one above — Razorpay signs webhooks with the
+      # value configured on the webhook itself, not with the API key secret.
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      # Client-side, and NOT a duplicate you can drop: Vite only exposes
+      # VITE_-prefixed vars, and inlines them at BUILD time. Without this the
+      # checkout bundle compiles the key to `undefined` and the Razorpay modal
+      # never opens — with no error at build, deploy, or boot. Same value as
+      # RAZORPAY_KEY_ID above; the key id is public by design, the secret is
+      # never exposed to the browser.
+      - key: VITE_RAZORPAY_KEY_ID
+        sync: false
