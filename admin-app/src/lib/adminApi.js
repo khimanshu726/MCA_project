@@ -109,9 +109,55 @@ export const fetchUsers = (token) =>
     token,
   });
 
+export const fetchAdminProducts = (token, filters = {}) => {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== "" && value !== undefined && value !== null) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const suffix = searchParams.toString() ? `?${searchParams.toString()}` : "";
+
+  return request(`/admin/products${suffix}`, {
+    token,
+  });
+};
+
 export const createProduct = (payload, token) =>
   request("/admin/products", {
     method: "POST",
     body: payload,
     token,
   });
+
+export const updateProduct = (id, payload, token) =>
+  request(`/admin/products/${id}`, {
+    method: "PUT",
+    body: payload,
+    token,
+  });
+
+export const deleteProduct = (id, token) =>
+  request(`/admin/products/${id}`, {
+    method: "DELETE",
+    token,
+  });
+
+/**
+ * Uploads product photos and returns their stored URLs. FormData, so `request`
+ * leaves the Content-Type alone and lets the browser set the multipart boundary.
+ */
+export const uploadProductImages = (files, token) => {
+  const body = new FormData();
+  Array.from(files).forEach((file) => body.append("images", file));
+
+  return request("/admin/products/images", {
+    method: "POST",
+    body,
+    token,
+  });
+};
+
+export const fetchHealth = () => request("/health");

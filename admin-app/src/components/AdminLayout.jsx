@@ -10,13 +10,17 @@ function AdminLayout() {
       <header className="site-header admin-header">
         <div className="brand-block">
           <p className="eyebrow">Admin panel</p>
-          <h1>Order Management</h1>
+          {/* The panel manages the catalog as well as orders now. */}
+          <h1>Elite Empressions</h1>
           <p className="brand-copy">Signed in as {admin?.email || admin?.mobile || "Admin"}.</p>
         </div>
 
         <nav className="site-nav" aria-label="Admin">
           <NavLink to="/admin/orders" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
             Orders
+          </NavLink>
+          <NavLink to="/admin/products" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            Products
           </NavLink>
           <a href={STOREFRONT_URL} className="nav-link">
             Storefront
