@@ -11,6 +11,34 @@ const parseMinimumOrderQty = (minimum) => {
   return match ? Number(match[0]) : 1;
 };
 
+/**
+ * Seed stock has to be able to satisfy the product's own minimum order
+ * quantity, or the product is unsellable the moment it's created.
+ *
+ * This used to be a flat `100` for everything while MOQ was parsed
+ * independently from a string ("MOQ 250" -> 250), so `launch-flyer` shipped
+ * with stock 100 against a minimum of 250 — addable to the cart, then priced
+ * at zero with checkout blocked. Deriving one from the other means a new
+ * product can't be seeded into that state again.
+ */
+const seedStockFor = (minimumOrderQty) => Math.max(100, minimumOrderQty * 10);
+
+/**
+ * Stock for a seeded product. A new row gets a MOQ-aware default; an existing
+ * row always keeps whatever it has.
+ *
+ * Deliberately does NOT "repair" an existing row sitting below its own MOQ,
+ * even though that's the state that made launch-flyer unsellable. That state
+ * is also what legitimate selling produces — stock 300 against MOQ 250, one
+ * order of 250, and 50 is left — which means it reads identically to genuinely
+ * depleted inventory. Auto-topping it up would silently restock a product that
+ * really has run out. Fixing the seed default stops new products being born
+ * broken; repairing existing rows is an inventory decision and belongs to the
+ * admin (or scripts/repairStock.js), not to a boot-time side effect.
+ */
+const resolveSeedStock = (existingStock, minimumOrderQty) =>
+  existingStock === undefined || existingStock === null ? seedStockFor(minimumOrderQty) : existingStock;
+
 const featuredIds = new Set(storefrontProducts.slice(0, 4).map((product) => product.id));
 
 const upsertProduct = (doc) =>
@@ -26,6 +54,7 @@ const migrateStorefrontProducts = async () => {
 
   for (const product of storefrontProducts) {
     const existing = await Product.findOne({ id: product.id });
+    const minimumOrderQty = parseMinimumOrderQty(product.minimum);
 
     await upsertProduct({
       id: product.id,
@@ -35,10 +64,12 @@ const migrateStorefrontProducts = async () => {
       images: product.images,
       price: product.price,
       mrp: product.price,
-      stock: existing?.stock ?? 100,
+      // Existing stock is preserved — it's live inventory that depletes as
+      // orders are placed, so a redeploy must never reset it.
+      stock: resolveSeedStock(existing?.stock, minimumOrderQty),
       status: "active",
       leadTime: product.leadTime || "",
-      minimumOrderQty: parseMinimumOrderQty(product.minimum),
+      minimumOrderQty,
       badge: product.badge || "",
       materials: product.materials || [],
       audience: product.audience || "",

@@ -4,19 +4,16 @@ import { useCart as useGuestCart } from "../context/CartContext";
 import { useServerCart } from "./useServerCart";
 import { useProducts } from "./useProducts";
 import { computeClientCartPricing } from "../utils/pricing";
-
-const LOW_STOCK_THRESHOLD = 5;
+import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
 
 const buildGuestItems = (guestCartItems, liveProductsById) =>
   guestCartItems.map((item) => {
     const liveProduct = liveProductsById.get(item.id);
     const isMissing = !liveProduct;
-    // Mirrors the server's definition (server/controllers/cartController.js):
-    // "out of stock" means stock can't satisfy the product's own minimum
-    // order quantity, not just zero stock.
-    const isOutOfStock =
-      isMissing || liveProduct.stock <= 0 || liveProduct.stock < (liveProduct.minimumOrderQty || 1);
-    const isLowStock = !isMissing && !isOutOfStock && liveProduct.stock <= LOW_STOCK_THRESHOLD;
+    // Same module the server uses (cartController.js), so guest and server
+    // carts can never disagree about what's buyable.
+    const isOutOfStock = isMissing || isProductOutOfStock(liveProduct);
+    const isLowStock = !isMissing && isProductLowStock(liveProduct);
     const isPriceChanged = !isMissing && Number(liveProduct.price) !== Number(item.price);
 
     const product = liveProduct || {
@@ -92,8 +89,22 @@ export function useCart() {
 
   const cartItemIds = useMemo(() => new Set(items.map((item) => item.productId)), [items]);
 
+  // The header badge counts what you can actually buy. It used to count every
+  // line regardless, so an unbuyable product showed "250" in the badge next to
+  // "0 items / ₹0" in the summary — and the badge is what customers see first.
+  //
+  // Excludes only lines we have positive evidence are unbuyable, i.e. the live
+  // product loaded and its stock can't meet its MOQ. `isMissing` deliberately
+  // still counts: for guests it means "the products query hasn't resolved
+  // yet" just as often as "deleted from the catalog", and filtering on it
+  // would flash the badge to 0 on every page load with a full cart.
   const cartCount = useMemo(
-    () => items.reduce((total, item) => (item.savedForLater ? total : total + item.quantity), 0),
+    () =>
+      items.reduce(
+        (total, item) =>
+          item.savedForLater || (!item.isMissing && item.isOutOfStock) ? total : total + item.quantity,
+        0,
+      ),
     [items],
   );
 

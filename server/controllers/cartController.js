@@ -11,8 +11,9 @@ import {
   setItemQuantity,
   setSavedForLater,
 } from "../services/cartStore.js";
-
-const LOW_STOCK_THRESHOLD = 5;
+// Shared with the browser so the two sides cannot disagree about whether a
+// product is buyable — they used to, and the cart priced the difference at 0.
+import { isProductLowStock, isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
 const round2 = (value) => Math.round(value * 100) / 100;
 
@@ -26,12 +27,8 @@ const resolveCartView = async (cart) => {
   const items = cart.items.map((item) => {
     const product = productsById.get(item.productId) || null;
     const isMissing = !product || product.status !== "active";
-    // "Out of stock" means stock can't even satisfy the product's own
-    // minimum order quantity — not just zero stock, and independent of
-    // whatever quantity happens to be sitting in this cart line (that's
-    // recoverable by lowering the quantity; this isn't).
-    const isOutOfStock = isMissing || product.stock <= 0 || product.stock < (product.minimumOrderQty || 1);
-    const isLowStock = !isMissing && !isOutOfStock && product.stock <= LOW_STOCK_THRESHOLD;
+    const isOutOfStock = isMissing || isProductOutOfStock(product);
+    const isLowStock = !isMissing && isProductLowStock(product);
     const isPriceChanged = !isMissing && Number(product.price) !== Number(item.priceAtAdd);
 
     return {

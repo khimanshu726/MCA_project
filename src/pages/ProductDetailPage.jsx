@@ -5,6 +5,7 @@ import ProductGallery from "../components/ProductGallery";
 import WishlistButton from "../components/ui/WishlistButton";
 import { useProduct } from "../hooks/useProduct";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
+import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -74,7 +75,13 @@ function ProductDetailPage() {
             <span className="meta-pill">{product.category}</span>
             <span className="meta-pill">{product.images.length} preview images</span>
             {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
-            {product.stock <= 0 ? <span className="meta-pill">Out of stock</span> : null}
+            {/* `stock <= 0` was too lenient: a product with stock below its own
+                MOQ is equally unbuyable, and this page said nothing while the
+                cart called it out of stock. */}
+            {isProductOutOfStock(product) ? <span className="meta-pill">Out of stock</span> : null}
+            {isProductLowStock(product) ? (
+              <span className="meta-pill">Only {product.stock} left</span>
+            ) : null}
           </div>
           <div className="action-row">
             <Link className="primary-button" to={`/customize/${product.id}`}>

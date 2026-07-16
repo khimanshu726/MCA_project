@@ -3,6 +3,7 @@ import AddToCartButton from "./AddToCartButton";
 import ResponsiveImage from "./ResponsiveImage";
 import WishlistButton from "./ui/WishlistButton";
 import { warmImageCache } from "../utils/imageUrl";
+import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -39,6 +40,10 @@ function ProductCard({ product, className = "" }) {
         <div className="product-meta-list">
           {product.leadTime ? <span className="meta-pill">{product.leadTime}</span> : null}
           {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
+          {/* The card said nothing about availability, so the first hint you
+              got that a product was unbuyable was a zero-priced cart line. */}
+          {isProductOutOfStock(product) ? <span className="meta-pill">Out of stock</span> : null}
+          {isProductLowStock(product) ? <span className="meta-pill">Only {product.stock} left</span> : null}
         </div>
         <div className="product-card-footer">
           <div className="product-price-block">
