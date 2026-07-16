@@ -1,6 +1,28 @@
 import crypto from "node:crypto";
 import { Product } from "../models/Product.js";
 
+// The only fields an admin edit may write. `id`, `slug`, `source`, and the
+// timestamps are deliberately absent: id/slug are identity, source records how
+// the row was born, and letting an update set any of them would let the
+// product-management UI corrupt data the rest of the system trusts.
+export const EDITABLE_PRODUCT_FIELDS = [
+  "name",
+  "description",
+  "category",
+  "images",
+  "price",
+  "mrp",
+  "stock",
+  "sku",
+  "status",
+  "leadTime",
+  "minimumOrderQty",
+  "badge",
+  "materials",
+  "audience",
+  "featured",
+];
+
 const computeDiscountPercent = (price, mrp) => {
   if (!mrp || mrp <= price) {
     return 0;
@@ -116,13 +138,23 @@ export const createProductRecord = async (payload) => {
 };
 
 export const updateProductRecord = async (id, updates) => {
-  const product = await Product.findOneAndUpdate(
-    { id },
-    { $set: updates },
-    { new: true, runValidators: true },
-  );
+  const product = await Product.findOne({ id });
 
-  return product ? serializeProduct(product) : null;
+  if (!product) {
+    return null;
+  }
+
+  // Whitelist, then save() rather than findOneAndUpdate so the schema's
+  // pre('validate') hook runs — that's where the slug is (re)assigned and the
+  // price ≤ mrp rule is enforced; both are skipped by findOneAndUpdate.
+  for (const key of EDITABLE_PRODUCT_FIELDS) {
+    if (updates[key] !== undefined) {
+      product[key] = updates[key];
+    }
+  }
+
+  await product.save();
+  return serializeProduct(product);
 };
 
 export const deleteProductRecord = async (id) => {
