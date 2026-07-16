@@ -12,6 +12,7 @@
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "dev:platform": "concurrently \"npm run server:dev\" \"npm run dev\" \"npm run dev:admin\"",
     "migrate:products": "node server/scripts/migrateProducts.js",
+    "repair:stock": "node server/scripts/repairStock.js",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "build": "vite build",
