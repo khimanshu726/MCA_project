@@ -248,8 +248,18 @@ export const createOrder = async (req, res, next) => {
       // Local development should not fail when SMTP is not configured.
     });
 
+    // `key_id` ships with the order rather than being baked into the frontend
+    // build. It is public by design — the browser hands it to Razorpay — and
+    // sending it from here makes a frontend/backend key mismatch structurally
+    // impossible: this is the same process, holding the same credentials, that
+    // just created the order the key is about to be used against.
+    //
+    // The build-time alternative (VITE_RAZORPAY_KEY_ID) fails silently. Vite
+    // inlines VITE_ vars at build time, so an unset one compiles to `undefined`
+    // and the modal never opens — with no error at build, deploy, or boot.
     const razorpayPayload = savedOrder.razorpayOrderId
       ? {
+          key_id: process.env.RAZORPAY_KEY_ID,
           order_id: savedOrder.razorpayOrderId,
           amount: Math.round(pricing.total * 100),
           currency: "INR",

@@ -28,11 +28,23 @@ export async function openRazorpayCheckout({ orderResponse, prefill, onVerified,
   }
 
   const { order, razorpay } = orderResponse;
+
+  // The key id comes from the server alongside the order, NOT from a build-time
+  // env var. It is public (we hand it to Razorpay below), and sourcing it here
+  // means it always matches the secret that created this order. The previous
+  // `import.meta.env.VITE_RAZORPAY_KEY_ID` was inlined at build time, so an
+  // unset var compiled to `undefined` and produced an unexplained modal failure
+  // in the browser — no error at build, deploy, or boot. Fail loudly instead.
+  if (!razorpay?.key_id) {
+    onTerminalFailure("Payments aren't configured on this server. Please contact support or choose Cash on Delivery.");
+    return;
+  }
+
   let lastGatewayFailure = null;
   let verificationStarted = false;
 
   const options = {
-    key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+    key: razorpay.key_id,
     amount: razorpay?.amount ?? Math.round((order.price || 0) * 100),
     currency: razorpay?.currency ?? "INR",
     name: "Elite Empressions",
