@@ -2,7 +2,9 @@ import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Product } from "../models/Product.js";
+import { Order } from "../models/Order.js";
 import { products as storefrontProducts } from "../../src/data.js";
+import { getMinimumOrderQty, isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
 const legacyProductsPath = path.resolve(process.cwd(), "server", "data", "products.json");
 
@@ -25,16 +27,12 @@ const seedStockFor = (minimumOrderQty) => Math.max(100, minimumOrderQty * 10);
 
 /**
  * Stock for a seeded product. A new row gets a MOQ-aware default; an existing
- * row always keeps whatever it has.
+ * row always keeps whatever it has — that number is live inventory, and a
+ * re-run must never reset it.
  *
- * Deliberately does NOT "repair" an existing row sitting below its own MOQ,
- * even though that's the state that made launch-flyer unsellable. That state
- * is also what legitimate selling produces — stock 300 against MOQ 250, one
- * order of 250, and 50 is left — which means it reads identically to genuinely
- * depleted inventory. Auto-topping it up would silently restock a product that
- * really has run out. Fixing the seed default stops new products being born
- * broken; repairing existing rows is an inventory decision and belongs to the
- * admin (or scripts/repairStock.js), not to a boot-time side effect.
+ * Repairing an existing row is deliberately not done here, because this path
+ * can't tell why the stock is low. See repairUnsellableSeedStock(), which can:
+ * it only touches products that were never ordered.
  */
 const resolveSeedStock = (existingStock, minimumOrderQty) =>
   existingStock === undefined || existingStock === null ? seedStockFor(minimumOrderQty) : existingStock;
@@ -135,11 +133,63 @@ export const migrateLegacyProducts = async () => {
 
 // Auto-seed on server startup only when the collection is empty, so a real
 // deployment's admin-edited catalog is never overwritten by the legacy seed.
+/**
+ * Repairs seeded products that were born unsellable.
+ *
+ * The old seed gave every product a flat stock of 100 while parsing MOQ
+ * separately out of a string, so `launch-flyer` shipped with stock 100 against
+ * a minimum of 250. Nobody can buy it: the cart rejects it, and no customer
+ * can order below the minimum to work it down.
+ *
+ * Fixing the seed default only helps a fresh database, and ensureProductsSeeded
+ * skips a populated one, so already-deployed rows would stay broken forever —
+ * with no admin UI for stock to fix them by hand.
+ *
+ * The obvious guard "stock < MOQ means it was seeded wrong" is NOT safe on its
+ * own: selling produces that state too (stock 300, MOQ 250, one order of 250,
+ * 50 left), and topping that up would silently restock a product that really
+ * ran out. So this additionally requires the product to have never appeared in
+ * an order — if it was never sold, selling cannot be why it's short, which
+ * leaves the seed as the only explanation.
+ *
+ * Scoped to `data-js-seed` rows so an admin-authored catalog is never touched.
+ */
+const repairUnsellableSeedStock = async () => {
+  const seeded = await Product.find({ source: "data-js-seed" }).lean();
+  const suspects = seeded.filter((product) => Number(product.stock) > 0 && isProductOutOfStock(product));
+
+  if (suspects.length === 0) return { repaired: 0 };
+
+  const soldIds = new Set(
+    await Order.distinct("lineItems.productId", {
+      "lineItems.productId": { $in: suspects.map((p) => p.id) },
+    }),
+  );
+
+  const repairable = suspects.filter((product) => !soldIds.has(product.id));
+
+  for (const product of repairable) {
+    const stock = seedStockFor(getMinimumOrderQty(product));
+    await Product.updateOne({ id: product.id }, { $set: { stock } });
+    console.log(
+      `[seed:repair] ${product.id} was unsellable (stock ${product.stock} < MOQ ` +
+        `${getMinimumOrderQty(product)}) and never ordered — stock -> ${stock}`,
+    );
+  }
+
+  return { repaired: repairable.length, skipped: suspects.length - repairable.length };
+};
+
+// Auto-seed on server startup only when the collection is empty, so a real
+// deployment's admin-edited catalog is never overwritten by the legacy seed.
+// The stock repair runs either way: it's the one state that can't be recovered
+// from through the UI, and it's provably a seeding error, not inventory.
 export const ensureProductsSeeded = async () => {
   const existingCount = await Product.countDocuments();
 
   if (existingCount > 0) {
-    return { seeded: false };
+    const repair = await repairUnsellableSeedStock();
+    return { seeded: false, ...repair };
   }
 
   const result = await migrateLegacyProducts();

@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Product } from "../models/Product.js";
+import { Order } from "../models/Order.js";
 import { ensureProductsSeeded, migrateLegacyProducts } from "../services/productMigration.js";
 import { isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
@@ -29,7 +30,25 @@ beforeAll(async () => {
 
 afterEach(async () => {
   await Product.deleteMany({});
+  await Order.deleteMany({});
 });
+
+const orderFor = (productId, quantity) => {
+  const ref = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return Order.create({
+    id: `id-${ref}`,
+    orderId: `ORD-${ref}`,
+    customerName: "Buyer",
+    phone: "9876543210",
+    email: "buyer@example.com",
+    address: { street: "1 Test St", city: "Mumbai", state: "Maharashtra", pincode: "400001" },
+    paymentMethod: "cod",
+    quantity,
+    price: 35 * quantity,
+    subtotal: 35 * quantity,
+    lineItems: [{ productId, name: "x", unitPrice: 35, quantity, totalPrice: 35 * quantity }],
+  });
+};
 
 afterAll(async () => {
   await mongoose.disconnect();
@@ -56,6 +75,63 @@ describe("product seeding", () => {
     expect(flyer.minimumOrderQty).toBe(250);
     expect(flyer.stock).toBeGreaterThanOrEqual(250);
     expect(isProductOutOfStock(flyer)).toBe(false);
+  });
+
+  it("repairs a never-ordered product stranded below its own MOQ", async () => {
+    await ensureProductsSeeded();
+    // The exact production state, left behind by the old flat stock default.
+    await Product.updateOne({ id: "launch-flyer" }, { stock: 100 });
+
+    const result = await ensureProductsSeeded();
+
+    expect(result.seeded).toBe(false);
+    expect(result.repaired).toBe(1);
+    const flyer = await Product.findOne({ id: "launch-flyer" }).lean();
+    expect(flyer.stock).toBeGreaterThanOrEqual(flyer.minimumOrderQty);
+    expect(isProductOutOfStock(flyer)).toBe(false);
+  });
+
+  it("REFUSES to restock a product that genuinely sold down below its MOQ", async () => {
+    await ensureProductsSeeded();
+    // Same numbers as the bug, but this one has actually been sold — so the
+    // low stock is real inventory, and restocking it would be a lie.
+    await Product.updateOne({ id: "launch-flyer" }, { stock: 100 });
+    await orderFor("launch-flyer", 250);
+
+    const result = await ensureProductsSeeded();
+
+    expect(result.repaired).toBe(0);
+    expect(result.skipped).toBe(1);
+    expect((await Product.findOne({ id: "launch-flyer" }).lean()).stock).toBe(100);
+  });
+
+  it("leaves a healthy catalog alone", async () => {
+    await ensureProductsSeeded();
+
+    const result = await ensureProductsSeeded();
+
+    expect(result.repaired).toBe(0);
+  });
+
+  it("never touches an admin-authored product", async () => {
+    await ensureProductsSeeded();
+    await Product.create({
+      id: "admin-made",
+      name: "Admin Made",
+      description: "d",
+      category: "Banners",
+      images: ["https://example.com/i.jpg"],
+      price: 10,
+      mrp: 10,
+      stock: 5,
+      minimumOrderQty: 500,
+      status: "active",
+      source: "admin",
+    });
+
+    await ensureProductsSeeded();
+
+    expect((await Product.findOne({ id: "admin-made" }).lean()).stock).toBe(5);
   });
 
   it("leaves an existing catalog untouched at boot", async () => {
