@@ -26,6 +26,15 @@ services:
       - key: MONGO_URI
         sync: false
 
+      # Admin panel login. NOT optional: config.js falls back to a password
+      # committed to this repository, so a deployment without these has an admin
+      # account whose credentials anyone can read. With them unset, the server
+      # now refuses to seed the account at all rather than publish a way in.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
       # Server-side. Read at boot by config/razorpay.js; if either is missing
       # the Razorpay client is never constructed and online payments 503.
       - key: RAZORPAY_KEY_ID
