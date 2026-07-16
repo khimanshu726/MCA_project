@@ -15,6 +15,7 @@ import webhookRoutes from "./routes/webhookRoutes.js";
 import designRoutes from "./routes/designRoutes.js";
 import razorpayInstance from "./config/razorpay.js";
 import { getUploadStorageStatus } from "./config/uploadStorage.js";
+import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
@@ -71,6 +72,12 @@ app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
  * server writes to local disk, which on Render is erased every redeploy. That
  * was silently destroying customer artwork attached to paid orders. `durable`
  * answers "will an uploaded file still exist tomorrow" without uploading one.
+ *
+ * `auth.firebaseAdminConfigured` is the third of the same kind. Without those
+ * credentials the server cannot verify any customer token, so sign-in appears
+ * to work in the browser and nothing personal — saved addresses, order
+ * history — ever attaches to the account. It reports only a boolean; the
+ * service-account key is never described.
  */
 app.get("/api/health", (_req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID ?? "";
@@ -86,6 +93,11 @@ app.get("/api/health", (_req, res) => {
       keyIdLast4: keyId ? keyId.slice(-4) : null,
     },
     uploads: getUploadStorageStatus(),
+    auth: {
+      // Customer login is only real if the server can verify the token the
+      // browser gets from Firebase.
+      firebaseAdminConfigured: isFirebaseAdminConfigured(),
+    },
   });
 });
 

@@ -26,6 +26,37 @@ services:
       - key: MONGO_URI
         sync: false
 
+      # Customer login. Firebase has two halves and BOTH are required:
+      #
+      #   VITE_FIREBASE_*  — client, inlined at BUILD time. Without them the
+      #                      browser can't sign anyone in.
+      #   FIREBASE_ADMIN_* — server, read at runtime. Without them the server
+      #                      cannot VERIFY the token the browser was given.
+      #
+      # Only the second half was missing, which is the worst of both: sign-in
+      # appeared to succeed, and then every authenticated request 503'd. Saved
+      # addresses were unreachable and orders were written with no owner, so
+      # they never showed in order history. Check `auth.firebaseAdminConfigured`
+      # on /api/health.
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: FIREBASE_ADMIN_PROJECT_ID
+        sync: false
+      - key: FIREBASE_ADMIN_CLIENT_EMAIL
+        sync: false
+      # Paste the service-account key including its "\n" escapes; the server
+      # unescapes them (see config/firebaseAdmin.js).
+      - key: FIREBASE_ADMIN_PRIVATE_KEY
+        sync: false
+
       # Admin panel login. NOT optional: config.js falls back to a password
       # committed to this repository, so a deployment without these has an admin
       # account whose credentials anyone can read. With them unset, the server
