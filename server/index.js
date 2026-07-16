@@ -13,6 +13,7 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import designRoutes from "./routes/designRoutes.js";
+import razorpayInstance from "./config/razorpay.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
@@ -54,8 +55,32 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
+/**
+ * Health, plus payment-config readiness.
+ *
+ * `razorpay` reports whether the credentials reached the process — never what
+ * they are. The secret is only ever described as a boolean, not by value,
+ * prefix, or length. The key id's last 4 are included because that value is
+ * public by design (Vite inlines it into the browser bundle), and matching it
+ * against the bundle is the only way to catch a frontend/backend key mismatch.
+ *
+ * This exists because a missing env var was otherwise observable only by
+ * POSTing a real order, which reserves live stock.
+ */
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "Elite Empressions order API" });
+  const keyId = process.env.RAZORPAY_KEY_ID ?? "";
+  const mode = keyId.startsWith("rzp_live_") ? "live" : keyId.startsWith("rzp_test_") ? "test" : null;
+
+  res.json({
+    ok: true,
+    service: "Elite Empressions order API",
+    razorpay: {
+      configured: Boolean(razorpayInstance),
+      webhookSecretSet: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET),
+      mode,
+      keyIdLast4: keyId ? keyId.slice(-4) : null,
+    },
+  });
 });
 
 app.use("/api", checkoutRoutes);
