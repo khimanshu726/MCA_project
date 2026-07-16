@@ -2,7 +2,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Product } from "../models/Product.js";
-import { Order } from "../models/Order.js";
 import { ensureProductsSeeded, migrateLegacyProducts } from "../services/productMigration.js";
 import { isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
@@ -30,23 +29,32 @@ beforeAll(async () => {
 
 afterEach(async () => {
   await Product.deleteMany({});
-  await Order.deleteMany({});
 });
 
-const orderFor = (productId, quantity) => {
-  const ref = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return Order.create({
-    id: `id-${ref}`,
-    orderId: `ORD-${ref}`,
-    customerName: "Buyer",
-    phone: "9876543210",
-    email: "buyer@example.com",
-    address: { street: "1 Test St", city: "Mumbai", state: "Maharashtra", pincode: "400001" },
-    paymentMethod: "cod",
-    quantity,
-    price: 35 * quantity,
-    subtotal: 35 * quantity,
-    lineItems: [{ productId, name: "x", unitPrice: 35, quantity, totalPrice: 35 * quantity }],
+/**
+ * Inserts a row exactly as the OLD buggy seeder left it on production: stock
+ * below its own MOQ, never touched since creation. Uses the raw driver so the
+ * timestamps are ours — Mongoose would stamp `updatedAt` itself and destroy the
+ * very signal under test.
+ */
+const insertSeededRow = async (overrides = {}) => {
+  const at = new Date("2026-07-14T09:17:31.592Z");
+  await Product.collection.insertOne({
+    id: "legacy-flyer",
+    name: "Legacy Flyer",
+    slug: "legacy-flyer",
+    description: "A5 flyer pack",
+    category: "Marketing Materials",
+    images: ["https://example.com/i.jpg"],
+    price: 35,
+    mrp: 35,
+    stock: 100,
+    minimumOrderQty: 250,
+    status: "active",
+    source: "data-js-seed",
+    createdAt: at,
+    updatedAt: at,
+    ...overrides,
   });
 };
 
@@ -77,32 +85,43 @@ describe("product seeding", () => {
     expect(isProductOutOfStock(flyer)).toBe(false);
   });
 
-  it("repairs a never-ordered product stranded below its own MOQ", async () => {
-    await ensureProductsSeeded();
-    // The exact production state, left behind by the old flat stock default.
-    await Product.updateOne({ id: "launch-flyer" }, { stock: 100 });
+  it("repairs a row the seeder left unsellable", async () => {
+    // Production's exact state: stock 100 against MOQ 250, untouched since it
+    // was written on 14 Jul.
+    await insertSeededRow();
 
     const result = await ensureProductsSeeded();
 
     expect(result.seeded).toBe(false);
     expect(result.repaired).toBe(1);
-    const flyer = await Product.findOne({ id: "launch-flyer" }).lean();
-    expect(flyer.stock).toBeGreaterThanOrEqual(flyer.minimumOrderQty);
+    const flyer = await Product.findOne({ id: "legacy-flyer" }).lean();
+    expect(flyer.stock).toBe(2500);
     expect(isProductOutOfStock(flyer)).toBe(false);
   });
 
-  it("REFUSES to restock a product that genuinely sold down below its MOQ", async () => {
-    await ensureProductsSeeded();
-    // Same numbers as the bug, but this one has actually been sold — so the
-    // low stock is real inventory, and restocking it would be a lie.
-    await Product.updateOne({ id: "launch-flyer" }, { stock: 100 });
-    await orderFor("launch-flyer", 250);
+  it("REFUSES to restock a row that has changed since seeding — it may be real depletion", async () => {
+    // Same numbers, but this row has been modified, so its stock could be the
+    // result of selling. Restocking it would invent inventory.
+    await insertSeededRow({ updatedAt: new Date("2026-07-16T12:00:00.000Z") });
 
     const result = await ensureProductsSeeded();
 
     expect(result.repaired).toBe(0);
     expect(result.skipped).toBe(1);
-    expect((await Product.findOne({ id: "launch-flyer" }).lean()).stock).toBe(100);
+    expect((await Product.findOne({ id: "legacy-flyer" }).lean()).stock).toBe(100);
+  });
+
+  it("is idempotent — a repaired row is not repaired again", async () => {
+    await insertSeededRow();
+
+    const first = await ensureProductsSeeded();
+    const second = await ensureProductsSeeded();
+
+    expect(first.repaired).toBe(1);
+    // The repair stamps updatedAt, so the row is no longer "untouched" — and is
+    // sellable anyway, so it never re-enters the candidate set.
+    expect(second.repaired).toBe(0);
+    expect((await Product.findOne({ id: "legacy-flyer" }).lean()).stock).toBe(2500);
   });
 
   it("leaves a healthy catalog alone", async () => {
