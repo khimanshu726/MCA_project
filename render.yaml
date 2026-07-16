@@ -27,14 +27,12 @@ services:
         sync: false
       # Separate secret from the one above — Razorpay signs webhooks with the
       # value configured on the webhook itself, not with the API key secret.
+      # Without it, payments succeed but orders stay in PaymentPending: the
+      # webhook is what confirms them.
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
 
-      # Client-side, and NOT a duplicate you can drop: Vite only exposes
-      # VITE_-prefixed vars, and inlines them at BUILD time. Without this the
-      # checkout bundle compiles the key to `undefined` and the Razorpay modal
-      # never opens — with no error at build, deploy, or boot. Same value as
-      # RAZORPAY_KEY_ID above; the key id is public by design, the secret is
-      # never exposed to the browser.
-      - key: VITE_RAZORPAY_KEY_ID
-        sync: false
+      # There is deliberately NO VITE_RAZORPAY_KEY_ID. The browser gets the
+      # key id from the create-order response instead of a build-time inline,
+      # so there is no second variable to forget and no way for the frontend
+      # and backend keys to disagree. See orderController.js.
