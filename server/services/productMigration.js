@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Product } from "../models/Product.js";
-import { Order } from "../models/Order.js";
 import { products as storefrontProducts } from "../../src/data.js";
 import { getMinimumOrderQty, isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
@@ -143,53 +142,97 @@ export const migrateLegacyProducts = async () => {
  *
  * Fixing the seed default only helps a fresh database, and ensureProductsSeeded
  * skips a populated one, so already-deployed rows would stay broken forever —
- * with no admin UI for stock to fix them by hand.
+ * and until recently there was no admin UI for stock to fix them by hand.
  *
- * The obvious guard "stock < MOQ means it was seeded wrong" is NOT safe on its
- * own: selling produces that state too (stock 300, MOQ 250, one order of 250,
- * 50 left), and topping that up would silently restock a product that really
- * ran out. So this additionally requires the product to have never appeared in
- * an order — if it was never sold, selling cannot be why it's short, which
- * leaves the seed as the only explanation.
+ * "stock < MOQ means it was seeded wrong" is NOT safe on its own: selling
+ * produces that state too (stock 300, MOQ 250, one order of 250, 50 left), and
+ * topping that up would silently restock a product that really ran out.
+ *
+ * The first attempt at that guard asked "has this product ever appeared in an
+ * order". That was a bad proxy, and it's why launch-flyer went unrepaired on
+ * production: it counts an order in ANY state — cancelled, payment-failed, or
+ * an ancient test order predating server-side stock decrement entirely — none
+ * of which mean a single unit was actually sold. Worse, it decided silently.
+ *
+ * `updatedAt === createdAt` is direct evidence instead of a proxy: the row has
+ * not been modified since it was created, so nothing — selling included — has
+ * touched its stock. An untouched row holds exactly what the seeder wrote, so
+ * if that is below its own MOQ, the seeder is the only possible author.
+ *
+ * A row that HAS been modified is left alone and logged: its low stock may be
+ * real depletion, and that is a restocking decision for a human with the admin
+ * catalog, not a boot-time side effect.
  *
  * Scoped to `data-js-seed` rows so an admin-authored catalog is never touched.
  */
+
+// Mongoose sets both timestamps from one clock read on insert, so an untouched
+// row has them identical; the tolerance is only insurance against a path that
+// sets them a tick apart.
+const UNTOUCHED_TOLERANCE_MS = 1000;
+
+const wasNeverModifiedSinceSeeding = (product) => {
+  if (!product.createdAt || !product.updatedAt) return false;
+  return Math.abs(new Date(product.updatedAt) - new Date(product.createdAt)) <= UNTOUCHED_TOLERANCE_MS;
+};
+
 const repairUnsellableSeedStock = async () => {
   const seeded = await Product.find({ source: "data-js-seed" }).lean();
-  const suspects = seeded.filter((product) => Number(product.stock) > 0 && isProductOutOfStock(product));
+  const unsellable = seeded.filter((product) => Number(product.stock) > 0 && isProductOutOfStock(product));
 
-  if (suspects.length === 0) return { repaired: 0 };
+  if (unsellable.length === 0) {
+    return { repaired: 0, skipped: 0 };
+  }
 
-  const soldIds = new Set(
-    await Order.distinct("lineItems.productId", {
-      "lineItems.productId": { $in: suspects.map((p) => p.id) },
-    }),
-  );
+  let repaired = 0;
+  let skipped = 0;
 
-  const repairable = suspects.filter((product) => !soldIds.has(product.id));
+  for (const product of unsellable) {
+    const moq = getMinimumOrderQty(product);
 
-  for (const product of repairable) {
-    const stock = seedStockFor(getMinimumOrderQty(product));
+    if (!wasNeverModifiedSinceSeeding(product)) {
+      skipped += 1;
+      // Loud on purpose. The previous version said nothing when it skipped,
+      // which is exactly why an unrepaired product was a mystery instead of a
+      // log line.
+      console.warn(
+        `[seed:repair] ${product.id} is UNSELLABLE (stock ${product.stock} < MOQ ${moq}) but its row has ` +
+          `changed since seeding, so the low stock may be real depletion — left alone. ` +
+          `Restock it in the admin catalog if that's wrong.`,
+      );
+      continue;
+    }
+
+    const stock = seedStockFor(moq);
     await Product.updateOne({ id: product.id }, { $set: { stock } });
+    repaired += 1;
     console.log(
-      `[seed:repair] ${product.id} was unsellable (stock ${product.stock} < MOQ ` +
-        `${getMinimumOrderQty(product)}) and never ordered — stock -> ${stock}`,
+      `[seed:repair] ${product.id} was seeded unsellable (stock ${product.stock} < MOQ ${moq}) and never ` +
+        `modified since — stock -> ${stock}`,
     );
   }
 
-  return { repaired: repairable.length, skipped: suspects.length - repairable.length };
+  return { repaired, skipped };
 };
 
 // Auto-seed on server startup only when the collection is empty, so a real
 // deployment's admin-edited catalog is never overwritten by the legacy seed.
-// The stock repair runs either way: it's the one state that can't be recovered
-// from through the UI, and it's provably a seeding error, not inventory.
+// On a populated database the seed is skipped but the stock repair still runs,
+// since that's the one state a deployed row can be stuck in.
 export const ensureProductsSeeded = async () => {
   const existingCount = await Product.countDocuments();
 
   if (existingCount > 0) {
-    const repair = await repairUnsellableSeedStock();
-    return { seeded: false, ...repair };
+    try {
+      const repair = await repairUnsellableSeedStock();
+      return { seeded: false, ...repair };
+    } catch (error) {
+      // Never fatal. startServer() exits the process if this rejects, and
+      // taking the whole storefront down over a stock-tidying task would be a
+      // far worse outage than the one it fixes.
+      console.error("[seed:repair] failed — continuing startup without it.", error);
+      return { seeded: false, repaired: 0, skipped: 0, failed: true };
+    }
   }
 
   const result = await migrateLegacyProducts();

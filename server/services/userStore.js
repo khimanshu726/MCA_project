@@ -1,5 +1,12 @@
 import crypto from "node:crypto";
-import { appConfig } from "../config.js";
+import bcrypt from "bcryptjs";
+import {
+  appConfig,
+  hasExplicitAdminPassword,
+  isProduction,
+  PUBLISHED_DEFAULT_ADMIN_PASSWORD,
+  resolveAdminPasswordHash,
+} from "../config.js";
 import { normalizeEmail, normalizeMobile } from "../utils/authHelpers.js";
 import { User } from "../models/User.js";
 
@@ -105,19 +112,59 @@ export const updateUserRecord = async (id, updater) => {
   return updated ? updated.toObject() : null;
 };
 
+const ADMIN_SETUP_HINT =
+  "Set ADMIN_EMAIL and ADMIN_PASSWORD (or ADMIN_PASSWORD_HASH) in the environment.";
+
+/**
+ * An admin account whose password is the one committed to the repo is a login
+ * for anyone who can read the repo. Boot is the only moment we can notice, so
+ * it says so here — loudly, and only in the log, never over HTTP: an endpoint
+ * advertising "this site still uses the default admin password" is a gift to
+ * exactly the wrong reader.
+ */
+const warnIfAdminUsesPublishedPassword = async (adminUser) => {
+  if (!isProduction() || !adminUser?.password) return;
+
+  const usesPublishedDefault = await bcrypt
+    .compare(PUBLISHED_DEFAULT_ADMIN_PASSWORD, adminUser.password)
+    .catch(() => false);
+
+  if (usesPublishedDefault) {
+    console.error(
+      "[admin] SECURITY: the production admin account still uses the default password " +
+        "published in server/config.js, so anyone who can read the repository can sign in. " +
+        ADMIN_SETUP_HINT +
+        " The existing account is NOT rotated automatically — change it deliberately.",
+    );
+  }
+};
+
 export const ensureDefaultAdminUser = async () => {
   const existingUser =
     (await findUserByEmail(appConfig.adminEmail)) ||
     (await findUserByMobile(appConfig.adminPhone));
 
   if (existingUser) {
+    await warnIfAdminUsesPublishedPassword(existingUser);
     return existingUser;
+  }
+
+  // Seeding a known-credential admin is a convenience for local development and
+  // a backdoor in production. Refuse rather than mint one: an operator who has
+  // not chosen a password has not chosen this account either.
+  if (isProduction() && !hasExplicitAdminPassword()) {
+    console.error(
+      `[admin] Refusing to create the default admin account in production: no admin password is ` +
+        `configured, and seeding one would use the password published in server/config.js. ` +
+        ADMIN_SETUP_HINT,
+    );
+    return null;
   }
 
   return createUserRecord({
     email: appConfig.adminEmail,
     mobile: appConfig.adminPhone,
-    password: appConfig.adminPasswordHash,
+    password: resolveAdminPasswordHash(),
     provider: "email",
     role: "admin",
   });

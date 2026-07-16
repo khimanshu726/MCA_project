@@ -3,7 +3,30 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const fallbackAdminPassword = process.env.ADMIN_PASSWORD || "EliteAdmin@123";
+/**
+ * The password every deployment gets if nobody sets one — and it is committed
+ * to a public repo, so it is a published credential, not a secret. Fine as a
+ * convenience on a laptop; a live admin account behind it is a stranger's login.
+ *
+ * Exported so userStore can recognise an account still using it and say so.
+ */
+export const PUBLISHED_DEFAULT_ADMIN_PASSWORD = "EliteAdmin@123";
+
+/**
+ * Whether an operator actually chose the admin password, rather than
+ * inheriting the published default. Read at call time, not import: a value
+ * captured during the import graph can't be exercised by a test, and this one
+ * decides whether production gets an account anyone can log into.
+ */
+export const hasExplicitAdminPassword = () =>
+  Boolean(process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD_HASH);
+
+export const isProduction = () => process.env.NODE_ENV === "production";
+
+/** The bcrypt hash to seed the admin with, resolved when it is needed. */
+export const resolveAdminPasswordHash = () =>
+  process.env.ADMIN_PASSWORD_HASH ||
+  bcrypt.hashSync(process.env.ADMIN_PASSWORD || PUBLISHED_DEFAULT_ADMIN_PASSWORD, 10);
 
 const parseOriginList = (...values) => {
   const originSet = new Set();
@@ -47,7 +70,9 @@ export const appConfig = {
   adminEmail: process.env.ADMIN_EMAIL || "admin@elite-empressions.local",
   adminPhone: process.env.ADMIN_PHONE || "9876543210",
   adminName: process.env.ADMIN_NAME || "Elite Empressions Admin",
-  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync(fallbackAdminPassword, 10),
+  // Admin credentials are resolved at call time by the helpers above; see
+  // services/userStore.js. `adminPasswordHash` deliberately isn't a field here
+  // any more — an import-time hash of a default is what made this untestable.
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
   googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || "http://localhost:4000/api/auth/google/callback",
