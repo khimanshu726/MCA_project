@@ -82,6 +82,13 @@ function AccountPage() {
               View, track, cancel, or return your orders &rarr;
             </p>
           </Link>
+
+          <Link to="/account/designs" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+            <p className="eyebrow">My Designs</p>
+            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
+              Saved customizations — reopen, duplicate, or reorder them &rarr;
+            </p>
+          </Link>
         </div>
       </section>
     </main>

@@ -1,6 +1,5 @@
 import { Outlet } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
-import { useCartMerge } from "../hooks/useCartMerge";
 import { useWishlist } from "../hooks/useWishlist";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useHeaderSearch, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
@@ -16,7 +15,8 @@ function AppLayout() {
   const { searchTerm, setSearchTerm, submit: handleSearchSubmit } = useHeaderSearch();
   const { mobileOpen, toggle: toggleMobileMenu } = useMobileMenu();
 
-  useCartMerge();
+  // useCartMerge() now lives at the router root (App.jsx) so it also covers
+  // the routes rendered outside this layout.
 
   return (
     <div className="app-shell">

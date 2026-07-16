@@ -12,6 +12,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import wishlistRoutes from "./routes/wishlistRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
+import designRoutes from "./routes/designRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
@@ -41,6 +42,12 @@ app.use(
 // is mounted with express.raw BEFORE the global JSON parser (which would
 // otherwise consume and re-shape the body).
 app.use("/api/webhooks/razorpay", express.raw({ type: "application/json" }), webhookRoutes);
+
+// Design states carry full layer transforms plus a small preview data URL,
+// so this router gets its own JSON parser with a larger limit. Mounted
+// before the global express.json() (100kb default) for the same
+// first-parser-wins reason as the webhook route above.
+app.use("/api/designs", authenticateCustomer, express.json({ limit: "4mb" }), designRoutes);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

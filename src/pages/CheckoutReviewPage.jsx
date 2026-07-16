@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { Palette } from "lucide-react";
 import OrderNotesCard from "../components/OrderNotesCard";
 import PaymentSelector from "../components/PaymentSelector";
 import OrderSummaryCard from "../components/cart/OrderSummaryCard";
@@ -16,6 +17,7 @@ import { createOrder, createRazorpayOrder } from "../lib/api";
 import { buildOrderFormData } from "../utils/checkout";
 import { openRazorpayCheckout } from "../utils/razorpayCheckout";
 import { validateCheckoutFile } from "../utils/orderValidation";
+import { clearPendingDesign, loadPendingDesign, pendingDesignToFile } from "../customizer/pendingDesign";
 
 function ReviewLineItem({ item }) {
   return (
@@ -62,11 +64,39 @@ function CheckoutReviewPage() {
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderMessage, setOrderMessage] = useState("");
+  const [attachedStudioDesign, setAttachedStudioDesign] = useState(null);
   // Once an order is placed, clearCart() empties the cart and re-renders
   // this page a beat before the navigate("/order-success") below actually
   // takes effect — without this flag, the empty-cart guard fires first and
   // redirects to /cart, clobbering the intended navigation.
   const [hasCompletedOrder, setHasCompletedOrder] = useState(false);
+
+  // A design flattened in the customization studio is parked in
+  // sessionStorage on add-to-cart; attach it as the order's design file so
+  // the customer never uploads their artwork twice.
+  useEffect(() => {
+    if (designFile) {
+      return;
+    }
+
+    const pending = loadPendingDesign();
+    if (!pending) {
+      return;
+    }
+
+    const file = pendingDesignToFile(pending);
+    if (!file || validateCheckoutFile(file)) {
+      return;
+    }
+
+    setDesignFile(file);
+    setFileError("");
+    setAttachedStudioDesign(pending);
+    if (pending.optionsSummary) {
+      setCustomInstructions((current) => (current ? current : pending.optionsSummary));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeItems = useMemo(() => items.filter((item) => !item.savedForLater), [items]);
   const purchasableCartItems = useMemo(
@@ -106,6 +136,7 @@ function CheckoutReviewPage() {
     setCustomInstructions("");
     setDesignFile(null);
     setFileError("");
+    clearPendingDesign();
     clearCart();
     navigate(`/order-success/${order.orderId}`, { replace: true, state: { order } });
   };
@@ -135,6 +166,7 @@ function CheckoutReviewPage() {
         setCustomInstructions("");
         setDesignFile(null);
         setFileError("");
+        clearPendingDesign();
         clearCart();
         navigate(`/order-success/${order.orderId}`, { replace: true, state: { order } });
       },
@@ -243,6 +275,16 @@ function CheckoutReviewPage() {
                 ))}
               </div>
             </div>
+
+            {attachedStudioDesign ? (
+              <div className="flex items-center gap-2.5 rounded-2xl border border-sage-100 bg-sage-100/40 px-4 py-3 text-sm text-sage-600">
+                <Palette size={16} className="shrink-0" aria-hidden="true" />
+                <span>
+                  Your customized design for <strong>{attachedStudioDesign.productName}</strong> is attached as the
+                  print file.
+                </span>
+              </div>
+            ) : null}
 
             <PaymentSelector paymentMethod={paymentMethod} onChange={setPaymentMethod} />
             <OrderNotesCard
