@@ -144,3 +144,20 @@ export const deleteProduct = (id, token) =>
     method: "DELETE",
     token,
   });
+
+/**
+ * Uploads product photos and returns their stored URLs. FormData, so `request`
+ * leaves the Content-Type alone and lets the browser set the multipart boundary.
+ */
+export const uploadProductImages = (files, token) => {
+  const body = new FormData();
+  Array.from(files).forEach((file) => body.append("images", file));
+
+  return request("/admin/products/images", {
+    method: "POST",
+    body,
+    token,
+  });
+};
+
+export const fetchHealth = () => request("/health");

@@ -14,6 +14,7 @@ import addressRoutes from "./routes/addressRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import designRoutes from "./routes/designRoutes.js";
 import razorpayInstance from "./config/razorpay.js";
+import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
@@ -56,16 +57,20 @@ app.use(passport.initialize());
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 /**
- * Health, plus payment-config readiness.
+ * Health, plus config readiness for the two subsystems that fail silently.
  *
  * `razorpay` reports whether the credentials reached the process — never what
  * they are. The secret is only ever described as a boolean, not by value,
  * prefix, or length. The key id's last 4 are included because that value is
  * public by design (Vite inlines it into the browser bundle), and matching it
  * against the bundle is the only way to catch a frontend/backend key mismatch.
- *
  * This exists because a missing env var was otherwise observable only by
  * POSTing a real order, which reserves live stock.
+ *
+ * `uploads` is the same class of bug caught earlier: without Cloudinary the
+ * server writes to local disk, which on Render is erased every redeploy. That
+ * was silently destroying customer artwork attached to paid orders. `durable`
+ * answers "will an uploaded file still exist tomorrow" without uploading one.
  */
 app.get("/api/health", (_req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID ?? "";
@@ -80,6 +85,7 @@ app.get("/api/health", (_req, res) => {
       mode,
       keyIdLast4: keyId ? keyId.slice(-4) : null,
     },
+    uploads: getUploadStorageStatus(),
   });
 });
 
@@ -106,8 +112,15 @@ if (process.env.NODE_ENV === "production") {
 }
 
 app.use((error, req, res, _next) => {
-  const status = error.statusCode || 500;
-  console.error(`[API ERROR] ${req.method} ${req.originalUrl}`, error);
+  // Multer signals oversized/too-many/unexpected files by throwing. They're all
+  // caller mistakes, so they get a 400 with multer's own message ("File too
+  // large") rather than reading as a server fault.
+  const status = error.statusCode || (error.name === "MulterError" ? 400 : 500);
+
+  if (status >= 500) {
+    console.error(`[API ERROR] ${req.method} ${req.originalUrl}`, error);
+  }
+
   res.status(status).json({
     message: error.message || "Something went wrong on the server.",
   });

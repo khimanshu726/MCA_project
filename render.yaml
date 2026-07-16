@@ -36,3 +36,15 @@ services:
       # key id from the create-order response instead of a build-time inline,
       # so there is no second variable to forget and no way for the frontend
       # and backend keys to disagree. See orderController.js.
+
+      # File storage. REQUIRED in production, not optional: Render's filesystem
+      # is ephemeral, so without these the server falls back to local disk and
+      # every product photo, studio asset, and customer's order artwork is
+      # destroyed on the next redeploy. Uploads refuse with a 503 rather than
+      # accept a file they cannot keep — check /api/health `uploads.durable`.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

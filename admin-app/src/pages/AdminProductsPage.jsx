@@ -3,10 +3,12 @@ import {
   createProduct,
   deleteProduct,
   fetchAdminProducts,
+  fetchHealth,
   updateProduct,
 } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
+import ProductImageUploader from "../components/ProductImageUploader";
 // The one source of truth for "buyable", shared with the storefront and the
 // server (src/utils/productAvailability.js). Using it here means the admin sees
 // exactly the availability the customer will.
@@ -38,12 +40,13 @@ const CATEGORY_OPTIONS = [
 ];
 const STATUS_OPTIONS = ["active", "draft", "archived"];
 
-// Arrays are edited as comma-separated text and normalized on the way in/out.
+// `images` is a real array (the uploader owns it); `materials` is still edited
+// as comma-separated text, which suits a short list of finish names.
 const EMPTY_FORM = {
   name: "",
   description: "",
   category: CATEGORY_OPTIONS[0],
-  images: "",
+  images: [],
   price: "",
   mrp: "",
   stock: "",
@@ -61,7 +64,7 @@ const toForm = (product) => ({
   name: product.name || "",
   description: product.description || "",
   category: product.category || CATEGORY_OPTIONS[0],
-  images: (product.images || []).join(", "),
+  images: product.images || [],
   price: String(product.price ?? ""),
   mrp: String(product.mrp ?? ""),
   stock: String(product.stock ?? ""),
@@ -85,7 +88,7 @@ const toPayload = (form) => ({
   name: form.name.trim(),
   description: form.description.trim(),
   category: form.category,
-  images: splitList(form.images),
+  images: form.images,
   price: Number(form.price),
   mrp: form.mrp === "" ? Number(form.price) : Number(form.mrp),
   stock: Number(form.stock || 0),
@@ -148,6 +151,11 @@ function AdminProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Asked up front rather than discovered by a failed upload: without
+  // Cloudinary in production the server refuses photos, and an admin should
+  // learn that from a banner, not from a 503 after picking a file.
+  const [storageDurable, setStorageDurable] = useState(true);
+
   const [editingId, setEditingId] = useState(null); // null = creating
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -175,6 +183,14 @@ function AdminProductsPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    // A failed health check shouldn't disable the uploader — assume storage is
+    // fine and let the upload itself report the truth.
+    fetchHealth()
+      .then((health) => setStorageDurable(health.uploads?.durable !== false))
+      .catch(() => setStorageDurable(true));
+  }, []);
 
   const metrics = useMemo(() => {
     const active = products.filter((product) => product.status === "active");
@@ -400,14 +416,13 @@ function AdminProductsPage() {
                 </select>
               </InputField>
 
-              <InputField
-                label="Image URLs"
-                htmlFor="f-images"
+              <ProductImageUploader
+                images={form.images}
+                onChange={(images) => setForm((current) => ({ ...current, images }))}
+                token={token}
                 error={fieldErrors.images}
-                helperText="Comma-separated. The first is the primary thumbnail."
-              >
-                <input id="f-images" type="text" value={form.images} onChange={setField("images")} />
-              </InputField>
+                storageDurable={storageDurable}
+              />
 
               <div className="admin-filters-grid">
                 <InputField label="Price (₹)" htmlFor="f-price" error={fieldErrors.price}>

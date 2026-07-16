@@ -13,11 +13,12 @@ import {
   optionalAuthenticateCustomer,
 } from "../middleware/authenticateCustomer.js";
 import { uploadOrderDesignFile } from "../middleware/orderUpload.js";
+import { rejectFileWhenStorageNotDurable } from "../config/uploadStorage.js";
 
 const router = Router();
 
 // Customer checkout (COD or online). Uses optional customer token to link orders to accounts.
-router.post("/", uploadOrderDesignFile, optionalAuthenticateCustomer, createOrder);
+router.post("/", uploadOrderDesignFile, rejectFileWhenStorageNotDurable, optionalAuthenticateCustomer, createOrder);
 
 // Razorpay signature verification (backwards-compatible route).
 router.post("/verify-payment", verifyPayment);

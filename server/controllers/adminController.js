@@ -7,6 +7,7 @@ import {
   updateProductRecord,
 } from "../services/productStore.js";
 import { mapUserForClient } from "../utils/authHelpers.js";
+import { createUploadedFileUrl } from "../utils/orderHelpers.js";
 
 const hasProductValidationErrors = (errors) => Object.values(errors).some(Boolean);
 
@@ -196,6 +197,25 @@ export const updateAdminProduct = async (req, res, next) => {
     }
     return next(error);
   }
+};
+
+/**
+ * Product photo uploads. Returns the stored URLs; the admin then saves them
+ * onto the product like any other field, so an upload that is never saved
+ * costs an orphaned file and nothing else.
+ *
+ * Deliberately does not write to the product itself: photos are picked,
+ * reordered, and removed before saving, and a half-uploaded gallery shouldn't
+ * mutate a live catalog row.
+ */
+export const postAdminProductImages = (req, res) => {
+  if (!req.files?.length) {
+    return res.status(400).json({ message: "At least one image file is required." });
+  }
+
+  return res.status(201).json({
+    images: req.files.map((file) => createUploadedFileUrl(req, file)),
+  });
 };
 
 export const deleteAdminProduct = async (req, res, next) => {

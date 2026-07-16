@@ -260,6 +260,173 @@
   background: rgba(196, 90, 77, 0.08);
 }
 
+/* ── Image uploader ─────────────────────────────────────────────────── */
+
+.image-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.image-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--stroke, rgba(131, 102, 76, 0.15));
+  background: var(--surface-muted, rgba(123, 93, 69, 0.06));
+}
+
+.image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.image-thumb-broken {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 6px;
+  text-align: center;
+  font-size: 0.66rem;
+  color: var(--danger, #c45a4d);
+}
+
+/* images[0] is the listing thumbnail — say so, don't make them guess. */
+.image-thumb-primary {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--accent, #d86a3d);
+  color: #fff;
+}
+
+/* Controls sit on the image, so they need their own contrast rather than
+   relying on whatever the photo happens to be. */
+.image-thumb-actions {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  justify-content: center;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.image-thumb:hover .image-thumb-actions,
+.image-thumb:focus-within .image-thumb-actions {
+  opacity: 1;
+}
+
+.image-thumb-actions button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f2430;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.image-thumb-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.image-thumb-actions button:not(:disabled):hover {
+  background: #fff;
+}
+
+.image-thumb-actions .image-thumb-remove:not(:disabled):hover {
+  background: var(--danger, #c45a4d);
+  color: #fff;
+}
+
+.image-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 18px 12px;
+  text-align: center;
+  border: 1.5px dashed var(--stroke-strong, rgba(131, 102, 76, 0.24));
+  border-radius: 12px;
+  background: var(--surface-muted, rgba(123, 93, 69, 0.04));
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.image-dropzone:hover,
+.image-dropzone:focus-visible,
+.image-dropzone.is-dragging {
+  border-color: var(--accent, #d86a3d);
+  background: var(--accent-soft, rgba(216, 106, 61, 0.14));
+}
+
+.image-dropzone.is-busy {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.image-dropzone strong {
+  font-size: 0.82rem;
+  color: var(--heading, #1c2431);
+}
+
+.image-dropzone span {
+  font-size: 0.7rem;
+  color: var(--muted, #6d655d);
+}
+
+/* Collapsed by default: uploading is the main path, pasting a URL is the
+   escape hatch that keeps the seeded Pexels images editable. */
+.image-url-fallback {
+  margin-top: 8px;
+}
+
+.image-url-fallback summary {
+  font-size: 0.75rem;
+  color: var(--muted, #6d655d);
+  cursor: pointer;
+}
+
+.image-url-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.image-url-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.compact-button {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────── */
 
 @media (max-width: 1080px) {
