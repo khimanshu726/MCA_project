@@ -1,6 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, ShoppingBag, Undo2 } from "lucide-react";
-import StudioTooltip from "./StudioTooltip.jsx";
 
 /**
  * The studio's only header. Three fixed zones that never wrap — an app bar
@@ -11,16 +10,20 @@ import StudioTooltip from "./StudioTooltip.jsx";
  * Zones: [brand · back · name · history · save state] [sides] [actions]
  */
 
+// No visual tooltip: the bar is 56px tall, so a tip beneath a button can
+// only render below the bar — i.e. onto the canvas. These icons are
+// conventional and keep an aria-label plus a native title for the shortcut,
+// which the browser renders outside the page entirely.
 const IconButton = ({ label, shortcut, onClick, disabled, children }) => (
   <button
     type="button"
     aria-label={label}
+    title={shortcut ? `${label} (${shortcut})` : label}
     onClick={onClick}
     disabled={disabled}
-    className="group relative flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30"
+    className="flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30"
   >
     {children}
-    <StudioTooltip label={label} shortcut={shortcut} side="bottom" />
   </button>
 );
 
@@ -110,11 +113,11 @@ function StudioAppBar({
       <button
         type="button"
         onClick={onBack}
-        className="group relative flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900"
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900"
         aria-label="Back to product"
+        title="Back to product"
       >
         <ChevronLeft size={17} aria-hidden="true" />
-        <StudioTooltip label="Back to product" side="bottom" />
       </button>
 
       <span className="ml-1 mr-2 flex shrink-0 items-center gap-2" aria-hidden="true">

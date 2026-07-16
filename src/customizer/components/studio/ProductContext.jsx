@@ -1,5 +1,7 @@
+import { ChevronRight } from "lucide-react";
 import PropertyCard from "./PropertyCard.jsx";
 import OptionField from "./OptionField.jsx";
+import ResponsiveImage from "../../../components/ResponsiveImage.jsx";
 import QuantitySelector from "../../../components/ui/QuantitySelector.jsx";
 import { currencyFormatter } from "../../../components/ui/PriceDisplay.jsx";
 
@@ -17,16 +19,29 @@ import { currencyFormatter } from "../../../components/ui/PriceDisplay.jsx";
  * checkout for anyone with a non-empty cart. Show the one number that can
  * be stated truthfully, and say where the rest is decided.
  */
-function ProductContext({ product, template, design, quantity, onQuantityChange, actions, productSelector }) {
+function ProductContext({ product, template, design, quantity, onQuantityChange, actions, onOpenProductPicker }) {
   const minQty = product.minimumOrderQty || 1;
   const lineTotal = product.price * quantity;
   const sideLabels = template.sides.map((side) => side.label).join(" + ");
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Identity — no heading; the panel header already names this. */}
+      {/* Identity — no heading; the panel header already names this.
+          The trigger opens a picker VIEW inside this panel rather than a
+          floating dropdown, so it cannot spill onto the canvas. */}
       <div className="flex flex-col gap-2">
-        {productSelector}
+        <button
+          type="button"
+          onClick={onOpenProductPicker}
+          className="flex w-full items-center gap-2.5 rounded-lg bg-ink-50 p-2 text-left transition-colors duration-150 hover:bg-ink-100"
+        >
+          <span className="size-9 shrink-0 overflow-hidden rounded-lg bg-white">
+            <ResponsiveImage src={product.images?.[0]} alt="" aspectClassName="ratio-square" width={36} />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{product.name}</span>
+          <ChevronRight size={14} className="shrink-0 text-ink-400" aria-hidden="true" />
+        </button>
+
         <div className="flex flex-col gap-0.5 px-0.5">
           <span className="block text-sm font-medium text-ink-900">{template.label}</span>
           <span className="block text-xs text-ink-400">

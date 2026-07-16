@@ -2,6 +2,7 @@ import ArrangeSection from "./ArrangeSection.jsx";
 import ImageContext from "./ImageContext.jsx";
 import ShapeContext from "./ShapeContext.jsx";
 import ProductContext from "./ProductContext.jsx";
+import ProductPickerPanel from "./ProductPickerPanel.jsx";
 import PropertyCard from "./PropertyCard.jsx";
 import StudioHeading from "./StudioHeading.jsx";
 import TextPanel from "../TextPanel.jsx";
@@ -10,9 +11,15 @@ import TextPanel from "../TextPanel.jsx";
  * Contextual properties for whatever is selected — product settings when
  * nothing is. Named for its job, not its position: below lg it's the
  * content of a bottom sheet, not a right sidebar.
+ *
+ * Overlay rule: everything this panel opens (the product picker, option
+ * listboxes, colour inputs) renders INSIDE it. Nothing here portals out or
+ * uses position:fixed, so no inspector UI can land on the canvas.
  */
 function StudioInspector({
   product,
+  products,
+  isProductListLoading,
   template,
   design,
   selectedLayer,
@@ -20,9 +27,36 @@ function StudioInspector({
   onReplaceImage,
   quantity,
   onQuantityChange,
-  productSelector,
+  isPickingProduct,
+  onOpenProductPicker,
+  onCloseProductPicker,
+  onSelectProduct,
   bare = false,
 }) {
+  // The picker is a view swap, not a popover — it owns the whole panel
+  // while open, which is what keeps it inside its zone.
+  if (isPickingProduct) {
+    const picker = (
+      <ProductPickerPanel
+        products={products}
+        value={product.id}
+        isLoading={isProductListLoading}
+        onSelect={onSelectProduct}
+        onBack={onCloseProductPicker}
+      />
+    );
+
+    if (bare) {
+      return picker;
+    }
+
+    return (
+      <aside aria-label="Choose product" className="flex h-full min-h-0 w-72 flex-col bg-white">
+        {picker}
+      </aside>
+    );
+  }
+
   let title = "Product";
   let body = (
     <ProductContext
@@ -32,7 +66,7 @@ function StudioInspector({
       quantity={quantity}
       onQuantityChange={onQuantityChange}
       actions={actions}
-      productSelector={productSelector}
+      onOpenProductPicker={onOpenProductPicker}
     />
   );
 

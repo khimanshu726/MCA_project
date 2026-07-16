@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import ProductSelector from "../components/ProductSelector";
 import DesignStudio from "../customizer/components/DesignStudio.jsx";
 import { getTemplateForProduct } from "../customizer/templates.js";
 import { loadDraft } from "../customizer/hooks/useAutosave.js";
@@ -100,16 +99,9 @@ function CustomizePage() {
       initialDesignId={savedDesign?.id || null}
       initialDesignName={savedDesign?.name || null}
       recoveredDraft={Boolean(draft && !savedDesign)}
-      productSelector={
-        <ProductSelector
-          id="product-select"
-          products={items}
-          value={selectedProductId}
-          onChange={handleProductChange}
-          isLoading={isListLoading}
-          compact
-        />
-      }
+      products={items}
+      isProductListLoading={isListLoading}
+      onProductChange={handleProductChange}
     />
   );
 }

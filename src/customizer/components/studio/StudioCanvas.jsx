@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import EditorStage from "../EditorStage.jsx";
 import StudioViewControls from "./StudioViewControls.jsx";
-import CanvasEmptyState from "./CanvasEmptyState.jsx";
 
 /**
  * The workspace: neutral backdrop + the interactive stage + floating view
@@ -28,18 +27,12 @@ function StudioCanvas({
   onToggleGuides,
   showRulers,
   onToggleRulers,
-  onUpload,
-  onAddText,
-  onBrowseTemplates,
-  showEmptyState,
-  onDismissEmptyState,
 }) {
   const [fit, setFit] = useState({ fitScale: 1, fitWidthScale: 1 });
   const handleFitScaleChange = useCallback(
     (next) => setFit((current) => (current.fitScale === next.fitScale && current.fitWidthScale === next.fitWidthScale ? current : next)),
     [],
   );
-  const isEmpty = side.layers.length === 0;
 
   return (
     <div className="relative h-full w-full bg-ink-100">
@@ -57,15 +50,6 @@ function StudioCanvas({
         showRulers={showRulers}
         onFitScaleChange={handleFitScaleChange}
       />
-
-      {isEmpty && showEmptyState && (
-        <CanvasEmptyState
-          onUpload={onUpload}
-          onAddText={onAddText}
-          onBrowseTemplates={onBrowseTemplates}
-          onDismiss={onDismissEmptyState}
-        />
-      )}
 
       <StudioViewControls
         zoom={ui.zoom}

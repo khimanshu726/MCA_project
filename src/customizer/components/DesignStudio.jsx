@@ -41,7 +41,9 @@ const optionsSummaryText = (design, template, product) => {
 function DesignStudio({
   product,
   template,
-  productSelector = null,
+  products = [],
+  isProductListLoading = false,
+  onProductChange,
   initialDesign = null,
   initialDesignId = null,
   initialDesignName = null,
@@ -74,6 +76,7 @@ function DesignStudio({
   const [serverDesignId, setServerDesignId] = useState(initialDesignId);
   const [showDraftNotice, setShowDraftNotice] = useState(recoveredDraft);
   const [showEmptyState, setShowEmptyState] = useState(true);
+  const [isPickingProduct, setIsPickingProduct] = useState(false);
   const replaceInputRef = useRef(null);
 
   useAutosave({ productId: product.id, design, isDirty });
@@ -335,6 +338,22 @@ function DesignStudio({
   const handleOpenUploads = useCallback(() => setActivePanel("uploads"), []);
   const handleOpenTemplates = useCallback(() => setActivePanel("starters"), []);
   const handleDismissEmptyState = useCallback(() => setShowEmptyState(false), []);
+  const handleOpenProductPicker = useCallback(() => setIsPickingProduct(true), []);
+  const handleCloseProductPicker = useCallback(() => setIsPickingProduct(false), []);
+  const handleSelectProduct = useCallback(
+    (nextId) => {
+      setIsPickingProduct(false);
+      if (nextId !== product.id) {
+        // Switching product remounts the studio and drops undo history, so
+        // don't do it silently over unsaved work.
+        if (isDirty && !window.confirm("Switch product? Your current design is kept as a draft for this product.")) {
+          return;
+        }
+        onProductChange?.(nextId);
+      }
+    },
+    [product.id, isDirty, onProductChange],
+  );
   const handleAddFirstText = useCallback(() => {
     const layer = createTextLayer({ template });
     layer.height = measureTextLayerHeight(layer);
@@ -368,7 +387,17 @@ function DesignStudio({
             onAddToCart={handleAddToCart}
           />
         }
-        rail={<StudioRail activePanel={activePanel} onPanelChange={setActivePanel} />}
+        rail={
+          <StudioRail
+            activePanel={activePanel}
+            onPanelChange={setActivePanel}
+            showQuickActions={showEmptyState && activeSide.layers.length === 0}
+            onUpload={handleOpenUploads}
+            onAddText={handleAddFirstText}
+            onBrowseTemplates={handleOpenTemplates}
+            onDismissQuickActions={handleDismissEmptyState}
+          />
+        }
         panel={
           <StudioPanel
             activePanel={activePanel}
@@ -401,16 +430,13 @@ function DesignStudio({
             onToggleGuides={handleToggleGuides}
             showRulers={showRulers}
             onToggleRulers={handleToggleRulers}
-            onUpload={handleOpenUploads}
-            onAddText={handleAddFirstText}
-            onBrowseTemplates={handleOpenTemplates}
-            showEmptyState={showEmptyState}
-            onDismissEmptyState={handleDismissEmptyState}
           />
         }
         inspector={
           <StudioInspector
             product={product}
+            products={products}
+            isProductListLoading={isProductListLoading}
             template={template}
             design={design}
             selectedLayer={selectedLayer}
@@ -418,7 +444,10 @@ function DesignStudio({
             onReplaceImage={handleTriggerReplace}
             quantity={quantity}
             onQuantityChange={setQuantity}
-            productSelector={productSelector}
+            isPickingProduct={isPickingProduct}
+            onOpenProductPicker={handleOpenProductPicker}
+            onCloseProductPicker={handleCloseProductPicker}
+            onSelectProduct={handleSelectProduct}
           />
         }
         statusBar={
@@ -434,6 +463,8 @@ function DesignStudio({
               <StudioInspector
                 bare
                 product={product}
+                products={products}
+                isProductListLoading={isProductListLoading}
                 template={template}
                 design={design}
                 selectedLayer={selectedLayer}
@@ -441,7 +472,10 @@ function DesignStudio({
                 onReplaceImage={handleTriggerReplace}
                 quantity={quantity}
                 onQuantityChange={setQuantity}
-                productSelector={productSelector}
+                isPickingProduct={isPickingProduct}
+                onOpenProductPicker={handleOpenProductPicker}
+                onCloseProductPicker={handleCloseProductPicker}
+                onSelectProduct={handleSelectProduct}
               />
             ) : (
               <StudioPanel

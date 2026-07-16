@@ -1,6 +1,16 @@
 import { memo } from "react";
-import { Image as ImageIcon, Layers, LayoutTemplate, Palette, Shapes, Sparkles, Type, Upload, X } from "lucide-react";
-import StudioTooltip from "./StudioTooltip.jsx";
+import {
+  Image as ImageIcon,
+  ImagePlus,
+  Layers,
+  LayoutTemplate,
+  Palette,
+  Shapes,
+  Sparkles,
+  Type,
+  Upload,
+  X,
+} from "lucide-react";
 import StudioHeading from "./StudioHeading.jsx";
 import UploadsPanel from "./UploadsPanel.jsx";
 import BackgroundPanel from "../BackgroundPanel.jsx";
@@ -23,38 +33,89 @@ export const RAIL_ITEMS = [
 ];
 
 /**
- * Tool rail — icon-only with tooltips.
+ * Tool navigation — labelled, not an icon rail.
  *
- * It previously carried text labels under each icon in a 64px column:
- * "Background" needs 91px to render, so seven of eight labels were clipped.
- * Icons alone are legible at any width, the tooltip carries the full name,
- * and the rail drops to 56px — width the canvas gets back.
+ * An icon-only rail needs tooltips, and a tooltip on a left-edge rail has
+ * nowhere to go but rightwards, over the canvas. No positioning strategy
+ * fixes that: the label has to render somewhere, and the only region to
+ * the right IS the workspace. Showing labels inline deletes the overlay
+ * class outright — the navigation describes itself, nothing floats, and
+ * the canvas is never covered.
+ *
+ * It also gives the onboarding quick-actions a home, which previously
+ * floated over the printable area.
  */
-export const StudioRail = memo(function StudioRail({ activePanel, onPanelChange }) {
+export const StudioRail = memo(function StudioRail({
+  activePanel,
+  onPanelChange,
+  showQuickActions,
+  onUpload,
+  onAddText,
+  onBrowseTemplates,
+  onDismissQuickActions,
+}) {
+  const quickActions = [
+    { id: "qa-upload", label: "Upload artwork", Icon: ImagePlus, onClick: onUpload },
+    { id: "qa-text", label: "Add text", Icon: Type, onClick: onAddText },
+    { id: "qa-templates", label: "Browse layouts", Icon: LayoutTemplate, onClick: onBrowseTemplates },
+  ];
+
   return (
-    <nav
-      aria-label="Studio tools"
-      className="flex h-full w-full min-w-0 flex-row items-center gap-1 overflow-x-auto px-2 lg:w-14 lg:shrink-0 lg:flex-col lg:items-center lg:overflow-visible lg:py-3"
-    >
-      {RAIL_ITEMS.map(({ id, label, Icon }) => {
-        const isActive = activePanel === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={isActive}
-            aria-label={label}
-            onClick={() => onPanelChange(isActive ? null : id)}
-            className={`group relative flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 ${
-              isActive ? "bg-ink-900 text-white" : "text-ink-500 hover:bg-ink-100 hover:text-ink-900"
-            }`}
-          >
-            <Icon size={18} aria-hidden="true" />
-            <StudioTooltip label={label} side="right" />
-          </button>
-        );
-      })}
-    </nav>
+    <div className="scrollbar-thin flex h-full w-full min-w-0 flex-row items-center gap-1 overflow-x-auto px-2 lg:w-44 lg:shrink-0 lg:flex-col lg:items-stretch lg:overflow-y-auto lg:overflow-x-hidden lg:py-3">
+      <nav aria-label="Studio tools" className="flex shrink-0 flex-row gap-1 lg:flex-col">
+        {RAIL_ITEMS.map(({ id, label, Icon }) => {
+          const isActive = activePanel === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={isActive}
+              aria-label={label}
+              onClick={() => onPanelChange(isActive ? null : id)}
+              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors duration-150 ${
+                isActive ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
+              }`}
+            >
+              <Icon size={17} className="shrink-0" aria-hidden="true" />
+              <span className="hidden lg:inline">{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {showQuickActions ? (
+        <div className="mt-3 hidden border-t border-ink-100 pt-3 lg:flex lg:flex-col lg:gap-1">
+          <div className="flex items-center justify-between gap-2 px-2.5 pb-1">
+            <StudioHeading level={3} className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+              Start
+            </StudioHeading>
+            <button
+              type="button"
+              onClick={onDismissQuickActions}
+              aria-label="Dismiss quick actions"
+              className="flex size-5 items-center justify-center rounded text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+          {quickActions.map(({ id, label, Icon, onClick }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={onClick}
+              className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900"
+            >
+              <Icon
+                size={15}
+                className="shrink-0 text-ink-400 transition-colors group-hover:text-brand-500"
+                aria-hidden="true"
+              />
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 });
 

@@ -10,11 +10,40 @@
  * auto-detected, so admin-app/ is never scanned even though it lives in the
  * same repo.
  */
+/* Explicit layer order. `studio-base` must sort BELOW `utilities` so a
+   utility can still opt a control back into a border (colour swatches),
+   exactly the relationship Tailwind's own preflight has with utilities. */
+@layer theme, studio-base, utilities;
+
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 
 @source "../../index.html";
 @source "../**/*.{js,jsx}";
+
+/*
+ * Scoped preflight for the design studio.
+ *
+ * Skipping Tailwind's preflight (above) is right for the storefront, but it
+ * left every bare <input> in the studio wearing the browser's default 1.6px
+ * border — so a search field inside a tinted well read as a double border,
+ * and each new control inherited the bug. Resetting per-component was
+ * whack-a-mole; this is the one place to fix it.
+ *
+ * Scoped to .studio-scope so no storefront input is touched, and layered so
+ * `border border-ink-200` still wins where a border is deliberate.
+ */
+@layer studio-base {
+  .studio-scope :is(input, textarea, select) {
+    border-width: 0;
+    border-style: solid;
+    background-color: transparent;
+  }
+
+  .studio-scope :is(input, textarea, select):focus {
+    outline: none;
+  }
+}
 
 /* Brand tokens mirrored from styles.css so the new cart/design-system
    components read as the same product, not a bolted-on template. */
@@ -63,30 +92,6 @@
   --shadow-panel: 0 1px 2px rgba(14, 15, 17, 0.04), 0 1px 1px rgba(14, 15, 17, 0.03);
   --shadow-raised: 0 2px 8px rgba(14, 15, 17, 0.06), 0 1px 2px rgba(14, 15, 17, 0.04);
   --shadow-overlay: 0 12px 32px rgba(14, 15, 17, 0.14), 0 2px 8px rgba(14, 15, 17, 0.06);
-}
-
-/* ProductSelector open animations: fade+scale for the desktop dropdown,
-   slide-up for the mobile bottom sheet. Defined here (rather than pulling
-   in a Tailwind animation plugin) since Tailwind v4 picks up @keyframes by
-   name via the arbitrary animate-[name_duration_easing] syntax. */
-@keyframes product-selector-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes product-selector-sheet-in {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
 }
 
 /* Thin, low-contrast scrollbars for editor surfaces. The platform default
