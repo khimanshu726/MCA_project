@@ -1166,15 +1166,21 @@ select {
    Auth
    ========================================================================== */
 
+/* The two-column split lives on .auth-split-shell (see the auth block further
+   down), NOT here. It used to live here, with the shell set to
+   `display: contents` so its children became this grid's items. The redesign
+   moved the grid onto the shell but left this rule's `display: grid` and
+   `grid-template-columns: 1fr 1fr` behind — and since the newer rule only
+   restates `background`, they survived.
+
+   The result: .auth-screen stayed a two-column grid whose single child (the
+   shell) sat in column one, so the entire login page was squeezed into the
+   left half of the viewport and column two rendered as empty white space.
+   .auth-screen is just the page background; the shell owns the layout. */
 .auth-screen {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   background: var(--bone);
 }
-@media (max-width: 900px) { .auth-screen { grid-template-columns: 1fr; } }
-
-.auth-split-shell { display: contents; }
 
 .auth-showcase-panel {
   background: linear-gradient(135deg, var(--ink-950) 0%, #1f2027 60%, #2a2b30 100%);
