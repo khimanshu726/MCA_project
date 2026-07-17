@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
-import { PackageSearch } from "lucide-react";
+import { Heart, MapPin, PackageSearch } from "lucide-react";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useOrders } from "../hooks/useOrders";
+import { useAddresses } from "../hooks/useAddresses";
+import { useWishlist } from "../hooks/useWishlist";
 
 const formatDate = (isoString) =>
   new Date(isoString).toLocaleDateString("en-IN", {
@@ -21,6 +23,8 @@ const PROVIDER_LABELS = {
 function AccountPage() {
   const { authUser, refreshProfile, signOut, user } = useUserAuth();
   const { orders } = useOrders();
+  const { addresses } = useAddresses();
+  const { items: wishlistItems } = useWishlist();
 
   const accountName = user?.displayName || authUser?.displayName || user?.email || user?.mobile || "Customer";
   const contactLabel = user?.email || authUser?.email || user?.mobile || "Customer";
@@ -80,6 +84,39 @@ function AccountPage() {
             </div>
             <p className="field-helper" style={{ marginTop: "0.75rem" }}>
               View, track, cancel, or return your orders &rarr;
+            </p>
+          </Link>
+
+          {/* The address book and wishlist were both server-backed and
+              per-customer already; neither was reachable from here, so a
+              customer had no way to see what the account actually held. */}
+          <Link to="/account/addresses" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+            <p className="eyebrow">Saved Addresses</p>
+            <div className="account-detail-list">
+              <div className="summary-line">
+                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <MapPin size={16} aria-hidden="true" /> Saved addresses
+                </span>
+                <strong>{addresses.length}</strong>
+              </div>
+            </div>
+            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
+              Add, edit, or set a default for checkout &rarr;
+            </p>
+          </Link>
+
+          <Link to="/wishlist" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+            <p className="eyebrow">Wishlist</p>
+            <div className="account-detail-list">
+              <div className="summary-line">
+                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <Heart size={16} aria-hidden="true" /> Saved items
+                </span>
+                <strong>{wishlistItems.length}</strong>
+              </div>
+            </div>
+            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
+              Products you saved for later &rarr;
             </p>
           </Link>
 

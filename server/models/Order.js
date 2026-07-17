@@ -45,7 +45,16 @@ const orderSchema = new mongoose.Schema(
     lineItems: { type: Array, default: [] },
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
+    // Shipment. `trackingId` alone was never enough to be useful: a bare
+    // consignment number can't become a link without knowing whose number it
+    // is, so it sat on the order page as text nobody could act on. `courier`
+    // is one of src/utils/couriers.js, which owns the tracking URLs.
     trackingId: { type: String, default: "" },
+    courier: { type: String, default: "" },
+    // Set by a human when they hand the parcel over, not derived. Nothing here
+    // talks to a carrier, so any computed date would be a guess presented as a
+    // promise.
+    expectedDeliveryDate: { type: Date, default: null },
     statusHistory: { type: [statusHistoryEntrySchema], default: [] },
   },
   { timestamps: true }

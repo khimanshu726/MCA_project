@@ -427,6 +427,31 @@
   white-space: nowrap;
 }
 
+/* ── Shipment panel ─────────────────────────────────────────────────── */
+
+.shipment-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke, rgba(131, 102, 76, 0.15));
+  background: var(--surface-muted, rgba(123, 93, 69, 0.04));
+}
+
+.shipment-link-preview,
+.shipment-link-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted, #6d655d);
+}
+
+.shipment-link-preview a {
+  font-weight: 600;
+  color: var(--accent-strong, #bc4f24);
+  text-decoration: underline;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────── */
 
 @media (max-width: 1080px) {

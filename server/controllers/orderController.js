@@ -14,6 +14,7 @@ import { decrementStockAtomic, getProductsByIds, restoreStock } from "../service
 import { computeCartPricing } from "../services/pricingService.js";
 import { findCouponByCode, incrementCouponUsage, validateCoupon } from "../services/couponStore.js";
 import { sendOrderNotifications } from "../services/notificationService.js";
+import { COURIER_IDS } from "../../src/utils/couriers.js";
 import {
   allowedNotificationStatuses,
   allowedOrderStatuses,
@@ -416,7 +417,8 @@ export const getOrder = async (req, res, next) => {
 };
 
 export const updateOrder = async (req, res, next) => {
-  const { orderStatus, paymentStatus, archived, notificationStatus, trackingId } = req.body;
+  const { orderStatus, paymentStatus, archived, notificationStatus, trackingId, courier, expectedDeliveryDate } =
+    req.body;
 
   if (orderStatus && !allowedOrderStatuses.includes(orderStatus)) {
     return res.status(400).json({ message: "Invalid order status." });
@@ -430,6 +432,21 @@ export const updateOrder = async (req, res, next) => {
     return res.status(400).json({ message: "Invalid notification status." });
   }
 
+  // "" clears the courier; anything else must be one we can name and, where
+  // possible, link to. An unknown id would render as a blank courier next to a
+  // tracking number, which tells the customer nothing.
+  if (courier !== undefined && courier !== "" && !COURIER_IDS.includes(courier)) {
+    return res.status(400).json({ message: "Invalid courier." });
+  }
+
+  // null clears the date. A date we can't parse must not silently become
+  // Invalid Date and render as "Arrives by NaN" on a customer's order.
+  if (expectedDeliveryDate !== undefined && expectedDeliveryDate !== null && expectedDeliveryDate !== "") {
+    if (Number.isNaN(new Date(expectedDeliveryDate).getTime())) {
+      return res.status(400).json({ message: "Invalid expected delivery date." });
+    }
+  }
+
   try {
     const updatedOrder = await updateOrderRecord(req.params.id, (currentOrder) => {
       const isStatusChange = orderStatus && orderStatus !== currentOrder.orderStatus;
@@ -441,6 +458,13 @@ export const updateOrder = async (req, res, next) => {
         archived: typeof archived === "boolean" ? archived : currentOrder.archived,
         notificationStatus: notificationStatus || currentOrder.notificationStatus,
         trackingId: typeof trackingId === "string" ? trackingId.trim() : currentOrder.trackingId,
+        courier: typeof courier === "string" ? courier : currentOrder.courier,
+        expectedDeliveryDate:
+          expectedDeliveryDate === undefined
+            ? currentOrder.expectedDeliveryDate
+            : expectedDeliveryDate === null || expectedDeliveryDate === ""
+              ? null
+              : new Date(expectedDeliveryDate),
         statusHistory: isStatusChange
           ? [...(currentOrder.statusHistory || []), { status: orderStatus, changedAt: new Date().toISOString() }]
           : currentOrder.statusHistory,
