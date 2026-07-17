@@ -8,6 +8,7 @@ import Toast from "../components/ui/Toast";
 import ResponsiveImage from "../components/ResponsiveImage";
 import { currencyFormatter } from "../components/ui/PriceDisplay";
 import OrderStatusTimeline from "../components/OrderStatusTimeline";
+import OrderShipmentInfo from "../components/OrderShipmentInfo";
 import { useOrder } from "../hooks/useOrder";
 import { useCart } from "../hooks/useCart";
 import { useProducts } from "../hooks/useProducts";
@@ -131,11 +132,7 @@ function OrderDetailPage() {
             <div className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-5">
               <h3 className="mb-3 font-display text-lg text-ink-900">Status</h3>
               <OrderStatusTimeline order={order} />
-              {order.trackingId ? (
-                <p className="mt-2 text-sm text-ink-600">
-                  Tracking ID: <span className="font-semibold">{order.trackingId}</span>
-                </p>
-              ) : null}
+              <OrderShipmentInfo order={order} />
             </div>
 
             <div className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-5">

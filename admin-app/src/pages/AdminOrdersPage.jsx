@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_ASSET_BASE_URL, deleteOrder, fetchOrder, fetchOrders, updateOrder } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
+import ShipmentPanel from "../components/ShipmentPanel";
 
 const statusOptions = [
   "All",
@@ -69,6 +70,7 @@ function AdminOrdersPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [isSavingShipment, setIsSavingShipment] = useState(false);
 
   const loadOrders = useCallback(
     async (preferredOrderId) => {
@@ -165,6 +167,25 @@ function AdminOrdersPage() {
       setActionMessage(`Order moved to ${nextStatus}.`);
     } catch (updateError) {
       setActionMessage(updateError.message || "Unable to update the order.");
+    }
+  };
+
+  const handleSaveShipment = async (shipment) => {
+    if (!selectedOrder) return;
+    setIsSavingShipment(true);
+    setActionMessage("");
+
+    try {
+      const response = await updateOrder(selectedOrder.id, shipment, token);
+      setSelectedOrder(response.order);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) => (order.id === response.order.id ? response.order : order)),
+      );
+      setActionMessage("Shipment details saved.");
+    } catch (saveError) {
+      setActionMessage(saveError.message || "Unable to save the shipment details.");
+    } finally {
+      setIsSavingShipment(false);
     }
   };
 
@@ -373,6 +394,8 @@ function AdminOrdersPage() {
                   <span>Shipping: {formatMoney(selectedOrder.shippingCharge || 0)}</span>
                   <span>{formatMoney(selectedOrder.price)}</span>
                 </div>
+                <ShipmentPanel order={selectedOrder} onSave={handleSaveShipment} isSaving={isSavingShipment} />
+
                 <div className="action-row">
                   {FORWARD_STATUS_STEPS[selectedOrder.orderStatus] ? (
                     <button
