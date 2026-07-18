@@ -14,28 +14,64 @@ const PRICING_DEFAULTS = {
 
 const round2 = (value) => Math.round(value * 100) / 100;
 
-export function computeClientCartPricing(items = []) {
+// Mirrors computeCouponDiscount in server/services/pricingService.js. Kept in
+// step with it deliberately: the Buy Now summary recomputes totals locally on
+// every quantity change, and a client/server disagreement here would show the
+// customer one total and charge them another.
+const computeCouponDiscount = (coupon, subtotal) => {
+  if (!coupon) return 0;
+
+  let discount = 0;
+
+  if (coupon.type === "percentage") {
+    discount = subtotal * (coupon.value / 100);
+    if (coupon.maxDiscount != null) {
+      discount = Math.min(discount, coupon.maxDiscount);
+    }
+  } else if (coupon.type === "flat") {
+    discount = coupon.value;
+  }
+  // free_shipping coupons carry no subtotal discount — see the shipping
+  // override below.
+
+  return Math.max(0, Math.min(discount, subtotal));
+};
+
+/**
+ * @param {Array<{price:number, mrp?:number, quantity:number}>} items
+ * @param {object|null} coupon An already-validated coupon descriptor
+ *   ({ code, type, value, maxDiscount }) as returned by POST /api/checkout/preview.
+ *   Validation (active/expiry/usage/minOrderValue) is the server's job; this
+ *   stays a pure function, matching the server's split.
+ */
+export function computeClientCartPricing(items = [], coupon = null) {
   const hasItems = items.length > 0;
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const mrpTotal = items.reduce((sum, item) => sum + (item.mrp ?? item.price) * item.quantity, 0);
   const discount = Math.max(0, mrpTotal - subtotal);
 
+  const couponDiscount = hasItems ? computeCouponDiscount(coupon, subtotal) : 0;
+  const discountedSubtotal = subtotal - couponDiscount;
+
   const platformFee = hasItems ? PRICING_DEFAULTS.platformFee : 0;
-  const tax = round2(subtotal * PRICING_DEFAULTS.taxRate);
-  const shipping = !hasItems || subtotal >= PRICING_DEFAULTS.freeShippingThreshold ? 0 : PRICING_DEFAULTS.shippingFee;
+  const tax = round2(discountedSubtotal * PRICING_DEFAULTS.taxRate);
+
+  const isFreeShippingCoupon = hasItems && coupon?.type === "free_shipping";
+  const qualifiesForFreeShippingThreshold = subtotal >= PRICING_DEFAULTS.freeShippingThreshold;
+  const shipping =
+    !hasItems || isFreeShippingCoupon || qualifiesForFreeShippingThreshold ? 0 : PRICING_DEFAULTS.shippingFee;
   const waivedShipping = hasItems && shipping === 0 ? PRICING_DEFAULTS.shippingFee : 0;
-  const total = round2(subtotal + platformFee + tax + shipping);
-  const savings = round2(discount + waivedShipping);
+
+  const total = round2(discountedSubtotal + platformFee + tax + shipping);
+  const savings = round2(discount + couponDiscount + waivedShipping);
 
   return {
     subtotal: round2(subtotal),
     mrpTotal: round2(mrpTotal),
     discount: round2(discount),
-    // Coupons require the authenticated server cart (see useCart.js) — a
-    // guest estimate always shows no coupon applied.
-    couponCode: null,
-    couponDiscount: 0,
+    couponCode: coupon?.code ?? null,
+    couponDiscount: round2(couponDiscount),
     platformFee: round2(platformFee),
     tax,
     shipping: round2(shipping),

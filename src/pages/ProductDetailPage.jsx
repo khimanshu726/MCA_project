@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AddToCartButton from "../components/AddToCartButton";
+import BuyNowButton from "../components/BuyNowButton";
 import ProductGallery from "../components/ProductGallery";
 import WishlistButton from "../components/ui/WishlistButton";
 import { useProduct } from "../hooks/useProduct";
@@ -83,11 +84,18 @@ function ProductDetailPage() {
               <span className="meta-pill">Only {product.stock} left</span>
             ) : null}
           </div>
+          {/* The two purchase actions get their own equal-width row so neither
+              reads as secondary to the other, and so they stack cleanly on a
+              phone instead of wrapping mid-row with the navigation links. */}
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <AddToCartButton product={product} variant="secondary" size="lg" className="w-full" />
+            <BuyNowButton product={product} size="lg" className="w-full" />
+          </div>
+
           <div className="action-row">
             <Link className="primary-button" to={`/customize/${product.id}`}>
               Customize this product
             </Link>
-            <AddToCartButton product={product} className="secondary-button" />
             <WishlistButton productId={product.id} className="wishlist-toggle-inline" />
             <Link className="secondary-button" to="/cart">
               View cart

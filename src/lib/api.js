@@ -83,3 +83,14 @@ export const verifyRazorpayPayment = (payload) =>
     method: "POST",
     body: payload,
   });
+
+// Stateless pricing/coupon preview for a proposed basket — used by the Buy Now
+// checkout, which has no server cart for the cart coupon endpoint to mutate.
+// The token is optional and carried only so coupon eligibility can consider the
+// customer later; the preview itself is not an authenticated operation.
+export const previewCheckoutPricing = ({ lineItems, couponCode }, token) =>
+  request("/checkout/preview", {
+    method: "POST",
+    body: { lineItems, couponCode: couponCode || "" },
+    token,
+  });

@@ -10,7 +10,8 @@ import ResponsiveImage from "../components/ResponsiveImage";
 import Toast from "../components/ui/Toast";
 import { currencyFormatter } from "../components/ui/PriceDisplay";
 import { useCheckout } from "../context/CheckoutContext";
-import { useCart } from "../hooks/useCart";
+import { useCheckoutSource } from "../hooks/useCheckoutSource";
+import QuantitySelector from "../components/ui/QuantitySelector";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useToast } from "../hooks/useToast";
 import { createOrder, createRazorpayOrder } from "../lib/api";
@@ -43,11 +44,21 @@ function CheckoutReviewPage() {
     pricing,
     isAuthenticated,
     isLoading,
-    clearCart,
+    clearSource,
     applyCoupon,
     removeCoupon,
     isApplyingCoupon,
-  } = useCart();
+    isBuyNow,
+    emptyRedirect,
+    quantity,
+    setQuantity,
+    minQuantity,
+    maxQuantity,
+    isMissing: sourceIsMissing,
+    isOutOfStock: sourceIsOutOfStock,
+    exceedsStock,
+    priceChanged,
+  } = useCheckoutSource();
   const { user, token } = useUserAuth();
   const { toast, pushToast, dismiss } = useToast();
   const {
@@ -65,7 +76,7 @@ function CheckoutReviewPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderMessage, setOrderMessage] = useState("");
   const [attachedStudioDesign, setAttachedStudioDesign] = useState(null);
-  // Once an order is placed, clearCart() empties the cart and re-renders
+  // Once an order is placed, clearSource() empties the source and re-renders
   // this page a beat before the navigate("/order-success") below actually
   // takes effect — without this flag, the empty-cart guard fires first and
   // redirects to /cart, clobbering the intended navigation.
@@ -114,13 +125,27 @@ function CheckoutReviewPage() {
   // count for the guard, not purchasableCartItems, which depends on live
   // product data that hasn't loaded yet on a hard refresh/direct nav.
   if (!hasCompletedOrder && !isLoading && activeItems.length === 0) {
-    return <Navigate to="/cart" replace />;
+    return <Navigate to={emptyRedirect} replace />;
   }
   if (!effectiveAddress || addressState.hasErrors) {
     return <Navigate to="/checkout/address" replace />;
   }
 
-  const canPlaceOrder = !isPlacingOrder && purchasableCartItems.length > 0;
+  // A Buy Now whose product went out of stock, was archived, or whose
+  // quantity now exceeds what's on hand must not reach the payment step —
+  // the order endpoint would reject it after the customer has already been
+  // charged the attention of a payment modal.
+  const buyNowBlocker = !isBuyNow
+    ? null
+    : sourceIsMissing
+      ? "This product is no longer available."
+      : sourceIsOutOfStock
+        ? "This product just went out of stock."
+        : exceedsStock
+          ? `Only ${maxQuantity} left — reduce the quantity to continue.`
+          : null;
+
+  const canPlaceOrder = !isPlacingOrder && purchasableCartItems.length > 0 && !buyNowBlocker;
 
   const handleFileChange = (event) => {
     const nextFile = event.target.files?.[0] ?? null;
@@ -137,7 +162,8 @@ function CheckoutReviewPage() {
     setDesignFile(null);
     setFileError("");
     clearPendingDesign();
-    clearCart();
+    // Cart checkout empties the cart; a Buy Now drops only its own session.
+    clearSource();
     navigate(`/order-success/${order.orderId}`, { replace: true, state: { order } });
   };
 
@@ -167,7 +193,9 @@ function CheckoutReviewPage() {
         setDesignFile(null);
         setFileError("");
         clearPendingDesign();
-        clearCart();
+        // For a Buy Now this drops only the purchase session — the customer's
+        // cart is left exactly as they left it.
+        clearSource();
         navigate(`/order-success/${order.orderId}`, { replace: true, state: { order } });
       },
       onTerminalFailure: (reason) => {
@@ -268,12 +296,50 @@ function CheckoutReviewPage() {
             </div>
 
             <div className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-5">
-              <h3 className="mb-3 font-display text-lg text-ink-900">Items ({purchasableCartItems.length})</h3>
+              {/* A Buy Now is a single-item purchase, not the customer's
+                  basket — calling it a cart here would suggest their actual
+                  cart is what's being bought. */}
+              <h3 className="mb-3 font-display text-lg text-ink-900">
+                {isBuyNow ? `Order summary (${purchasableCartItems.length} item)` : `Items (${purchasableCartItems.length})`}
+              </h3>
               <div className="flex flex-col gap-2">
                 {purchasableCartItems.map((item) => (
                   <ReviewLineItem key={item.id} item={item} />
                 ))}
               </div>
+
+              {isBuyNow && setQuantity ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 pt-4">
+                  <div>
+                    <p className="text-sm font-medium text-ink-900">Quantity</p>
+                    <p className="text-xs text-ink-500">
+                      {minQuantity > 1 ? `Minimum order ${minQuantity}` : "Totals update as you change this"}
+                    </p>
+                  </div>
+                  <QuantitySelector
+                    value={quantity}
+                    onChange={setQuantity}
+                    min={minQuantity}
+                    max={maxQuantity || minQuantity}
+                    ariaLabel="Order quantity"
+                  />
+                </div>
+              ) : null}
+
+              {priceChanged ? (
+                <p
+                  className="mt-3 rounded-xl border border-gold-500/30 bg-bone-100 px-3 py-2 text-xs text-ink-700"
+                  role="status"
+                >
+                  The price of this product changed while you were checking out. The total shown is current.
+                </p>
+              ) : null}
+
+              {buyNowBlocker ? (
+                <p className="mt-3 rounded-xl bg-danger-100/50 px-3 py-2 text-xs text-danger-600" role="alert">
+                  {buyNowBlocker}
+                </p>
+              ) : null}
             </div>
 
             {attachedStudioDesign ? (
@@ -308,7 +374,7 @@ function CheckoutReviewPage() {
               itemCount={purchasableCartItems.length}
               onCheckout={handlePlaceOrder}
               canCheckout={canPlaceOrder}
-              checkoutDisabledReason={isPlacingOrder ? "Processing your order..." : ""}
+              checkoutDisabledReason={isPlacingOrder ? "Processing your order..." : buyNowBlocker || ""}
               isPlacingOrder={isPlacingOrder}
               isAuthenticated={isAuthenticated}
               isApplyingCoupon={isApplyingCoupon}
