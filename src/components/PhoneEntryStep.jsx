@@ -39,7 +39,7 @@ function PhoneEntryStep({
       <InputField
         label="Phone Number"
         htmlFor={`${mode}-phone-number`}
-        helperText="Enter your 10-digit Indian mobile number. We will send a real OTP via Firebase Phone Auth."
+        helperText="Enter your 10-digit Indian mobile number. We'll text you a one-time code."
       >
         <input
           id={`${mode}-phone-number`}

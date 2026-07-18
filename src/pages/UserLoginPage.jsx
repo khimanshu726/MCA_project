@@ -16,7 +16,7 @@ function UserLoginPage() {
     <AuthSplitShell
       eyebrow="Welcome back!"
       title="Login to your account"
-      subtitle="Use secure Firebase sign-in to continue with your saved cart, delivery details, and print-ready orders."
+      subtitle="Sign in to pick up your saved cart, delivery details, and print-ready orders."
       promptText="Not registered?"
       promptLinkTo="/register"
       promptLinkLabel="Create an account"

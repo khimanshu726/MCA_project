@@ -120,13 +120,71 @@ describe("checkout with a token the server cannot verify", () => {
 
 describe("checkout with a valid token", () => {
   it("attaches the order to the customer, so it appears in their history", async () => {
-    mockVerify.mockResolvedValue({ uid: "firebase-uid-1", email: "buyer@example.com" });
+    // auth_time is what the session-age ceiling is measured against; a real
+    // Firebase ID token always carries it.
+    mockVerify.mockResolvedValue({
+      uid: "firebase-uid-1",
+      email: "buyer@example.com",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
 
     const res = await placeOrder("good-token");
 
     expect(res.statusCode).toBe(201);
     const order = await Order.findOne({}).lean();
     expect(order.customerId).toBeTruthy();
+  });
+});
+
+describe("server-enforced session lifetime", () => {
+  /**
+   * The security boundary for "logged in forever".
+   *
+   * Firebase refresh tokens never expire, so a client that keeps refreshing
+   * can hold a technically-valid ID token indefinitely. The signature check
+   * alone would accept it. The ceiling is enforced here instead, against the
+   * signed auth_time claim — the moment the customer actually proved who they
+   * were, which survives every refresh and cannot be edited by the client.
+   */
+  it("rejects a signature-valid token whose session has outlived the ceiling", async () => {
+    const thirtyOneDaysAgo = Math.floor((Date.now() - 31 * 24 * 60 * 60 * 1000) / 1000);
+    mockVerify.mockResolvedValue({
+      uid: "firebase-uid-old",
+      email: "long-lived@example.com",
+      auth_time: thirtyOneDaysAgo,
+    });
+
+    const res = await placeOrder("perfectly-signed-but-ancient-token");
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.code).toBe("SESSION_EXPIRED");
+    expect(await Order.countDocuments()).toBe(0);
+  });
+
+  it("accepts a session comfortably inside the ceiling", async () => {
+    const tenDaysAgo = Math.floor((Date.now() - 10 * 24 * 60 * 60 * 1000) / 1000);
+    mockVerify.mockResolvedValue({
+      uid: "firebase-uid-recent",
+      email: "recent@example.com",
+      auth_time: tenDaysAgo,
+    });
+
+    const res = await placeOrder("good-token");
+
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("refuses a token carrying no auth_time at all", async () => {
+    // Fails closed. A token we cannot date is a token whose freshness we
+    // cannot prove, and guessing in the customer's favour here would grant
+    // exactly the unbounded session this change exists to remove.
+    mockVerify.mockResolvedValue({ uid: "firebase-uid-noauthtime", email: "noclaim@example.com" });
+
+    const res = await placeOrder("token-without-auth-time");
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.code).toBe("SESSION_EXPIRED");
+    expect(await Order.countDocuments()).toBe(0);
   });
 });
 

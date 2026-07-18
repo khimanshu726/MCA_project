@@ -9,10 +9,10 @@ import { User } from "../models/User.js";
 vi.mock("../config/firebaseAdmin.js", () => ({
   verifyFirebaseIdToken: vi.fn(async (token) => {
     if (token === "valid-token") {
-      return { uid: "test-firebase-uid", email: "address-tester@example.com" };
+      return { uid: "test-firebase-uid", email: "address-tester@example.com", auth_time: Math.floor(Date.now() / 1000) };
     }
     if (token === "other-token") {
-      return { uid: "other-firebase-uid", email: "other-tester@example.com" };
+      return { uid: "other-firebase-uid", email: "other-tester@example.com", auth_time: Math.floor(Date.now() / 1000) };
     }
     const error = new Error("Invalid token");
     error.statusCode = 401;

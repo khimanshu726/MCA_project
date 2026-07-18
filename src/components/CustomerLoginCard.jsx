@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Clock } from "lucide-react";
 import AuthProviderButtons from "./AuthProviderButtons";
 import AuthToast from "./AuthToast";
 import InputField from "./InputField";
@@ -14,12 +15,31 @@ import {
   signInCustomerWithFacebook,
   signInCustomerWithGoogle,
 } from "../services/customerAuthService";
+import { sessionEndedMessage } from "../auth/sessionPolicy";
 import { buildLoginErrors, hasErrors, normalizeEmailInput } from "../utils/authValidation";
 import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrors";
 
 function CustomerLoginCard({ destination = "/account" }) {
   const navigate = useNavigate();
-  const { isLoading, refreshProfile, signInWithPhoneOtp } = useUserAuth();
+  const {
+    isLoading,
+    refreshProfile,
+    signInWithPhoneOtp,
+    prepareSignIn,
+    completeSignIn,
+    sessionEndedReason,
+    clearSessionEndedReason,
+  } = useUserAuth();
+  // Defaults to off. "Keep me signed in" is a choice the customer makes, not
+  // one we make for them — and on a shared machine the safe default is the
+  // shorter session.
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // The notice explains why they landed here; it should not outlive the visit.
+  // Clearing on unmount stops it reappearing on a later, deliberate visit to
+  // the login page, where it would be a confusing claim about a session that
+  // ended long ago.
+  useEffect(() => clearSessionEndedReason, [clearSessionEndedReason]);
   const { toast, pushToast, dismiss } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +67,12 @@ function CustomerLoginCard({ destination = "/account" }) {
     setIsProviderBusy(true);
 
     try {
+      // Persistence must be applied BEFORE the sign-in call — it governs how
+      // the credential that sign-in is about to store gets persisted, so
+      // setting it afterwards would leave this session on the previous mode.
+      // This is the line that stops a Google sign-in lasting forever.
+      await prepareSignIn(rememberMe);
+
       if (providerType === "facebook") {
         await signInCustomerWithFacebook();
       } else {
@@ -54,6 +80,7 @@ function CustomerLoginCard({ destination = "/account" }) {
       }
 
       await refreshProfile();
+      completeSignIn();
       navigate(destination, { replace: true });
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
@@ -75,11 +102,13 @@ function CustomerLoginCard({ destination = "/account" }) {
     setIsEmailSubmitting(true);
 
     try {
+      await prepareSignIn(rememberMe);
       await signInCustomerWithEmail({
         email: normalizeEmailInput(email),
         password,
       });
       await refreshProfile();
+      completeSignIn();
       navigate(destination, { replace: true });
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
@@ -113,11 +142,17 @@ function CustomerLoginCard({ destination = "/account" }) {
     }
   };
 
-  const handleSendOtp = async (phoneNumber, verifier) => signInWithPhoneOtp(phoneNumber, verifier);
+  const handleSendOtp = async (phoneNumber, verifier) => {
+    // Applied before the OTP challenge, since confirming the code is what
+    // stores the credential. All three providers land on the same policy.
+    await prepareSignIn(rememberMe);
+    return signInWithPhoneOtp(phoneNumber, verifier);
+  };
 
   const handleVerifyOtp = async (confirmationResult, code) => {
     await confirmationResult.confirm(code);
     await refreshProfile();
+    completeSignIn();
     navigate(destination, { replace: true });
   };
 
@@ -126,6 +161,19 @@ function CustomerLoginCard({ destination = "/account" }) {
       <AuthToast toast={toast} onDismiss={dismiss} />
 
       <div className="auth-card-stack">
+        {/* Explains why they are here, when they didn't choose to be. Landing
+            on a login form with no explanation reads as the site losing your
+            work; naming the cause makes it a normal, expected thing. */}
+        {sessionEndedReason ? (
+          <div
+            role="status"
+            className="mb-4 flex items-start gap-2.5 rounded-xl border border-gold-500/30 bg-bone-100 px-4 py-3 text-sm text-ink-700"
+          >
+            <Clock size={16} className="mt-0.5 shrink-0 text-gold-500" aria-hidden="true" />
+            <span>{sessionEndedMessage(sessionEndedReason)}</span>
+          </div>
+        ) : null}
+
         <AuthProviderButtons
           isBusy={!isFirebaseConfigured || isLoading || isEmailSubmitting || isProviderBusy}
           onGoogle={() => handleProviderSignIn("google")}
@@ -172,6 +220,17 @@ function CustomerLoginCard({ destination = "/account" }) {
           />
 
           <div className="auth-form-meta">
+            {/* Applies to every provider on this card, not just the password
+                form — it is read at sign-in time by all three handlers. */}
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-700">
+              <input
+                type="checkbox"
+                className="size-4 cursor-pointer accent-brand-500"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+              />
+              Keep me signed in
+            </label>
             <button
               type="button"
               className="auth-text-button"

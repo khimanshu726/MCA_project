@@ -19,6 +19,7 @@ import {
   findUserByMobile,
   hasDuplicateUser,
 } from "../services/userStore.js";
+import { revokeFirebaseSessions } from "../config/firebaseAdmin.js";
 import { saveOtpForMobile, verifyOtpForMobile } from "../services/otpStore.js";
 import { sendOtpSms } from "../services/smsService.js";
 
@@ -266,6 +267,36 @@ export const getCurrentCustomerUser = async (req, res) => {
   return res.json({
     user: mapUserForClient(user),
   });
+};
+
+/**
+ * Ends the customer's session on the server, for every device.
+ *
+ * Signing out of Firebase in the browser only discards the local credential —
+ * an ID token already minted stays valid until it expires, and any other
+ * device keeps its own. Revoking here, together with the checkRevoked in
+ * verifyFirebaseIdToken, is what makes logout an actual invalidation rather
+ * than a client-side state reset.
+ *
+ * Deliberately forgiving: if revocation fails (Firebase unreachable), the
+ * client must still complete its own sign-out. A logout that refuses to
+ * proceed because the network blinked would strand the user signed in on a
+ * shared computer, which is the exact situation logout exists for.
+ */
+export const logoutCustomer = async (req, res) => {
+  const firebaseUid = req.userRecord?.firebaseUid || req.customer?.firebaseUid;
+
+  if (!firebaseUid) {
+    return res.json({ message: "Signed out.", revoked: false });
+  }
+
+  try {
+    await revokeFirebaseSessions(firebaseUid);
+    return res.json({ message: "Signed out.", revoked: true });
+  } catch (error) {
+    console.error("Failed to revoke sessions on logout:", error);
+    return res.json({ message: "Signed out locally.", revoked: false });
+  }
 };
 
 export const handleGoogleCallback = async (req, res) => {
