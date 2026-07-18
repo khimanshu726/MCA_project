@@ -135,6 +135,53 @@ describe("useCartMerge", () => {
     );
   });
 
+  it("waits for the token before merging, and never fires with an empty one", async () => {
+    // Regression for the login-merge race found in E2E testing: the auth
+    // context flips isAuthenticated true synchronously, then fetches the token
+    // over the network. Firing on isAuthenticated alone sent the merge with an
+    // empty token, the server 401'd, and the guest cart was lost. The merge
+    // must hold until the token lands, then go out with it.
+    // This describe's beforeEach re-stubs but doesn't reset call counts, so
+    // clear the merge spy to make this test order-independent.
+    cartApi.mergeCartRemote.mockClear();
+
+    window.localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify([{ id: "p3", name: "Test", price: 20, quantity: 3, category: "c", description: "d", images: ["x"] }]),
+    );
+
+    let authState = { isAuthenticated: false, token: "" };
+    mockUseUserAuth.mockImplementation(() => authState);
+
+    const MergeHarness = () => {
+      useCartMerge();
+      return null;
+    };
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const tree = () => (
+      <QueryClientProvider client={queryClient}>
+        <CartProvider>
+          <MergeHarness />
+        </CartProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree());
+
+    // Session established, token NOT yet fetched — the real gap.
+    authState = { isAuthenticated: true, token: "" };
+    rerender(tree());
+
+    // Nothing must have gone out yet: an empty-token merge is the bug.
+    expect(cartApi.mergeCartRemote).not.toHaveBeenCalled();
+
+    // Token arrives from the profile round-trip.
+    authState = { isAuthenticated: true, token: "real-tok" };
+    rerender(tree());
+
+    await waitFor(() => expect(cartApi.mergeCartRemote).toHaveBeenCalledTimes(1));
+    expect(cartApi.mergeCartRemote).toHaveBeenCalledWith("real-tok", [{ productId: "p3", quantity: 3 }]);
+  });
+
   it("does not merge again on a subsequent token refresh while still authenticated", async () => {
     window.localStorage.setItem(
       CART_STORAGE_KEY,
