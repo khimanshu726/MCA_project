@@ -3,6 +3,7 @@ import {
   FacebookAuthProvider,
   GoogleAuthProvider,
   browserLocalPersistence,
+  connectAuthEmulator,
   getAuth,
   setPersistence,
 } from "firebase/auth";
@@ -31,6 +32,22 @@ if (isFirebaseConfigured) {
   firebaseAuth = getAuth(firebaseApp);
   firestoreDb = getFirestore(firebaseApp);
   firebaseAuth.languageCode = "en";
+
+  // Firebase Auth emulator, for end-to-end testing the authenticated pages
+  // (account, addresses, wishlist, orders) without touching real accounts.
+  //
+  // Only wired when BOTH are true: a dev build, and the developer has set
+  // VITE_FIREBASE_AUTH_EMULATOR_HOST (e.g. in an untracked .env.local). VITE_
+  // vars are inlined at build time, so a production build compiles this whole
+  // branch away unless someone deliberately sets the var in the production
+  // build environment — and `import.meta.env.DEV` is false there regardless.
+  // The server side needs FIREBASE_AUTH_EMULATOR_HOST set on the API process,
+  // which firebase-admin honours natively.
+  const emulatorHost = import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST;
+  if (import.meta.env.DEV && emulatorHost) {
+    connectAuthEmulator(firebaseAuth, `http://${emulatorHost}`, { disableWarnings: true });
+    console.warn(`[firebase] Auth is pointed at the LOCAL EMULATOR at ${emulatorHost} — logins here are test fixtures.`);
+  }
 }
 
 export const googleProvider = new GoogleAuthProvider();
