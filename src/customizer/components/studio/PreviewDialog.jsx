@@ -46,8 +46,12 @@ function PreviewDialog({ open, onClose, design, template }) {
     };
   }, [open, design, template]);
 
+  // `size="lg"` is load-bearing, not decoration. Dialog defaults to max-w-sm
+  // (384px) — a sensible default for a confirm prompt and useless here: this
+  // renders a print artboard, and a 6ft banner shown in a 384px box tells the
+  // customer nothing about the thing they are about to pay to have printed.
   return (
-    <Dialog open={open} onClose={onClose} title="Design preview">
+    <Dialog open={open} onClose={onClose} title="Design preview" size="lg">
       {error && <span className="block text-sm text-danger-600">{error}</span>}
       {!previews && !error && (
         <div className="flex items-center justify-center gap-2 py-8 text-sm text-ink-500">
