@@ -24,7 +24,7 @@ function CartItemCard({
         <span className="flex-1">This product is no longer available.</span>
         <button
           type="button"
-          className="text-sm font-semibold text-danger-600 hover:underline"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-danger-600 hover:underline"
           onClick={() => onRemove(item.productId)}
         >
           Remove
@@ -113,9 +113,15 @@ function CartItemCard({
                 {savedForLater ? "Move to cart" : "Save for later"}
               </button>
             ) : null}
+            {/* min-h-11 (44px) at every width, not gated on a breakpoint.
+                This row sits directly under the quantity stepper, and a 25px
+                target beside a destructive action is how you delete a line you
+                meant to decrement. Gating it on `sm:` was wrong: Tailwind's sm
+                starts at 640px, so it stripped the larger target on tablets —
+                which are touch devices and need it most. */}
             <button
               type="button"
-              className="inline-flex items-center gap-1 font-medium text-danger-600 hover:text-danger-700"
+              className="inline-flex min-h-11 items-center gap-1 font-medium text-danger-600 hover:text-danger-700"
               onClick={() => onRemove(item.productId)}
             >
               <Trash2 size={15} />

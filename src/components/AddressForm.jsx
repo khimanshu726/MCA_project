@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import InputField from "./InputField";
 import Button from "./ui/Button";
 import { usePincodeLookup } from "../hooks/usePincodeLookup";
@@ -31,25 +31,32 @@ function AddressForm({
   onSubmit,
   onCancel,
 }) {
-  const [manualOverride, setManualOverride] = useState(false);
   const pincodeLookup = usePincodeLookup(formState.pincode);
 
   useEffect(() => {
     if (!pincodeLookup.result) return;
     onSetFieldsSilently({
-      city: pincodeLookup.result.district || pincodeLookup.result.area,
+      city: pincodeLookup.result.city,
       district: pincodeLookup.result.district,
       state: pincodeLookup.result.state,
     });
-    setManualOverride(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pincodeLookup.result]);
 
+  // A pincode the service doesn't recognise leaves stale city/state behind
+  // from a previous lookup, which would be submitted alongside the new
+  // pincode — an address that is internally inconsistent and undeliverable.
   useEffect(() => {
-    setManualOverride(false);
-  }, [formState.pincode]);
+    if (!pincodeLookup.notFound) return;
+    onSetFieldsSilently({ city: "", district: "", state: "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pincodeLookup.notFound]);
 
-  const showManualLocationFields = manualOverride || Boolean(pincodeLookup.error);
+  // City and state are locked only while they hold an answer we fetched. Any
+  // other state — nothing entered yet, an unrecognised pincode, or a service
+  // we couldn't reach — leaves them editable, so the form is never a dead end.
+  const isAutoFilled = Boolean(pincodeLookup.result);
+  const lockedFieldClassName = `${fieldClassName} cursor-default bg-ink-50 text-ink-700`;
 
   return (
     <form className="flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-4 sm:p-5" onSubmit={onSubmit} noValidate>
@@ -96,13 +103,23 @@ function AddressForm({
           <InputField
             label="Pincode"
             htmlFor="pincode"
-            error={touched.pincode ? errors.pincode : ""}
-            helperText={
+            // An unrecognised pincode is a validation failure on this field,
+            // so it reads as one rather than as a separate notice elsewhere.
+            error={
               touched.pincode && errors.pincode
+                ? errors.pincode
+                : pincodeLookup.notFound
+                  ? "Invalid PIN code"
+                  : ""
+            }
+            helperText={
+              (touched.pincode && errors.pincode) || pincodeLookup.notFound
                 ? ""
                 : pincodeLookup.isLoading
-                  ? "Detecting city and state..."
-                  : "Enter a 6-digit pincode to auto-detect city and state."
+                  ? "Looking up city and state…"
+                  : pincodeLookup.unavailable
+                    ? "Couldn't reach the lookup service — enter city and state below."
+                    : "Enter a 6-digit pincode and we'll fill in city and state."
             }
           >
             <input
@@ -116,16 +133,10 @@ function AddressForm({
             />
           </InputField>
 
-          {!showManualLocationFields && pincodeLookup.result ? (
-            <p className="mt-2 rounded-lg bg-success-100/40 px-3 py-2 text-xs text-success-600">
-              Detected: {pincodeLookup.result.area}, {pincodeLookup.result.district}, {pincodeLookup.result.state}.{" "}
-              <button type="button" className="font-semibold underline" onClick={() => setManualOverride(true)}>
-                Enter manually
-              </button>
-            </p>
-          ) : null}
-
-          {pincodeLookup.error ? <p className="mt-2 text-xs text-danger-600">{pincodeLookup.error}</p> : null}
+          {/* The "Detected: …, …, … / Enter manually" banner used to sit here.
+              It made the customer read back a result and then decide something,
+              in the middle of a form whose whole point was to save them typing.
+              The answer now simply appears in the City and State fields. */}
         </div>
 
         <div className="sm:col-span-2">
@@ -167,31 +178,39 @@ function AddressForm({
           </InputField>
         </div>
 
-        {showManualLocationFields ? (
-          <>
-            <InputField label="City" htmlFor="city" error={touched.city ? errors.city : ""}>
-              <input
-                id="city"
-                type="text"
-                className={fieldClassName}
-                value={formState.city}
-                onChange={(event) => onFieldChange("city", event.target.value)}
-                onBlur={() => onFieldBlur("city")}
-              />
-            </InputField>
+        {/* Always present, never conditionally mounted. These used to appear
+            only when the lookup failed, so the form grew two fields at the
+            moment something went wrong — the layout shifting under the
+            customer as they typed. Now the shape of the form is constant and
+            only the contents change. */}
+        <InputField label="City" htmlFor="city" error={touched.city ? errors.city : ""}>
+          <input
+            id="city"
+            type="text"
+            className={isAutoFilled ? lockedFieldClassName : fieldClassName}
+            value={formState.city}
+            onChange={(event) => onFieldChange("city", event.target.value)}
+            onBlur={() => onFieldBlur("city")}
+            // readOnly rather than disabled: a disabled input is skipped by
+            // keyboard navigation and is not read out, so the customer could
+            // tab past their own city without ever knowing it was filled in.
+            readOnly={isAutoFilled}
+            aria-readonly={isAutoFilled || undefined}
+          />
+        </InputField>
 
-            <InputField label="State" htmlFor="state" error={touched.state ? errors.state : ""}>
-              <input
-                id="state"
-                type="text"
-                className={fieldClassName}
-                value={formState.state}
-                onChange={(event) => onFieldChange("state", event.target.value)}
-                onBlur={() => onFieldBlur("state")}
-              />
-            </InputField>
-          </>
-        ) : null}
+        <InputField label="State" htmlFor="state" error={touched.state ? errors.state : ""}>
+          <input
+            id="state"
+            type="text"
+            className={isAutoFilled ? lockedFieldClassName : fieldClassName}
+            value={formState.state}
+            onChange={(event) => onFieldChange("state", event.target.value)}
+            onBlur={() => onFieldBlur("state")}
+            readOnly={isAutoFilled}
+            aria-readonly={isAutoFilled || undefined}
+          />
+        </InputField>
 
         {showTypeAndDefault ? (
           <div className="sm:col-span-2">
