@@ -11,6 +11,7 @@ import {
   handleGoogleCallback,
   loginCustomer,
   loginUser,
+  logoutCustomer,
   registerCustomer,
   sendOtp,
   verifyOtp,
@@ -57,6 +58,9 @@ router.get("/admin/me", authenticateRequest, authorizeRoles("admin"), getCurrent
 router.post("/customer/register", authLimiter, registerCustomer);
 router.post("/customer/login", authLimiter, loginCustomer);
 router.get("/customer/me", authenticateCustomer, getCurrentCustomerUser);
+// Revokes every refresh token for this account, so signing out here signs the
+// account out on every device rather than only clearing local state.
+router.post("/customer/logout", authenticateCustomer, logoutCustomer);
 
 router.get(
   "/google",

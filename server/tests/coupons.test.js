@@ -17,7 +17,7 @@ vi.mock("../config/firebaseAdmin.js", () => ({
       throw error;
     }
 
-    return { uid: "test-firebase-uid", email: "coupon-tester@example.com" };
+    return { uid: "test-firebase-uid", email: "coupon-tester@example.com", auth_time: Math.floor(Date.now() / 1000) };
   }),
   isFirebaseAdminConfigured: () => true,
 }));

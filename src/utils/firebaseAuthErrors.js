@@ -32,6 +32,11 @@ const errorMessages = {
   "auth/web-storage-unsupported":
     "This browser cannot persist Firebase sessions. Enable storage or use a modern browser.",
   "auth/wrong-password": "The email or password you entered is incorrect.",
+  // Raised by our own service layer rather than Firebase, for the cases that
+  // used to return quietly and be reported to the customer as success.
+  "auth/no-current-user": "You need to be signed in to request a verification email.",
+  "auth/missing-email": "This account has no email address to verify.",
+  "auth/already-verified": "This email is already verified — you're all set.",
 };
 
 export const getFirebaseAuthErrorMessage = (error) => {
@@ -39,5 +44,19 @@ export const getFirebaseAuthErrorMessage = (error) => {
     return "Authentication failed. Please try again.";
   }
 
-  return errorMessages[error.code] || "Authentication failed. Please try again.";
+  const known = errorMessages[error.code];
+  if (known) {
+    return known;
+  }
+
+  // Everything unmapped used to collapse into a single generic sentence, which
+  // is how a specific, diagnosable failure — an unauthorized domain, a
+  // disabled provider, an exhausted quota — became "authentication failed" and
+  // looked like nothing happening at all. Carrying the raw code through costs
+  // the customer nothing (they can read it to support) and is the difference
+  // between a fixable report and a shrug.
+  const code = typeof error.code === "string" ? error.code : "";
+  return code
+    ? `Authentication failed (${code}). Please try again, or contact support with that code.`
+    : "Authentication failed. Please try again.";
 };

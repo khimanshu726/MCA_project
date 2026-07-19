@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Button from "./ui/Button";
 import { useCart } from "../hooks/useCart";
 import { getMinimumOrderQty, isProductOutOfStock } from "../utils/productAvailability";
 
@@ -15,6 +16,12 @@ function AddToCartButton({
   className = "secondary-button",
   idleLabel = "Add to cart",
   addedLabel = "Added",
+  // Opt-in to the shared Button component. Call sites that pass a variant get
+  // design-system sizing (needed wherever this sits beside another Button and
+  // the two must match height); the rest keep the legacy class-based button.
+  variant = null,
+  size = "md",
+  quantity = null,
 }) {
   const { addToCart, cartItemIds } = useCart();
   const [isLocked, setIsLocked] = useState(false);
@@ -49,7 +56,7 @@ function AddToCartButton({
       // Awaited: the authenticated path is a server round-trip, and an
       // unawaited rejection used to be swallowed while the button still
       // claimed "Added".
-      await addToCart(product, getMinimumOrderQty(product));
+      await addToCart(product, quantity ?? getMinimumOrderQty(product));
       setIsAdded(true);
       feedbackTimerRef.current = window.setTimeout(() => setIsAdded(false), 1600);
     } catch {
@@ -58,6 +65,22 @@ function AddToCartButton({
       lockTimerRef.current = window.setTimeout(() => setIsLocked(false), 700);
     }
   };
+
+  if (variant) {
+    return (
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        className={className}
+        onClick={handleClick}
+        disabled={isLocked || isOutOfStock}
+        aria-label={isOutOfStock ? undefined : `Add ${product.name} to cart`}
+      >
+        {isOutOfStock ? "Out of stock" : error || (isAdded ? addedLabel : idleLabel)}
+      </Button>
+    );
+  }
 
   if (isOutOfStock) {
     return (

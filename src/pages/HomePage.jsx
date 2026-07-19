@@ -39,8 +39,22 @@ const testimonials = [
 ];
 
 function HomePage() {
-  const { data, isLoading, isError } = useProducts({ featured: true, limit: 4 });
+  const { data, isLoading, refetch, isFetching } = useProducts({ featured: true, limit: 4 });
   const popularProducts = data?.items ?? [];
+
+  // Belt and braces alongside the networkMode fix in main.jsx. Branching on
+  // isLoading/isError alone assumes those two flags cover every non-success
+  // state, and they don't — a paused or otherwise indeterminate query
+  // satisfies neither and used to fall through here, rendering an empty grid
+  // that reads as "this store has no best-sellers".
+  //
+  // `data` is the honest signal: absent means we never got an answer, whatever
+  // the flags say. An answer that legitimately contains nothing is a different
+  // situation and gets different words — telling someone we couldn't reach the
+  // server when an admin has simply unfeatured everything would be a lie.
+  const hasAnswer = Boolean(data);
+  const couldNotLoad = !isLoading && !hasAnswer;
+  const answeredButEmpty = !isLoading && hasAnswer && popularProducts.length === 0;
 
   return (
     <main className="page-stack">
@@ -123,7 +137,17 @@ function HomePage() {
               imageAlt={category.title}
               title={category.title}
               description={category.description}
-              to={`/products/${category.productId}`}
+              // A card labelled "Visiting Cards" under a "Shop by category"
+              // heading has to open the category, not one product from inside
+              // it. This used to link to `/products/${category.productId}` —
+              // a single hardcoded item's detail page — so choosing a category
+              // committed the customer to one product, and adding a second
+              // visiting card would have left the homepage still pointing at
+              // whichever one was picked years earlier.
+              //
+              // `searchCategory` exists on this data for exactly this purpose
+              // and matches the catalog's own category values.
+              to={`/products?category=${encodeURIComponent(category.searchCategory)}`}
             />
           ))}
         </div>
@@ -141,8 +165,31 @@ function HomePage() {
         </div>
         {isLoading ? (
           <p className="section-copy">Loading popular products&hellip;</p>
-        ) : isError ? (
-          <p className="section-copy">We couldn&rsquo;t load popular products right now.</p>
+        ) : couldNotLoad ? (
+          <div role="status">
+            <p className="section-copy">
+              We couldn&rsquo;t load popular products just now. The rest of the catalog is still available.
+            </p>
+            <div className="action-row">
+              <button type="button" className="secondary-button" onClick={() => refetch()} disabled={isFetching}>
+                {isFetching ? "Retrying…" : "Try again"}
+              </button>
+              <Link className="ghost-button" to="/products">
+                Browse all products
+              </Link>
+            </div>
+          </div>
+        ) : answeredButEmpty ? (
+          <div>
+            <p className="section-copy">
+              No products are featured right now &mdash; the full catalog is still open.
+            </p>
+            <div className="action-row">
+              <Link className="secondary-button" to="/products">
+                Browse all products
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="product-grid">
             {popularProducts.map((product) => (

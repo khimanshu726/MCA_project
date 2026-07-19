@@ -19,6 +19,7 @@ import { measureTextLayerHeight } from "../engine/textMetrics.js";
 import { exportDesign } from "../engine/exportDesign.js";
 import { validateDesignForPrint } from "../engine/validation.js";
 import { storePendingDesign } from "../pendingDesign.js";
+import { storeBuyNowSession } from "../../utils/buyNowSession.js";
 import { readImageFiles, ACCEPTED_TYPES } from "./UploadDropzone.jsx";
 import { uploadDesignAssetRemote } from "../../api/designsApi.js";
 import { useDesigns } from "../../hooks/useDesigns.js";
@@ -264,61 +265,119 @@ function DesignStudio({
     [isAuthenticated, design, template, product, projectName, serverDesignId, updateDesign, saveDesign, actions, pushToast],
   );
 
-  const runAddToCart = useCallback(async () => {
-    setValidationResult(null);
-    setIsExporting(true);
+  /**
+   * Everything a finished design has to do before it can be bought — flatten
+   * to a print file, hand it to checkout, save the design — is identical
+   * whether the customer is adding to the cart or buying now. Only the last
+   * step differs, so only the last step branches.
+   */
+  const runCheckoutHandoff = useCallback(
+    async (mode) => {
+      setValidationResult(null);
+      setIsExporting(true);
 
-    try {
-      const { printFiles } = await exportDesign(design, template);
-      const stored = storePendingDesign({
-        productId: product.id,
-        productName: product.name,
-        printFiles,
-        optionsSummary: optionsSummaryText(design, template, product),
-      });
-
-      if (!stored) {
-        pushToast({
-          type: "error",
-          message: "The print file is too large to hand to checkout — reduce the design size and try again.",
+      try {
+        const { printFiles } = await exportDesign(design, template);
+        const optionsSummary = optionsSummaryText(design, template, product);
+        const stored = storePendingDesign({
+          productId: product.id,
+          productName: product.name,
+          printFiles,
+          optionsSummary,
         });
-        return;
+
+        if (!stored) {
+          pushToast({
+            type: "error",
+            message: "The print file is too large to hand to checkout — reduce the design size and try again.",
+          });
+          return;
+        }
+
+        await persistDesign({ silent: true });
+
+        // Mark clean BEFORE clearing the draft: useAutosave flushes dirty
+        // state on unmount, which would otherwise re-persist the draft the
+        // moment we navigate away.
+        actions.markSaved();
+        clearDraft(product.id);
+
+        if (mode === "buynow") {
+          // Straight to checkout without touching the cart. The artwork rides
+          // along in the pending-design slot that CheckoutReviewPage already
+          // reads, so the customization survives the handoff unchanged.
+          const session = storeBuyNowSession({
+            productId: product.id,
+            quantity,
+            customization: { optionsSummary, productName: product.name },
+            unitPriceAtStart: product.price,
+          });
+
+          if (!session) {
+            pushToast({ type: "error", message: "Couldn't start checkout in this browser. Add to cart instead." });
+            return;
+          }
+
+          navigate(isAuthenticated ? "/checkout/address" : "/login", {
+            state: isAuthenticated ? undefined : { from: "/checkout/address" },
+          });
+          return;
+        }
+
+        // Set, don't stack: the studio quantity IS the print run, so re-adding
+        // a design must land on 250 rather than silently doubling it. addItem
+        // merges server-side, hence the explicit set when the line exists.
+        const alreadyInCart = items.some((item) => item.productId === product.id && !item.savedForLater);
+        if (alreadyInCart) {
+          await updateQuantity(product.id, quantity);
+        } else {
+          await addToCart(product, quantity);
+        }
+
+        pushToast({ type: "success", message: `${product.name} with your design is in the cart.` });
+        setTimeout(() => navigate("/cart"), 650);
+      } catch (error) {
+        pushToast({ type: "error", message: error.message || "Couldn't prepare the print file." });
+      } finally {
+        setIsExporting(false);
       }
+    },
+    [
+      design,
+      template,
+      product,
+      quantity,
+      items,
+      isAuthenticated,
+      updateQuantity,
+      addToCart,
+      persistDesign,
+      actions,
+      pushToast,
+      navigate,
+    ],
+  );
 
-      await persistDesign({ silent: true });
-
-      // Set, don't stack: the studio quantity IS the print run, so re-adding
-      // a design must land on 250 rather than silently doubling it. addItem
-      // merges server-side, hence the explicit set when the line exists.
-      const alreadyInCart = items.some((item) => item.productId === product.id && !item.savedForLater);
-      if (alreadyInCart) {
-        await updateQuantity(product.id, quantity);
-      } else {
-        await addToCart(product, quantity);
-      }
-
-      // Mark clean BEFORE clearing the draft: useAutosave flushes dirty
-      // state on unmount, which would otherwise re-persist the draft the
-      // moment we navigate to the cart.
-      actions.markSaved();
-      clearDraft(product.id);
-      pushToast({ type: "success", message: `${product.name} with your design is in the cart.` });
-      setTimeout(() => navigate("/cart"), 650);
-    } catch (error) {
-      pushToast({ type: "error", message: error.message || "Couldn't prepare the print file." });
-    } finally {
-      setIsExporting(false);
-    }
-  }, [design, template, product, quantity, items, updateQuantity, addToCart, persistDesign, actions, pushToast, navigate]);
-
+  // Both entry points run the same print-validation gate; the chosen mode is
+  // held so "continue anyway" resumes the action the customer actually asked
+  // for rather than always falling back to add-to-cart.
   const handleAddToCart = useCallback(() => {
     const result = validateDesignForPrint(design, template);
     if (result.errors.length > 0 || result.warnings.length > 0) {
-      setValidationResult(result);
+      setValidationResult({ ...result, mode: "cart" });
       return;
     }
-    runAddToCart();
-  }, [design, template, runAddToCart]);
+    runCheckoutHandoff("cart");
+  }, [design, template, runCheckoutHandoff]);
+
+  const handleBuyNow = useCallback(() => {
+    const result = validateDesignForPrint(design, template);
+    if (result.errors.length > 0 || result.warnings.length > 0) {
+      setValidationResult({ ...result, mode: "buynow" });
+      return;
+    }
+    runCheckoutHandoff("buynow");
+  }, [design, template, runCheckoutHandoff]);
 
   const handleBack = useCallback(() => {
     if (isDirty && !window.confirm("Leave the studio? Your unsaved changes are kept as a draft.")) {
@@ -385,6 +444,7 @@ function DesignStudio({
             onPreview={handlePreviewOpen}
             onSave={handleSave}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
           />
         }
         rail={
@@ -551,12 +611,13 @@ function DesignStudio({
               <button
                 type="button"
                 onClick={() => {
+                  const mode = validationResult.mode || "cart";
                   setValidationResult(null);
-                  runAddToCart();
+                  runCheckoutHandoff(mode);
                 }}
                 className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"
               >
-                Add to cart anyway
+                {validationResult?.mode === "buynow" ? "Buy now anyway" : "Add to cart anyway"}
               </button>
             )}
           </>

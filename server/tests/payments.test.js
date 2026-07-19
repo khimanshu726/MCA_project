@@ -13,7 +13,7 @@ import { User } from "../models/User.js";
 vi.mock("../config/firebaseAdmin.js", () => ({
   verifyFirebaseIdToken: vi.fn(async (token) => {
     if (token === "valid-token") {
-      return { uid: "payment-tester-uid", email: "payment-tester@example.com" };
+      return { uid: "payment-tester-uid", email: "payment-tester@example.com", auth_time: Math.floor(Date.now() / 1000) };
     }
     const error = new Error("Invalid token");
     error.statusCode = 401;

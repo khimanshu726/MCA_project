@@ -92,6 +92,78 @@ describe("ResponsiveImage", () => {
     });
   });
 
+  describe("images that finish before React attaches onLoad", () => {
+    // jsdom never really loads anything, so `complete` is false and
+    // `naturalWidth` is 0 by default. A cached or eager image in a real
+    // browser arrives the other way round — already complete by the time the
+    // listener exists — so it has to be simulated here.
+    const simulateAlreadyCached = () => {
+      Object.defineProperty(window.HTMLImageElement.prototype, "complete", {
+        configurable: true,
+        get: () => true,
+      });
+      Object.defineProperty(window.HTMLImageElement.prototype, "naturalWidth", {
+        configurable: true,
+        get: () => 1800,
+      });
+    };
+
+    afterEach(() => {
+      delete window.HTMLImageElement.prototype.complete;
+      delete window.HTMLImageElement.prototype.naturalWidth;
+    });
+
+    it("reveals an image that was already complete, without waiting for onLoad", () => {
+      // The homepage hero bug: eager + cached meant onLoad never fired, so the
+      // fade-in never started and a fully downloaded image sat at opacity 0
+      // forever. No load event is dispatched in this test on purpose.
+      simulateAlreadyCached();
+
+      render(<ResponsiveImage src="https://example.com/hero.jpg" alt="Hero" priority />);
+
+      expect(screen.getByAltText("Hero").className).toContain("is-loaded");
+      expect(document.querySelector(".image-skeleton")).not.toBeInTheDocument();
+    });
+
+    it("applies to lazy images too, not just priority ones", () => {
+      simulateAlreadyCached();
+
+      render(<ResponsiveImage src="https://example.com/card.jpg" alt="Card" />);
+
+      expect(screen.getByAltText("Card").className).toContain("is-loaded");
+    });
+
+    it("re-checks after a src swap, where the same race can recur", () => {
+      simulateAlreadyCached();
+
+      const { rerender } = render(<ResponsiveImage src="https://example.com/a.jpg" alt="Swap" />);
+      expect(screen.getByAltText("Swap").className).toContain("is-loaded");
+
+      rerender(<ResponsiveImage src="https://example.com/b.jpg" alt="Swap" />);
+      // The new src is cached too, so it must resolve without a load event
+      // rather than being stranded mid-fade.
+      expect(screen.getByAltText("Swap").className).toContain("is-loaded");
+    });
+
+    it("does not claim a broken image is loaded", () => {
+      // complete is true for a FAILED load as well — naturalWidth is what
+      // separates "arrived" from "gave up", and treating the two alike would
+      // reveal a broken image instead of falling back.
+      Object.defineProperty(window.HTMLImageElement.prototype, "complete", {
+        configurable: true,
+        get: () => true,
+      });
+      Object.defineProperty(window.HTMLImageElement.prototype, "naturalWidth", {
+        configurable: true,
+        get: () => 0,
+      });
+
+      render(<ResponsiveImage src="https://example.com/broken.jpg" alt="Broken" />);
+
+      expect(screen.getByAltText("Broken").className).not.toContain("is-loaded");
+    });
+  });
+
   it("resets to a fresh loading state when the src prop changes", () => {
     const { rerender } = render(<ResponsiveImage src="https://example.com/a.jpg" alt="Test product" />);
     fireEvent.load(screen.getByAltText("Test product"));

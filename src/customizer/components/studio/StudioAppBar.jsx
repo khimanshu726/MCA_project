@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, ShoppingBag, Undo2 } from "lucide-react";
+import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, ShoppingBag, Undo2, Zap } from "lucide-react";
 
 /**
  * The studio's only header. Three fixed zones that never wrap — an app bar
@@ -106,6 +106,7 @@ function StudioAppBar({
   onPreview,
   onSave,
   onAddToCart,
+  onBuyNow,
 }) {
   return (
     <div className="relative flex w-full items-center">
@@ -203,14 +204,27 @@ function StudioAppBar({
           type="button"
           onClick={onAddToCart}
           disabled={isExporting}
-          className="ml-2 flex h-8 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
+          className="ml-2 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-semibold text-ink-800 transition-colors duration-150 hover:bg-ink-200 disabled:opacity-60"
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
           ) : (
             <ShoppingBag size={13} aria-hidden="true" />
           )}
-          {isExporting ? "Preparing…" : "Add to cart"}
+          <span className="hidden sm:inline">{isExporting ? "Preparing…" : "Add to cart"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onBuyNow}
+          disabled={isExporting}
+          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
+        >
+          {isExporting ? (
+            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <Zap size={13} aria-hidden="true" />
+          )}
+          Buy now
         </button>
       </div>
     </div>

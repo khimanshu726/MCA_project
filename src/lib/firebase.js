@@ -3,6 +3,7 @@ import {
   FacebookAuthProvider,
   GoogleAuthProvider,
   browserLocalPersistence,
+  browserSessionPersistence,
   connectAuthEmulator,
   getAuth,
   setPersistence,
@@ -26,6 +27,7 @@ let firebaseApp = null;
 let firebaseAuth = null;
 let firestoreDb = null;
 let authPersistencePromise = null;
+let appliedPersistence = null;
 
 if (isFirebaseConfigured) {
   firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -64,11 +66,56 @@ export const ensureFirebaseAuth = () => {
   return firebaseAuth;
 };
 
-export const ensureFirebasePersistence = async () => {
-  const auth = ensureFirebaseAuth();
+const REMEMBER_ME_KEY = "ee-auth-remember-me";
 
-  if (!authPersistencePromise) {
-    authPersistencePromise = setPersistence(auth, browserLocalPersistence);
+/**
+ * Whether the customer asked to stay signed in on this device.
+ *
+ * Stored in localStorage on purpose, and note what it is NOT: this is a UI
+ * preference, not a credential. Nothing is authorized by it. Flipping it by
+ * hand changes which persistence Firebase uses on the next sign-in and
+ * nothing else — it cannot extend a session, because the server enforces the
+ * maximum age against the signed auth_time claim regardless.
+ */
+export const getRememberMePreference = () => {
+  try {
+    return localStorage.getItem(REMEMBER_ME_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+export const setRememberMePreference = (rememberMe) => {
+  try {
+    localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? "true" : "false");
+  } catch {
+    // Private mode: fall through to the not-remembered default.
+  }
+};
+
+/**
+ * Applies the persistence the customer's choice implies.
+ *
+ * This is the fix for "logged in forever". The previous code pinned
+ * browserLocalPersistence unconditionally, and Firebase refresh tokens never
+ * expire — so one Google sign-in authenticated that browser permanently, until
+ * someone cleared site data. No shop behaves that way.
+ *
+ * Not remembered now means browserSessionPersistence: the refresh token lives
+ * in the tab's session storage and is gone when the browser closes. That is
+ * enforced by never writing the credential to disk, so no client-side timer
+ * can be bypassed to defeat it.
+ *
+ * Must be awaited BEFORE any sign-in call, since persistence applies to
+ * credentials stored after it is set.
+ */
+export const ensureFirebasePersistence = async (rememberMe = getRememberMePreference()) => {
+  const auth = ensureFirebaseAuth();
+  const desired = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+
+  if (appliedPersistence !== desired) {
+    appliedPersistence = desired;
+    authPersistencePromise = setPersistence(auth, desired);
   }
 
   await authPersistencePromise;
