@@ -19,6 +19,8 @@ import { sessionEndedMessage } from "../auth/sessionPolicy";
 import { buildLoginErrors, hasErrors, normalizeEmailInput } from "../utils/authValidation";
 import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrors";
 
+const RESET_COOLDOWN_SECONDS = 60;
+
 function CustomerLoginCard({ destination = "/account" }) {
   const navigate = useNavigate();
   const {
@@ -34,6 +36,16 @@ function CustomerLoginCard({ destination = "/account" }) {
   // one we make for them — and on a shared machine the safe default is the
   // shorter session.
   const [rememberMe, setRememberMe] = useState(false);
+  // Stops repeat taps firing a burst of resets — which trips Firebase's
+  // auth/too-many-requests and locks the customer out of the one recovery
+  // path they were trying to use.
+  const [resetCooldownSeconds, setResetCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resetCooldownSeconds <= 0) return undefined;
+    const timerId = window.setTimeout(() => setResetCooldownSeconds((value) => Math.max(value - 1, 0)), 1000);
+    return () => window.clearTimeout(timerId);
+  }, [resetCooldownSeconds]);
 
   // The notice explains why they landed here; it should not outlive the visit.
   // Clearing on unmount stops it reappearing on a later, deliberate visit to
@@ -125,18 +137,34 @@ function CustomerLoginCard({ destination = "/account" }) {
       return;
     }
 
+    if (resetCooldownSeconds > 0) {
+      return;
+    }
+
     setSubmitError("");
     setIsResettingPassword(true);
 
     try {
       await sendCustomerPasswordReset(normalizeEmailInput(email));
+      // Deliberately hedged. Firebase's email-enumeration protection means
+      // this call succeeds even when no account exists for the address, so a
+      // flat "Check your inbox" is a promise we cannot keep — and someone
+      // waiting on an email for an account they never created will conclude
+      // the feature is broken. Naming both possibilities is the honest
+      // version, and it costs nothing when the account does exist.
       pushToast({
         type: "success",
-        title: "Password reset sent",
-        message: "Check your inbox for a secure password reset link.",
+        title: "Reset link sent",
+        message: `If an account exists for ${normalizeEmailInput(email)}, a reset link is on its way. Check spam too.`,
       });
+      setResetCooldownSeconds(RESET_COOLDOWN_SECONDS);
     } catch (error) {
-      setSubmitError(getFirebaseAuthErrorMessage(error));
+      const message = getFirebaseAuthErrorMessage(error);
+      setSubmitError(message);
+      // Failures were previously written inline only, below the fold on a
+      // short viewport, while the success case got a toast. Same weight for
+      // both, so a failure can't be missed.
+      pushToast({ type: "error", title: "Couldn't send reset link", message });
     } finally {
       setIsResettingPassword(false);
     }
@@ -235,9 +263,13 @@ function CustomerLoginCard({ destination = "/account" }) {
               type="button"
               className="auth-text-button"
               onClick={handleForgotPassword}
-              disabled={isResettingPassword || isEmailSubmitting || isProviderBusy}
+              disabled={isResettingPassword || isEmailSubmitting || isProviderBusy || resetCooldownSeconds > 0}
             >
-              {isResettingPassword ? "Sending reset link..." : "Forgot Password?"}
+              {isResettingPassword
+                ? "Sending reset link..."
+                : resetCooldownSeconds > 0
+                  ? `Resend in ${resetCooldownSeconds}s`
+                  : "Forgot Password?"}
             </button>
           </div>
 

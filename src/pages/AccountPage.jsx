@@ -48,11 +48,14 @@ function AccountPage() {
             <div className="account-detail-list">
               <div className="summary-line">
                 <span>Account name</span>
-                <strong>{accountName}</strong>
+                <strong title={accountName}>{accountName}</strong>
               </div>
               <div className="summary-line">
                 <span>Signed in as</span>
-                <strong>{contactLabel}</strong>
+                {/* title carries the full address for a pointer user; the value
+                    wraps rather than truncating, so nothing depends on hover —
+                    which does not exist on touch. */}
+                <strong title={contactLabel}>{contactLabel}</strong>
               </div>
               <div className="summary-line">
                 <span>Login method</span>
@@ -76,7 +79,7 @@ function AccountPage() {
             <p className="eyebrow">Order History</p>
             <div className="account-detail-list">
               <div className="summary-line">
-                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span className="summary-line-label">
                   <PackageSearch size={16} aria-hidden="true" /> Total orders
                 </span>
                 <strong>{orders.length}</strong>
@@ -94,7 +97,7 @@ function AccountPage() {
             <p className="eyebrow">Saved Addresses</p>
             <div className="account-detail-list">
               <div className="summary-line">
-                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span className="summary-line-label">
                   <MapPin size={16} aria-hidden="true" /> Saved addresses
                 </span>
                 <strong>{addresses.length}</strong>
@@ -109,7 +112,7 @@ function AccountPage() {
             <p className="eyebrow">Wishlist</p>
             <div className="account-detail-list">
               <div className="summary-line">
-                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span className="summary-line-label">
                   <Heart size={16} aria-hidden="true" /> Saved items
                 </span>
                 <strong>{wishlistItems.length}</strong>

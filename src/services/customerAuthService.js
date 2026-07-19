@@ -144,9 +144,34 @@ export const sendCustomerPasswordReset = async (email) => {
   await sendPasswordResetEmail(auth, email);
 };
 
+/**
+ * Re-sends the verification email for the signed-in user.
+ *
+ * Throws rather than returning quietly when there is nothing to send. The old
+ * version returned `undefined` for a missing user, a user with no email, or an
+ * already-verified one — and the caller, seeing no exception, told the
+ * customer "Verification email sent. Please check your inbox." That is the
+ * worst possible outcome: a confident success for an email that was never
+ * requested, indistinguishable from a delivery problem, and it sends people
+ * hunting through spam folders for a message that does not exist.
+ */
 export const resendCurrentUserVerificationEmail = async (user) => {
-  if (!user || !user.email || user.emailVerified) {
-    return;
+  if (!user) {
+    const error = new Error("You need to be signed in to request a verification email.");
+    error.code = "auth/no-current-user";
+    throw error;
+  }
+
+  if (!user.email) {
+    const error = new Error("This account has no email address to verify.");
+    error.code = "auth/missing-email";
+    throw error;
+  }
+
+  if (user.emailVerified) {
+    const error = new Error("This email is already verified.");
+    error.code = "auth/already-verified";
+    throw error;
   }
 
   await sendEmailVerification(user);

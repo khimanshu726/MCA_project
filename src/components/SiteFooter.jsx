@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ExternalLink, Mail, Phone } from "lucide-react";
+import { getConfiguredSocialLinks } from "../config/socialLinks";
 
 const footerLinks = [
   {
@@ -33,14 +34,9 @@ const footerLinks = [
   },
 ];
 
-const socialLinks = [
-  { label: "Instagram", href: "#" },
-  { label: "YouTube", href: "#" },
-  { label: "Twitter", href: "#" },
-  { label: "LinkedIn", href: "#" },
-];
-
 function SiteFooter() {
+  const socialLinks = getConfiguredSocialLinks();
+
   return (
     <footer className="site-footer">
       <div className="footer-grid">
@@ -50,13 +46,28 @@ function SiteFooter() {
             Premium print products crafted for growing brands - business cards, packaging,
             merchandise, custom gifts, and event print made easier to order.
           </p>
-          <div className="footer-social">
-            {socialLinks.map((link) => (
-              <a key={link.label} href={link.href} aria-label={link.label} title={link.label}>
-                <ExternalLink size={16} strokeWidth={1.6} />
-              </a>
-            ))}
-          </div>
+          {/* Rendered only when at least one profile is configured — an empty
+              row of dead buttons says less than no row at all. */}
+          {socialLinks.length > 0 ? (
+            <nav className="footer-social" aria-label="Elite Empressions on social media">
+              {socialLinks.map(({ id, label, url }) => (
+                <a
+                  key={id}
+                  href={url}
+                  // Leaves our site, so it opens away from a checkout in
+                  // progress. `noopener` denies the opened page access to this
+                  // window; `noreferrer` keeps our URLs out of their analytics.
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${label} (opens in a new tab)`}
+                  title={`${label} — opens in a new tab`}
+                >
+                  <span>{label}</span>
+                  <ExternalLink size={13} strokeWidth={1.6} aria-hidden="true" />
+                </a>
+              ))}
+            </nav>
+          ) : null}
           <div className="footer-contact-list">
             <span>
               <Mail size={14} strokeWidth={1.6} /> hello@elite-empressions.com
@@ -83,11 +94,12 @@ function SiteFooter() {
 
       <div className="footer-bottom">
         <span>&copy; {new Date().getFullYear()} Elite Empressions. All rights reserved.</span>
-        <div className="footer-bottom-links">
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms of Service</a>
-          <a href="#">Cookies</a>
-        </div>
+        {/* Privacy Policy / Terms of Service / Cookies used to sit here as
+            `href="#"` — links that consumed a click and did nothing, because
+            no such pages exist. They are omitted rather than faked: the one
+            thing worse than a missing policy link is one that pretends to be
+            a policy. Restore them here once the real pages exist; that is a
+            content and legal task, not a markup one. */}
       </div>
     </footer>
   );

@@ -1564,7 +1564,23 @@ select {
   gap: 2rem;
 }
 @media (max-width: 900px) { .account-grid { grid-template-columns: 1fr; } }
-.account-detail-list { display: flex; flex-direction: column; gap: 1rem; }
+/* One rhythm for every row, so the card reads as a table of facts rather than
+   a stack of loosely related lines. Hairlines between rows rather than extra
+   space: they hold the two columns visually together at any value length. */
+.account-detail-list {
+  display: flex;
+  flex-direction: column;
+  /* Deliberately 0: spacing is owned by the rule below so the gap above and
+     below each hairline is identical. A `gap` here would stack on top of that
+     padding and make every divider sit off-centre. */
+  gap: 0;
+}
+
+.account-detail-list > .summary-line + .summary-line {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--ink-100);
+}
 .address-card {
   border: 1px solid var(--stroke);
   border-radius: var(--r-lg);
@@ -2154,17 +2170,51 @@ textarea {
   color: var(--ink-950);
 }
 
+/* Two real columns: a label that keeps its width and a value that takes the
+   rest and is allowed to be narrow.
+
+   This was `display: flex` with `justify-content: space-between`, which looks
+   identical until the value is long. Flex and grid items are `min-width: auto`
+   by default, meaning they refuse to shrink below their content — so a long
+   email pushed straight through the right edge of the card instead of
+   wrapping. `minmax(0, 1fr)` plus `min-width: 0` is what actually permits the
+   shrink; `overflow-wrap: anywhere` then breaks the address, which has no
+   spaces to break at. */
 .summary-line {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-5);
+  align-items: baseline;
   color: var(--ink-600);
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
 }
 
-.summary-line strong {
+.summary-line > span {
+  color: var(--ink-500);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Label rows that carry a leading icon. Was three copies of the same inline
+   style object, which also forced `display: flex` onto a grid child and
+   fought the column sizing. */
+.summary-line-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.summary-line > strong {
+  min-width: 0;
+  justify-self: end;
+  text-align: right;
   color: var(--ink-950);
+  font-weight: 600;
+  line-height: 1.5;
+  /* Wrap rather than truncate. An ellipsis hides part of the customer's own
+     email behind a hover, which is unavailable on touch — and the one thing
+     worse than a cramped address is one you cannot read at all. */
+  overflow-wrap: anywhere;
 }
 
 .total-line {
@@ -2518,6 +2568,14 @@ textarea {
   .summary-line,
   .address-card-main {
     grid-template-columns: 1fr;
+  }
+
+  /* Stacked into one column, a right-aligned value would sit alone against the
+     far edge with its label at the left — reading as two unrelated things.
+     Left-align so the pair stays legible as a label and its value. */
+  .summary-line > strong {
+    justify-self: start;
+    text-align: left;
   }
 
   .cart-item-row {
