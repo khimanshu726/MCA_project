@@ -7,10 +7,12 @@ function PasswordField({
   value,
   onChange,
   onBlur,
+  onKeyDown,
   error,
   helperText,
   autoComplete = "current-password",
   placeholder = "Enter password",
+  disabled = false,
 }) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -25,6 +27,8 @@ function PasswordField({
           value={value}
           onChange={onChange}
           onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          disabled={disabled}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : helperText ? `${id}-helper` : undefined}
         />
@@ -32,6 +36,10 @@ function PasswordField({
           type="button"
           className="auth-password-toggle"
           onClick={() => setIsVisible((currentValue) => !currentValue)}
+          // The toggle also disables during submit, so it can't reveal the
+          // password of a request already in flight, and keeps the field
+          // uniformly inert while signing in.
+          disabled={disabled}
           aria-label={`${isVisible ? "Hide" : "Show"} ${label.toLowerCase()}`}
         >
           {isVisible ? "Hide" : "Show"}

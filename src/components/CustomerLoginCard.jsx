@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Clock } from "lucide-react";
 import AuthProviderButtons from "./AuthProviderButtons";
 import AuthToast from "./AuthToast";
@@ -16,8 +16,14 @@ import {
   signInCustomerWithGoogle,
 } from "../services/customerAuthService";
 import { sessionEndedMessage } from "../auth/sessionPolicy";
-import { buildLoginErrors, hasErrors, normalizeEmailInput } from "../utils/authValidation";
+import { buildLoginErrors, normalizeEmailInput } from "../utils/authValidation";
 import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrors";
+import { mapLoginError } from "../utils/loginErrors";
+
+const focusById = (id) => {
+  if (typeof document === "undefined") return;
+  document.getElementById(id)?.focus();
+};
 
 const RESET_COOLDOWN_SECONDS = 60;
 
@@ -56,18 +62,25 @@ function CustomerLoginCard({ destination = "/account" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touchedFields, setTouchedFields] = useState({});
+  // A plain string for the provider / reset / config paths, and a structured
+  // object for the email login path — the latter carries which recovery links
+  // to offer beside the message.
   const [submitError, setSubmitError] = useState("");
+  const [loginError, setLoginError] = useState(null);
   const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
   const [isProviderBusy, setIsProviderBusy] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const validationErrors = useMemo(() => buildLoginErrors({ email, password }), [email, password]);
-  const canSubmit =
-    isFirebaseConfigured &&
-    !isLoading &&
-    !isEmailSubmitting &&
-    !isProviderBusy &&
-    !hasErrors(validationErrors);
+  // Deliberately NOT gated on validation errors. The button must stay
+  // clickable on an incomplete form so that clicking it is what surfaces the
+  // inline errors (item 3) — a button disabled until the form is valid can
+  // never show the customer what is wrong.
+  const canSubmit = isFirebaseConfigured && !isLoading && !isEmailSubmitting && !isProviderBusy;
+  const clearErrors = () => {
+    setSubmitError("");
+    setLoginError(null);
+  };
 
   const handleProviderSignIn = async (providerType) => {
     if (!isFirebaseConfigured) {
@@ -75,7 +88,7 @@ function CustomerLoginCard({ destination = "/account" }) {
       return;
     }
 
-    setSubmitError("");
+    clearErrors();
     setIsProviderBusy(true);
 
     try {
@@ -104,26 +117,52 @@ function CustomerLoginCard({ destination = "/account" }) {
   const handleEmailLogin = async (event) => {
     event.preventDefault();
     setTouchedFields({ email: true, password: true });
+    clearErrors();
 
-    if (hasErrors(validationErrors)) {
-      setSubmitError("Enter a valid email address and password to continue.");
+    // Validate before calling Firebase (item 3), and move focus to the first
+    // problem so a keyboard user lands on it rather than hunting for it.
+    if (validationErrors.email) {
+      focusById("login-email");
+      return;
+    }
+    if (validationErrors.password) {
+      focusById("login-password");
       return;
     }
 
-    setSubmitError("");
     setIsEmailSubmitting(true);
 
     try {
+      // Persistence is applied before the sign-in call — see prepareSignIn.
+      // This is what makes "Keep me signed in" (item 12) actually govern
+      // whether the credential survives a browser restart.
       await prepareSignIn(rememberMe);
-      await signInCustomerWithEmail({
+      const user = await signInCustomerWithEmail({
         email: normalizeEmailInput(email),
         password,
       });
       await refreshProfile();
       completeSignIn();
+
+      // Signed in, but the address is unverified. We don't block the customer
+      // out (that would be a larger product decision, and protected routes
+      // don't gate on verification today) — we prompt, and the account page's
+      // verification banner is the persistent place to resend or refresh.
+      if (user && !user.emailVerified) {
+        pushToast({
+          type: "info",
+          title: "Verify your email",
+          message: "Please verify your email before continuing — check your inbox. You can resend it from your account.",
+        });
+      } else {
+        pushToast({ type: "success", title: "Signed in", message: "Welcome back." });
+      }
+
       navigate(destination, { replace: true });
     } catch (error) {
-      setSubmitError(getFirebaseAuthErrorMessage(error));
+      setLoginError(mapLoginError(error));
+      // Leave focus on the password so a corrected retry is one keystroke away.
+      focusById("login-password");
     } finally {
       setIsEmailSubmitting(false);
     }
@@ -141,7 +180,7 @@ function CustomerLoginCard({ destination = "/account" }) {
       return;
     }
 
-    setSubmitError("");
+    clearErrors();
     setIsResettingPassword(true);
 
     try {
@@ -226,9 +265,12 @@ function CustomerLoginCard({ destination = "/account" }) {
               value={email}
               onChange={(event) => {
                 setEmail(event.target.value);
-                setSubmitError("");
+                clearErrors();
               }}
               onBlur={() => setTouchedFields((currentValue) => ({ ...currentValue, email: true }))}
+              // Locked while a sign-in is in flight, so the value can't change
+              // out from under the request and a second submit can't start.
+              disabled={isEmailSubmitting}
               autoFocus
             />
           </InputField>
@@ -239,12 +281,13 @@ function CustomerLoginCard({ destination = "/account" }) {
             value={password}
             onChange={(event) => {
               setPassword(event.target.value);
-              setSubmitError("");
+              clearErrors();
             }}
             onBlur={() => setTouchedFields((currentValue) => ({ ...currentValue, password: true }))}
             error={touchedFields.password ? validationErrors.password : ""}
             autoComplete="current-password"
             placeholder="Enter your password"
+            disabled={isEmailSubmitting}
           />
 
           <div className="auth-form-meta">
@@ -273,10 +316,48 @@ function CustomerLoginCard({ destination = "/account" }) {
             </button>
           </div>
 
-          {submitError ? <p className="field-error auth-error">{submitError}</p> : null}
+          {/* One message, plus whatever recovery the situation calls for. For
+              wrong credentials that is BOTH reset and register, because we
+              can't (and mustn't) tell "no account" from "wrong password" —
+              see mapLoginError. */}
+          {loginError ? (
+            <div className="auth-error" role="alert">
+              <p>{loginError.message}</p>
+              {loginError.showReset || loginError.showRegister ? (
+                <p className="auth-error-actions">
+                  {loginError.showReset ? (
+                    <button
+                      type="button"
+                      className="auth-error-link"
+                      onClick={handleForgotPassword}
+                      disabled={isResettingPassword || resetCooldownSeconds > 0}
+                    >
+                      {resetCooldownSeconds > 0 ? `Reset password (${resetCooldownSeconds}s)` : "Reset password →"}
+                    </button>
+                  ) : null}
+                  {loginError.showRegister ? (
+                    <Link className="auth-error-link" to="/register">
+                      Create your account →
+                    </Link>
+                  ) : null}
+                </p>
+              ) : null}
+            </div>
+          ) : submitError ? (
+            <p className="field-error auth-error" role="alert">
+              {submitError}
+            </p>
+          ) : null}
 
           <button type="submit" className="auth-submit-button" disabled={!canSubmit}>
-            {isEmailSubmitting ? "Signing in..." : "Login with Password"}
+            {isEmailSubmitting ? (
+              <>
+                <span className="auth-spinner" aria-hidden="true" />
+                Signing In...
+              </>
+            ) : (
+              "Login with Password"
+            )}
           </button>
         </form>
 

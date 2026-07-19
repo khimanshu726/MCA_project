@@ -1314,6 +1314,12 @@ select {
 }
 
 .auth-submit-button {
+  /* Now hosts a spinner + label while signing in; the flex centres the pair.
+     Unchanged when idle — a single line of text centres the same way. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
   padding: 0.95rem 1.5rem;
   background: var(--ink-950);
   color: #fff;
@@ -1324,6 +1330,24 @@ select {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.25s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.auth-spinner {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: auth-spin 0.6s linear infinite;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-spinner {
+    animation-duration: 1.4s;
+  }
 }
 .auth-submit-button:hover { background: var(--ink-800); transform: translateY(-1px); }
 .auth-submit-button:disabled { background: var(--ink-300); cursor: not-allowed; transform: none; }
@@ -1347,6 +1371,36 @@ select {
   border-radius: var(--r-md);
   color: #7a2318;
   font-size: 0.87rem;
+}
+/* The box can now hold a message plus recovery links; reset the inner
+   paragraph margins so it reads as one block, not stacked paragraphs. */
+.auth-error > p {
+  margin: 0;
+}
+.auth-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin-top: 0.6rem !important;
+}
+.auth-error-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #7a2318;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.auth-error-link:hover {
+  color: #5c1a12;
+}
+.auth-error-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 .auth-info {
   padding: 0.9rem 1rem;
@@ -1452,7 +1506,15 @@ select {
 }
 .auth-form-meta {
   display: flex;
-  justify-content: flex-end;
+  /* "Keep me signed in" on the left, "Forgot Password?" on the right. This
+     was justify-content: flex-end, which pushed both to the same edge so the
+     checkbox label and the link sat flush against each other and read as one
+     run of text. space-between separates them; the column-gap is the floor
+     when they wrap so they never touch on a narrow screen. */
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
   margin-top: -0.25rem;
 }
 .auth-text-button {
