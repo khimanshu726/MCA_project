@@ -2595,3 +2595,89 @@ textarea {
     text-align: left;
   }
 }
+
+/* ==========================================================================
+   Touch target sizing
+   ==========================================================================
+
+   Controls sized for a mouse cursor are too small for a fingertip. Measured
+   on the live site at 360-390px, the offenders were consistent across pages:
+   the wishlist heart at 34x34, quantity steppers at 36x36, header utility
+   links at 35px tall, the menu toggle at 37px, "Add to cart" on product
+   cards at 38px, and checkboxes at 16x16. WCAG 2.5.5 and both platform
+   guidelines put the floor at 44x44.
+
+   Gated on `pointer: coarse` OR a viewport up to 1024px, deliberately both:
+   `pointer: coarse` is the semantically correct signal and is what real
+   phones and tablets report, while the width clause makes the same rules
+   observable in a desktop browser resized down — which is how this gets
+   tested and how it was verified.
+
+   1024px rather than a phone-sized breakpoint because tablets are touch
+   devices too: an iPad Pro is 1024 wide in portrait and needs these targets
+   as much as a phone does. A 44px control on a small laptop costs nothing.
+
+   Where enlarging the visual control would coarsen the design (the heart, a
+   checkbox), the *hit area* is extended with an absolutely-positioned
+   pseudo-element instead. The control looks identical and the finger target
+   is 44px. That is the whole trick, and it costs nothing on desktop.        */
+
+@media (pointer: coarse), (max-width: 1024px) {
+  /* Give small controls room without changing how they look. */
+  .wishlist-toggle,
+  .auth-password-toggle {
+    position: relative;
+  }
+
+  .wishlist-toggle::after,
+  .auth-password-toggle::after {
+    content: "";
+    position: absolute;
+    /* Centres a 44px square on the control regardless of its own size. */
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+
+  /* Checkboxes stay 16px visually — a 44px checkbox looks like a mistake —
+     but the label already wraps them, so the hit area is extended instead. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    position: relative;
+  }
+
+  input[type="checkbox"]::after,
+  input[type="radio"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  /* These can simply grow: they are already text or icon buttons with room. */
+  .nav-link,
+  .nav-button,
+  .utility-link,
+  .mini-button,
+  .auth-text-button,
+  .footer-social a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* The quantity stepper is the most-used control in the cart, and its
+     buttons were 36px. Sized up as a pair so the field stays centred. */
+  .quantity-stepper-button,
+  [aria-label="Decrease quantity"],
+  [aria-label="Increase quantity"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

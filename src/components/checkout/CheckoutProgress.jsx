@@ -28,7 +28,12 @@ function CheckoutProgress({ currentStep }) {
               type="button"
               disabled={!isClickable}
               onClick={() => isClickable && navigate(path)}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition sm:text-sm ${
+              // min-h-11 (44px) at every width. A completed step is a real
+              // navigation control, not decoration, and at 31px it was the
+              // smallest interactive target in checkout. Not gated on `sm:` —
+              // that breakpoint starts at 640px and would strip the larger
+              // target on tablets, which need it as much as phones.
+              className={`flex min-h-11 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition sm:text-sm ${
                 isCurrent
                   ? "bg-brand-500 text-white"
                   : isComplete
