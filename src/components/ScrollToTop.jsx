@@ -60,8 +60,11 @@ function ScrollToTop() {
     // spatial relationship to preserve, and every major storefront jumps.
     //
     // `html { scroll-behavior: smooth }` in styles.css would otherwise apply
-    // here, so this passes the behaviour explicitly to override it.
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    // here, so this passes the behaviour explicitly to override it. It must be
+    // "instant", not "auto": "auto" defers to the CSS `scroll-behavior` (i.e.
+    // smooth), which is the ~4s animated jump measured and rejected above;
+    // only "instant" forces the immediate jump this fix depends on.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     // `search` is included so filtering the catalog (?category=…) also returns
     // the customer to the top of the results rather than leaving them halfway
     // down the previous, longer list.
