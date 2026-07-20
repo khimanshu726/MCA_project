@@ -1,4 +1,5 @@
 import { getProductById, listProducts } from "../services/productStore.js";
+import { getFrequentlyBoughtTogether } from "../services/recommendationService.js";
 
 const parseBoolean = (value) => {
   if (value === "true") return true;
@@ -36,6 +37,16 @@ export const getProductDetail = async (req, res, next) => {
     }
 
     return res.json({ product });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getFrequentlyBoughtTogetherHandler = async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 4, 1), 10);
+    const items = await getFrequentlyBoughtTogether(req.params.id, limit);
+    return res.json({ items });
   } catch (error) {
     return next(error);
   }

@@ -1,10 +1,26 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { app } from "../index.js";
 import { Product } from "../models/Product.js";
 import { Order } from "../models/Order.js";
+import { User } from "../models/User.js";
+
+vi.mock("../config/firebaseAdmin.js", () => ({
+  verifyFirebaseIdToken: vi.fn(async (token) => {
+    if (token === "valid-token") {
+      return { uid: "order-owner-uid", email: "order-owner@example.com" };
+    }
+    if (token === "other-token") {
+      return { uid: "other-uid", email: "other@example.com" };
+    }
+    const error = new Error("Invalid token");
+    error.statusCode = 401;
+    throw error;
+  }),
+  isFirebaseAdminConfigured: () => true,
+}));
 
 let mongoServer;
 
@@ -16,6 +32,7 @@ beforeAll(async () => {
 afterEach(async () => {
   await Product.deleteMany({});
   await Order.deleteMany({});
+  await User.deleteMany({});
 });
 
 afterAll(async () => {
@@ -168,5 +185,140 @@ describe("POST /api/orders — server-side price/stock validation", () => {
 
     const orderCount = await Order.countDocuments({});
     expect(orderCount).toBe(1);
+  });
+});
+
+describe("GET /api/orders/customer/:id — ownership-checked single-order lookup", () => {
+  it("returns a guest order to an unauthenticated caller", async () => {
+    await seedProduct({ id: "guest-lookup", stock: 10 });
+    const placed = await placeOrder([{ productId: "guest-lookup", quantity: 1 }]);
+
+    const res = await request(app).get(`/api/orders/customer/${placed.body.order.orderId}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order.orderId).toBe(placed.body.order.orderId);
+  });
+
+  it("404s a guest order for an authenticated caller", async () => {
+    await seedProduct({ id: "guest-lookup-2", stock: 10 });
+    const placed = await placeOrder([{ productId: "guest-lookup-2", quantity: 1 }]);
+
+    const res = await request(app)
+      .get(`/api/orders/customer/${placed.body.order.orderId}`)
+      .set("Authorization", "Bearer valid-token");
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns an authenticated customer's own order", async () => {
+    await seedProduct({ id: "owner-lookup", stock: 10 });
+    const placed = await request(app)
+      .post("/api/orders")
+      .set("Authorization", "Bearer valid-token")
+      .field({ ...baseOrderFields, email: "order-owner@example.com" })
+      .field("lineItems", JSON.stringify([{ productId: "owner-lookup", quantity: 1 }]));
+
+    const res = await request(app)
+      .get(`/api/orders/customer/${placed.body.order.orderId}`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order.orderId).toBe(placed.body.order.orderId);
+  });
+
+  it("404s another authenticated customer's order", async () => {
+    await seedProduct({ id: "owner-lookup-2", stock: 10 });
+    const placed = await request(app)
+      .post("/api/orders")
+      .set("Authorization", "Bearer valid-token")
+      .field({ ...baseOrderFields, email: "order-owner@example.com" })
+      .field("lineItems", JSON.stringify([{ productId: "owner-lookup-2", quantity: 1 }]));
+
+    const res = await request(app)
+      .get(`/api/orders/customer/${placed.body.order.orderId}`)
+      .set("Authorization", "Bearer other-token");
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("404s a nonexistent order id", async () => {
+    const res = await request(app).get("/api/orders/customer/does-not-exist");
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe("Order status lifecycle", () => {
+  it("starts a new order as Placed with a statusHistory entry", async () => {
+    await seedProduct({ id: "lifecycle-1", stock: 10 });
+    const res = await placeOrder([{ productId: "lifecycle-1", quantity: 1 }]);
+
+    expect(res.body.order.orderStatus).toBe("Placed");
+    expect(res.body.order.statusHistory).toHaveLength(1);
+    expect(res.body.order.statusHistory[0].status).toBe("Placed");
+  });
+});
+
+describe("POST /api/orders/customer/:id/cancel", () => {
+  it("cancels a Placed order, restores stock, and appends statusHistory", async () => {
+    await seedProduct({ id: "cancel-1", stock: 5 });
+    const placed = await placeOrder([{ productId: "cancel-1", quantity: 2 }]);
+    expect((await Product.findOne({ id: "cancel-1" })).stock).toBe(3);
+
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/cancel`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order.orderStatus).toBe("Cancelled");
+    expect(res.body.order.statusHistory).toHaveLength(2);
+    expect((await Product.findOne({ id: "cancel-1" })).stock).toBe(5);
+  });
+
+  it("rejects cancelling an order that is already Delivered", async () => {
+    await seedProduct({ id: "cancel-2", stock: 5 });
+    const placed = await placeOrder([{ productId: "cancel-2", quantity: 1 }]);
+    // Admin status transitions go through an authenticated admin route (out
+    // of scope here) — set the precondition directly against the model.
+    await Order.findOneAndUpdate({ orderId: placed.body.order.orderId }, { orderStatus: "Delivered" });
+
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/cancel`);
+    expect(res.statusCode).toBe(409);
+  });
+
+  it("404s cancelling a guest order as a different authenticated customer", async () => {
+    await seedProduct({ id: "cancel-3", stock: 5 });
+    const placed = await placeOrder([{ productId: "cancel-3", quantity: 1 }]);
+
+    const res = await request(app)
+      .post(`/api/orders/customer/${placed.body.order.orderId}/cancel`)
+      .set("Authorization", "Bearer other-token");
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe("POST /api/orders/customer/:id/return", () => {
+  it("rejects returning an order that has not been delivered yet", async () => {
+    await seedProduct({ id: "return-1", stock: 5 });
+    const placed = await placeOrder([{ productId: "return-1", quantity: 1 }]);
+
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/return`);
+    expect(res.statusCode).toBe(409);
+  });
+
+  it("returns a Delivered order and appends statusHistory", async () => {
+    await seedProduct({ id: "return-2", stock: 5 });
+    const placed = await placeOrder([{ productId: "return-2", quantity: 1 }]);
+
+    await Order.findOneAndUpdate(
+      { orderId: placed.body.order.orderId },
+      {
+        orderStatus: "Delivered",
+        statusHistory: [
+          { status: "Placed", changedAt: new Date() },
+          { status: "Delivered", changedAt: new Date() },
+        ],
+      },
+    );
+
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/return`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.order.orderStatus).toBe("Returned");
+    expect(res.body.order.statusHistory.map((entry) => entry.status)).toEqual(["Placed", "Delivered", "Returned"]);
   });
 });

@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { ShoppingBag, User, LogOut, Menu, X } from "lucide-react";
+import { ShoppingBag, User, LogOut, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
 
 function BrandBlock() {
@@ -33,7 +33,7 @@ function HeaderSearch({ searchTerm, onSearchTermChange, onSubmit }) {
   );
 }
 
-function AccountActions({ isAuthenticated, cartCount, onSignOut, mobileOpen, onToggleMobile }) {
+function AccountActions({ isAuthenticated, cartCount, wishlistCount, onSignOut, mobileOpen, onToggleMobile }) {
   return (
     <div className="account-actions">
       <NavLink
@@ -43,6 +43,15 @@ function AccountActions({ isAuthenticated, cartCount, onSignOut, mobileOpen, onT
       >
         <User size={16} strokeWidth={1.8} aria-hidden="true" />
         <span className="hide-mobile">{isAuthenticated ? "Account" : "Login"}</span>
+      </NavLink>
+      <NavLink
+        to="/wishlist"
+        className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
+        aria-label={`Wishlist with ${wishlistCount} items`}
+      >
+        <Heart size={16} strokeWidth={1.8} aria-hidden="true" />
+        <span className="hide-mobile">Wishlist</span>
+        {wishlistCount > 0 ? <span className="nav-count">{wishlistCount}</span> : null}
       </NavLink>
       <NavLink
         to="/cart"
@@ -116,6 +125,7 @@ function AppHeader({
   onSearchSubmit,
   isAuthenticated,
   cartCount,
+  wishlistCount,
   onSignOut,
   mobileOpen,
   onToggleMobile,
@@ -134,6 +144,7 @@ function AppHeader({
         <AccountActions
           isAuthenticated={isAuthenticated}
           cartCount={cartCount}
+          wishlistCount={wishlistCount}
           onSignOut={onSignOut}
           mobileOpen={mobileOpen}
           onToggleMobile={onToggleMobile}

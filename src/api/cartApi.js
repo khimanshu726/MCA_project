@@ -22,3 +22,7 @@ export const clearCartRemote = (token) => request("/cart", { method: "DELETE", t
 
 export const mergeCartRemote = (token, items) =>
   request("/cart/merge", { method: "POST", body: { items }, token });
+
+export const applyCoupon = (token, code) => request("/cart/coupon", { method: "POST", body: { code }, token });
+
+export const removeCoupon = (token) => request("/cart/coupon", { method: "DELETE", token });

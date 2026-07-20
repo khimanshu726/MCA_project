@@ -5,7 +5,16 @@ import Badge from "../ui/Badge";
 import PriceDisplay, { currencyFormatter } from "../ui/PriceDisplay";
 import QuantitySelector from "../ui/QuantitySelector";
 
-function CartItemCard({ item, selected, onToggleSelect, onQuantityChange, onRemove, onToggleSaveForLater, isAuthenticated }) {
+function CartItemCard({
+  item,
+  selected,
+  onToggleSelect,
+  onQuantityChange,
+  onRemove,
+  onToggleSaveForLater,
+  isAuthenticated,
+  isQuantityPending = false,
+}) {
   const { product, quantity, isOutOfStock, isLowStock, isPriceChanged, isMissing, savedForLater, priceAtAdd } = item;
 
   if (isMissing) {
@@ -46,7 +55,7 @@ function CartItemCard({ item, selected, onToggleSelect, onQuantityChange, onRemo
       )}
 
       <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-ink-50 sm:h-28 sm:w-28">
-        <ResponsiveImage src={product.images?.[0]} alt={product.name} aspectClassName="ratio-square" />
+        <ResponsiveImage src={product.images?.[0]} alt={product.name} aspectClassName="ratio-square" width={112} />
       </div>
 
       <div className="flex flex-1 flex-col gap-2">
@@ -88,6 +97,7 @@ function CartItemCard({ item, selected, onToggleSelect, onQuantityChange, onRemo
             min={product.minimumOrderQty || 1}
             max={Math.max(product.stock, 1)}
             disabled={isOutOfStock || savedForLater}
+            isPending={isQuantityPending}
             ariaLabel={`Quantity for ${product.name}`}
             onChange={(next) => onQuantityChange(item.productId, next)}
           />

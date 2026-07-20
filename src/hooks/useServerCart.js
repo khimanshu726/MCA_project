@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserAuth } from "../context/UserAuthContext";
 import {
   addCartItem,
+  applyCoupon as applyCouponRequest,
   clearCartRemote,
   getCart,
   mergeCartRemote,
   removeCartItem,
+  removeCoupon as removeCouponRequest,
   toggleSaveForLater,
   updateCartItem,
 } from "../api/cartApi";
@@ -67,7 +69,7 @@ export function useServerCart() {
               quantity,
               savedForLater: false,
               product: product || null,
-              isMissing: false,
+              isMissing: !product,
               isOutOfStock: false,
               isPriceChanged: false,
               isLowStock: false,
@@ -140,6 +142,19 @@ export function useServerCart() {
     onSuccess: invalidate,
   });
 
+  // Coupon validity can't be computed client-side (expiry/usage/min-order
+  // all live server-side), so these are plain server round-trips — no
+  // optimistic guess at the discount amount.
+  const applyCouponMutation = useMutation({
+    mutationFn: (code) => applyCouponRequest(token, code),
+    onSuccess: invalidate,
+  });
+
+  const removeCouponMutation = useMutation({
+    mutationFn: () => removeCouponRequest(token),
+    onSuccess: invalidate,
+  });
+
   return {
     cart: cartQuery.data,
     isLoading: cartQuery.isLoading,
@@ -150,5 +165,13 @@ export function useServerCart() {
     setSavedForLater: saveForLaterMutation.mutateAsync,
     clear: clearCartMutation.mutateAsync,
     merge: mergeMutation.mutateAsync,
+    applyCoupon: applyCouponMutation.mutateAsync,
+    removeCoupon: removeCouponMutation.mutateAsync,
+    isApplyingCoupon: applyCouponMutation.isPending,
+    // Only the item actually being updated should show a loading state,
+    // not the whole cart.
+    pendingQuantityProductId: setQuantityMutation.isPending
+      ? setQuantityMutation.variables?.productId
+      : null,
   };
 }

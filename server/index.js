@@ -9,9 +9,13 @@ import orderRoutes from "./routes/orderRoutes.js";
 import checkoutRoutes from "./routes/checkoutRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
+import webhookRoutes from "./routes/webhookRoutes.js";
 import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
+import { ensureCouponsSeeded } from "./services/couponSeed.js";
 import { connectDB } from "./config/db.js";
 import { authenticateCustomer } from "./middleware/authenticateCustomer.js";
 
@@ -33,6 +37,11 @@ app.use(
     },
   }),
 );
+// Webhook signature verification needs the raw request bytes, so this route
+// is mounted with express.raw BEFORE the global JSON parser (which would
+// otherwise consume and re-shape the body).
+app.use("/api/webhooks/razorpay", express.raw({ type: "application/json" }), webhookRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
@@ -48,6 +57,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", authenticateCustomer, cartRoutes);
+app.use("/api/wishlist", authenticateCustomer, wishlistRoutes);
+app.use("/api/addresses", authenticateCustomer, addressRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use("/admin", express.static(distAdminPath));
@@ -74,6 +85,7 @@ const startServer = async (port = appConfig.apiPort) => {
   await connectDB();
   await ensureDefaultAdminUser();
   await ensureProductsSeeded();
+  await ensureCouponsSeeded();
 
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {

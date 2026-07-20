@@ -8,6 +8,8 @@ const basePricing = {
   subtotal: 200,
   mrpTotal: 240,
   discount: 40,
+  couponCode: null,
+  couponDiscount: 0,
   platformFee: 15,
   tax: 10,
   shipping: 120,
@@ -24,6 +26,10 @@ const renderSummary = (overrides = {}) => {
     canCheckout: true,
     checkoutDisabledReason: "",
     isPlacingOrder: false,
+    isAuthenticated: true,
+    isApplyingCoupon: false,
+    onApplyCoupon: vi.fn().mockResolvedValue(undefined),
+    onRemoveCoupon: vi.fn(),
     ...overrides,
   };
 
@@ -68,9 +74,47 @@ describe("OrderSummaryCard", () => {
     expect(screen.getByText("Add delivery details to continue.")).toBeInTheDocument();
   });
 
-  it("renders a disabled coupon input as a Phase 2 placeholder", () => {
+  it("renders a coupon input for an authenticated user", () => {
     renderSummary();
 
-    expect(screen.getByPlaceholderText("Coupon code (coming soon)")).toBeDisabled();
+    expect(screen.getByPlaceholderText("Coupon code")).toBeInTheDocument();
+  });
+
+  it("prompts sign-in instead of a coupon input for guests", () => {
+    renderSummary({ isAuthenticated: false });
+
+    expect(screen.queryByPlaceholderText("Coupon code")).not.toBeInTheDocument();
+    expect(screen.getByText(/to apply a coupon code/)).toBeInTheDocument();
+  });
+
+  it("calls onApplyCoupon with the trimmed code on submit", async () => {
+    const props = renderSummary();
+
+    fireEvent.change(screen.getByPlaceholderText("Coupon code"), { target: { value: "  save10  " } });
+    fireEvent.click(screen.getByText("Apply"));
+
+    expect(props.onApplyCoupon).toHaveBeenCalledWith("save10");
+  });
+
+  it("shows the applied coupon with a remove action instead of the input", () => {
+    const props = renderSummary({ pricing: { ...basePricing, couponCode: "SAVE10", couponDiscount: 20 } });
+
+    expect(screen.getByText("SAVE10 applied")).toBeInTheDocument();
+    expect(screen.getByText(`-${"₹20"}`)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Remove"));
+    expect(props.onRemoveCoupon).toHaveBeenCalled();
+  });
+
+  it("shows an inline error when applying a coupon fails", async () => {
+    const props = renderSummary({
+      onApplyCoupon: vi.fn().mockRejectedValue(new Error("This coupon has expired.")),
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Coupon code"), { target: { value: "OLD" } });
+    fireEvent.click(screen.getByText("Apply"));
+
+    expect(await screen.findByText("This coupon has expired.")).toBeInTheDocument();
+    expect(props.onApplyCoupon).toHaveBeenCalledWith("OLD");
   });
 });
