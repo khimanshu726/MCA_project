@@ -67,7 +67,7 @@ describe("ScrollToTop", () => {
     act(() => getByText("go").click());
 
     expect(window.scrollTo).toHaveBeenCalledWith(
-      expect.objectContaining({ top: 0, behavior: "auto" }),
+      expect.objectContaining({ top: 0, behavior: "instant" }),
     );
   });
 
@@ -75,8 +75,9 @@ describe("ScrollToTop", () => {
     // Measured on the real app: a smooth scroll from the home page footer to
     // the top took about four seconds, because the distance is ~5000px. The
     // customer spends that time watching the page they just left slide past.
-    // The behaviour is passed explicitly so the global
-    // `html { scroll-behavior: smooth }` cannot reintroduce it.
+    // The behaviour must be "instant" — not "auto": "auto" defers to the
+    // global `html { scroll-behavior: smooth }` and reintroduces the exact
+    // animation this guards against. Only "instant" forces the immediate jump.
     mockNavigationType.mockReturnValue("PUSH");
 
     const Harness = () => {
@@ -100,8 +101,9 @@ describe("ScrollToTop", () => {
     act(() => getByText("go").click());
 
     const [options] = window.scrollTo.mock.calls.at(-1);
-    expect(options.behavior).toBe("auto");
+    expect(options.behavior).toBe("instant");
     expect(options.behavior).not.toBe("smooth");
+    expect(options.behavior).not.toBe("auto");
   });
 
   it("leaves scrolling alone for back/forward navigation", () => {

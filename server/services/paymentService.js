@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { Payment } from "../models/Payment.js";
 import { WebhookLog } from "../models/WebhookLog.js";
 import { updateOrderRecord, getOrderById } from "./orderStore.js";
+import { notifyOrderConfirmed } from "./notificationService.js";
 import razorpayInstance from "../config/razorpay.js";
 
 const timingSafeHexEqual = (expected, received) => {
@@ -96,6 +97,11 @@ export const recordPaymentCaptured = async ({ razorpayOrderId, razorpayPaymentId
     await payment.save();
   }
 
+  // Captured before the update: this is the transition that turns a pending
+  // online order into a confirmed one, which is exactly when the customer is
+  // owed their confirmation email.
+  const wasPendingPayment = order.orderStatus === "PaymentPending";
+
   const updatedOrder = await updateOrderRecord(razorpayOrderId, (currentOrder) => {
     if (currentOrder.paymentStatus === "Paid") return currentOrder;
 
@@ -114,6 +120,17 @@ export const recordPaymentCaptured = async ({ razorpayOrderId, razorpayPaymentId
       updatedAt: new Date().toISOString(),
     };
   });
+
+  // Payment succeeded → send the confirmation. This path runs from both the
+  // client verify endpoint and the payment.captured webhook; notifyOrderConfirmed
+  // claims the send atomically, so only one of them actually dispatches.
+  // Fire-and-forget: a slow or failing mailer must not delay recording the
+  // capture (which is what keeps the gateway's retry loop satisfied).
+  if (updatedOrder && wasPendingPayment) {
+    notifyOrderConfirmed(updatedOrder).catch((error) => {
+      console.error(`Order confirmation email failed for ${updatedOrder.orderId}:`, error);
+    });
+  }
 
   return { order: updatedOrder, payment };
 };

@@ -41,6 +41,11 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: { type: String, default: "Pending" },
     orderStatus: { type: String, default: "New" },
     notificationStatus: { type: String, default: "Unread" },
+    // When the customer order-confirmation email was sent. Null until it goes
+    // out. Flipped atomically (see orderStore.claimOrderConfirmationEmail) so
+    // the payment-captured webhook and the client verify call — which both run
+    // the same capture path — can never send two confirmations for one order.
+    confirmationEmailSentAt: { type: Date, default: null },
     archived: { type: Boolean, default: false },
     lineItems: { type: Array, default: [] },
     razorpayOrderId: { type: String },
