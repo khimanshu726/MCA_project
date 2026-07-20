@@ -13,7 +13,7 @@ import {
 import { decrementStockAtomic, getProductsByIds, restoreStock } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
 import { findCouponByCode, incrementCouponUsage, validateCoupon } from "../services/couponStore.js";
-import { sendOrderNotifications } from "../services/notificationService.js";
+import { notifyOrderConfirmed } from "../services/notificationService.js";
 import { COURIER_IDS } from "../../src/utils/couriers.js";
 import {
   allowedNotificationStatuses,
@@ -245,9 +245,18 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
-    sendOrderNotifications(savedOrder).catch(() => {
-      // Local development should not fail when SMTP is not configured.
-    });
+    // Confirmation email fires only when the order is actually confirmed.
+    // COD is confirmed the moment it's placed; online orders are still
+    // PaymentPending here and get their confirmation from the payment-captured
+    // path (paymentService.recordPaymentCaptured) instead, so a customer never
+    // receives a "confirmed" receipt for a payment that hasn't succeeded.
+    if (savedOrder.orderStatus !== "PaymentPending") {
+      notifyOrderConfirmed(savedOrder).catch((error) => {
+        // Never fail order placement on a notification problem (SMTP down,
+        // bad address). The order is saved; the email is best-effort.
+        console.error(`Order confirmation email failed for ${savedOrder.orderId}:`, error);
+      });
+    }
 
     // `key_id` ships with the order rather than being baked into the frontend
     // build. It is public by design — the browser hands it to Razorpay — and

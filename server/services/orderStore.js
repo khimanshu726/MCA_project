@@ -79,6 +79,37 @@ export const updateOrderRecord = async (id, updater) => {
   return updated ? updated.toObject() : null;
 };
 
+/**
+ * Atomically claims the right to send a customer's order-confirmation email.
+ * Returns the order (with the flag now set) to whichever caller wins, and null
+ * to every other caller — so the payment-captured webhook and the client
+ * verify call, which both flow through recordPaymentCaptured, can only ever
+ * dispatch one confirmation. `findOneAndUpdate` is a single atomic op, so the
+ * `confirmationEmailSentAt: null` guard is the mutual exclusion.
+ */
+export const claimOrderConfirmationEmail = async (id) => {
+  const claimed = await Order.findOneAndUpdate(
+    { $and: [{ $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] }, { confirmationEmailSentAt: null }] },
+    { $set: { confirmationEmailSentAt: new Date() } },
+    { new: true }
+  );
+  return claimed ? claimed.toObject() : null;
+};
+
+/**
+ * Releases a claim so a later attempt can retry. Used when the send itself
+ * fails after the claim was taken — a transient SMTP error should not burn the
+ * one confirmation the customer is owed. Razorpay retries the webhook, and the
+ * client verify call can re-run, so re-opening the claim makes delivery
+ * eventually-consistent rather than at-most-once.
+ */
+export const releaseOrderConfirmationEmailClaim = async (id) => {
+  await Order.updateOne(
+    { $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] },
+    { $set: { confirmationEmailSentAt: null } }
+  );
+};
+
 export const deleteOrderRecord = async (id) => {
   const result = await Order.findOneAndDelete({ $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] });
   return !!result;
