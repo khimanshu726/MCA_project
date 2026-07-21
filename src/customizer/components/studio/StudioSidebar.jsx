@@ -72,12 +72,17 @@ export const StudioRail = memo(function StudioRail({
               aria-pressed={isActive}
               aria-label={label}
               onClick={() => onPanelChange(isActive ? null : id)}
-              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors duration-150 ${
+              // Base = the original desktop rail row, unchanged. `max-lg:`
+              // overrides apply only below the lg breakpoint, turning each tool
+              // into a labelled, ≥48px, finger-sized tile in a horizontal
+              // scroller (Canva-style bottom toolbar). Keeping desktop on the
+              // base classes guarantees the desktop rail is byte-identical.
+              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors duration-150 max-lg:min-h-12 max-lg:min-w-[3.75rem] max-lg:flex-col max-lg:justify-center max-lg:gap-1 max-lg:px-3 max-lg:py-1.5 max-lg:text-center max-lg:text-[11px] max-lg:leading-tight ${
                 isActive ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
               }`}
             >
               <Icon size={17} className="shrink-0" aria-hidden="true" />
-              <span className="hidden lg:inline">{label}</span>
+              <span>{label}</span>
             </button>
           );
         })}
