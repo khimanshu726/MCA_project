@@ -58,6 +58,22 @@ function ProductCard({ product, className = "" }) {
           </div>
         </div>
       </div>
+
+      {/* Makes the whole card a single click target (image, title, price,
+          whitespace) without nesting anchors or altering the layout: an
+          absolutely-positioned link stretched over the card, sitting *below*
+          the interactive controls (which are lifted above it in CSS), so
+          Add to Cart / Wishlist / View details still perform their own action.
+          It's a pointer convenience only — aria-hidden and out of the tab
+          order — because the visible "View details" link already gives
+          keyboard and screen-reader users the same destination, so this adds
+          no duplicate stop or announcement. */}
+      <Link
+        to={`/products/${product.id}`}
+        className="product-card-overlay-link"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
     </article>
   );
 }

@@ -1,35 +1,13 @@
 import { Link, NavLink } from "react-router-dom";
 import { ShoppingBag, User, LogOut, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
+import SearchAutocomplete from "./SearchAutocomplete";
 
 function BrandBlock() {
   return (
     <Link to="/" className="brand-block" aria-label="Elite Empressions home">
       <h1>Elite Empressions</h1>
     </Link>
-  );
-}
-
-function HeaderSearch({ searchTerm, onSearchTermChange, onSubmit }) {
-  return (
-    <form className="header-search" onSubmit={onSubmit} role="search">
-      <label className="search-label" htmlFor="store-search">
-        Search products
-      </label>
-      <div className="search-field-row">
-        <input
-          id="store-search"
-          type="search"
-          placeholder="Search cards, flyers, banners, mugs..."
-          value={searchTerm}
-          onChange={(event) => onSearchTermChange(event.target.value)}
-          aria-label="Search products"
-        />
-        <button type="submit" className="primary-button search-submit">
-          Search
-        </button>
-      </div>
-    </form>
   );
 }
 
@@ -135,7 +113,7 @@ function AppHeader({
       <div className="header-main-row">
         <BrandBlock />
 
-        <HeaderSearch
+        <SearchAutocomplete
           searchTerm={searchTerm}
           onSearchTermChange={onSearchTermChange}
           onSubmit={onSearchSubmit}

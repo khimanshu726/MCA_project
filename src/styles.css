@@ -303,6 +303,95 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--r-full) !important;
 }
 
+/* ---- Search autocomplete dropdown (SearchAutocomplete.jsx) ----------------
+   Positioned inside the already-relative .search-field-row so the search bar
+   itself is untouched; this only adds the panel below it. */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: #fff;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.search-suggestions-list { list-style: none; margin: 0; padding: 0.4rem; }
+.search-suggestions-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.6rem 0.3rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--ink-500);
+}
+.search-suggestions-heading svg { color: var(--ink-400); }
+.search-suggestions-empty {
+  padding: 0.7rem 0.75rem;
+  color: var(--ink-500);
+  font-size: 0.85rem;
+}
+.search-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--ink-800, var(--ink-900));
+}
+.search-suggestion.is-active { background: var(--ink-100); }
+.search-suggestion svg { color: var(--ink-400); flex: none; }
+.search-suggestion-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--ink-100);
+  flex: none;
+}
+.search-suggestion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+.search-suggestion-name {
+  color: var(--ink-900);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-suggestion-name mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  padding: 0;
+}
+.search-suggestion-meta { color: var(--ink-500); font-size: 0.76rem; }
+.search-suggestion-price {
+  color: var(--ink-500);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  flex: none;
+}
+.search-suggestion-viewall { color: var(--accent); font-weight: 600; }
+.search-suggestion-viewall svg { color: var(--accent); }
+/* Roomier tap targets on touch devices. */
+@media (pointer: coarse) {
+  .search-suggestion { padding: 0.75rem 0.65rem; }
+}
+
 .account-actions {
   display: flex;
   align-items: center;
@@ -735,6 +824,24 @@ a { color: inherit; text-decoration: none; }
 .product-price-block span { color: var(--ink-500); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; }
 .product-price-block strong { color: var(--ink-950); font-family: var(--font-display); font-size: 1.3rem; font-weight: 500; letter-spacing: -0.01em; }
 .card-actions-inline { display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; }
+
+/* Whole-card click target (ProductCard.jsx): a transparent link stretched over
+   the card so a click anywhere opens the product. It sits at the base layer;
+   the footer controls are lifted above it so they keep performing their own
+   action. The wishlist overlay is already position: absolute / z-index: 2, so
+   it stays above this link untouched. The card already has position: relative
+   and its :hover animations key off the card, not this link, so hover and
+   layout are unchanged. */
+.product-card-overlay-link {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+.product-card .card-actions-inline {
+  position: relative;
+  z-index: 1;
+}
 
 /* ==========================================================================
    Image shell
