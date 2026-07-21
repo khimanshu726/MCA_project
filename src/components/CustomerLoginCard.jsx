@@ -27,7 +27,7 @@ const focusById = (id) => {
 
 const RESET_COOLDOWN_SECONDS = 60;
 
-function CustomerLoginCard({ destination = "/account" }) {
+function CustomerLoginCard({ destination = "/" }) {
   const navigate = useNavigate();
   const {
     isLoading,

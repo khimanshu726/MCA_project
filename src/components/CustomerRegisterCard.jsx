@@ -30,7 +30,7 @@ const defaultFormState = {
   acceptedTerms: false,
 };
 
-function CustomerRegisterCard({ destination = "/account" }) {
+function CustomerRegisterCard({ destination = "/" }) {
   const navigate = useNavigate();
   const firstFieldRef = useRef(null);
   const { isLoading, refreshProfile } = useUserAuth();
