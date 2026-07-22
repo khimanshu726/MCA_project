@@ -37,7 +37,18 @@ app.use(
         return;
       }
 
-      callback(new Error("Origin is not allowed by CORS."));
+      // A disallowed origin must NOT become a 500. This middleware also runs
+      // for the static frontend the server ships, and module scripts
+      // (`<script type="module" crossorigin>`) are fetched in CORS mode, so
+      // they carry an Origin header even when the page is same-origin with its
+      // own bundle. Throwing here turned every asset request from a not-yet-
+      // allowlisted origin — e.g. a freshly attached custom domain — into a
+      // 500, which blanked the whole app. `false` is the correct signal:
+      // withhold the CORS headers and let the browser enforce policy. Same-
+      // origin requests (the SPA, its assets, its /api calls) don't need those
+      // headers and keep working; genuine cross-origin reads from a disallowed
+      // origin are still blocked by the browser, never by a server error.
+      callback(null, false);
     },
   }),
 );
