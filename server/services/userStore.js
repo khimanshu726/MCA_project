@@ -8,6 +8,7 @@ import {
   resolveAdminPasswordHash,
 } from "../config.js";
 import { normalizeEmail, normalizeMobile } from "../utils/authHelpers.js";
+import { sendWelcomeEmail } from "./email/resendService.js";
 import { User } from "../models/User.js";
 
 export const listUsers = async () => {
@@ -208,7 +209,7 @@ export const upsertCustomerFromFirebaseClaims = async (decodedToken) => {
   }
 
   if (!existingUser) {
-    return createUserRecord({
+    const createdUser = await createUserRecord({
       email,
       mobile,
       firebaseUid,
@@ -218,6 +219,14 @@ export const upsertCustomerFromFirebaseClaims = async (decodedToken) => {
       profileImage,
       role: "customer",
     });
+    // First time we've seen this customer → welcome email (once). Best-effort;
+    // never blocks the authenticated request that triggered the upsert.
+    if (createdUser?.email) {
+      sendWelcomeEmail(createdUser).catch((error) =>
+        console.error(`[email] welcome email failed for ${createdUser.email}:`, error),
+      );
+    }
+    return createdUser;
   }
 
   return updateUserRecord(existingUser.id, (currentUser) => ({

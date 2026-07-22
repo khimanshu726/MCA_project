@@ -13,7 +13,7 @@ import {
 import { decrementStockAtomic, getProductsByIds, restoreStock } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
 import { findCouponByCode, incrementCouponUsage, validateCoupon } from "../services/couponStore.js";
-import { notifyOrderConfirmed } from "../services/notificationService.js";
+import { notifyOrderConfirmed, sendShipmentEmail, sendDeliveryEmail } from "../services/email/resendService.js";
 import { COURIER_IDS } from "../../src/utils/couriers.js";
 import {
   allowedNotificationStatuses,
@@ -457,6 +457,12 @@ export const updateOrder = async (req, res, next) => {
   }
 
   try {
+    // Capture the prior status so a shipped/delivered email fires only on the
+    // real transition — never again if an admin re-saves an already-shipped
+    // order.
+    const previousOrder = await getOrderById(req.params.id);
+    const previousStatus = previousOrder?.orderStatus;
+
     const updatedOrder = await updateOrderRecord(req.params.id, (currentOrder) => {
       const isStatusChange = orderStatus && orderStatus !== currentOrder.orderStatus;
 
@@ -483,6 +489,18 @@ export const updateOrder = async (req, res, next) => {
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found." });
+    }
+
+    // Fire-and-forget shipment/delivery emails, only on a genuine transition
+    // into that status. Never blocks the admin response or fails the update.
+    if (orderStatus === "Shipped" && previousStatus !== "Shipped") {
+      sendShipmentEmail(updatedOrder).catch((error) =>
+        console.error(`[email] shipment email failed for ${updatedOrder.orderId}:`, error),
+      );
+    } else if (orderStatus === "Delivered" && previousStatus !== "Delivered") {
+      sendDeliveryEmail(updatedOrder).catch((error) =>
+        console.error(`[email] delivery email failed for ${updatedOrder.orderId}:`, error),
+      );
     }
 
     return res.json({
