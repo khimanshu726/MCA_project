@@ -13,6 +13,7 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import designRoutes from "./routes/designRoutes.js";
+import devRoutes from "./routes/devRoutes.js";
 import razorpayInstance from "./config/razorpay.js";
 import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
@@ -120,6 +121,12 @@ app.use("/api/products", productRoutes);
 app.use("/api/cart", authenticateCustomer, cartRoutes);
 app.use("/api/wishlist", authenticateCustomer, wishlistRoutes);
 app.use("/api/addresses", authenticateCustomer, addressRoutes);
+
+// Development-only email tester (POST /api/dev/test-email). Never mounted in
+// production, so it cannot be reached on the live site.
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api/dev", devRoutes);
+}
 
 if (process.env.NODE_ENV === "production") {
   app.use("/admin", express.static(distAdminPath));

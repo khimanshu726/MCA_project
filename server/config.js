@@ -85,4 +85,17 @@ export const appConfig = {
   smtpPass: process.env.SMTP_PASS || "",
   smtpFrom: process.env.SMTP_FROM || "orders@elite-empressions.local",
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || "admin@elite-empressions.local",
+
+  // Resend transactional email. resendApiKey empty => email disabled (the
+  // service no-ops with a warning rather than crashing). emailFrom must be an
+  // address on a Resend-verified domain; the default matches the production
+  // domain. Whether these came from the environment is reported by the flags
+  // below so the email service can log a one-time warning if it's on defaults.
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  emailFrom: process.env.EMAIL_FROM || "Elite Impressions <orders@eliteimpressions.co.in>",
+  emailFromIsDefault: !process.env.EMAIL_FROM,
+  adminEmailIsDefault: !process.env.ADMIN_NOTIFICATION_EMAIL && !process.env.ADMIN_EMAIL,
+  // Public storefront base, used for CTA links in emails (view order, track,
+  // retry payment, explore products).
+  storefrontUrl: (process.env.STOREFRONT_URL || process.env.CLIENT_ORIGIN || "https://eliteimpressions.co.in").replace(/\/$/, ""),
 };

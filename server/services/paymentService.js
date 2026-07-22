@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { Payment } from "../models/Payment.js";
 import { WebhookLog } from "../models/WebhookLog.js";
 import { updateOrderRecord, getOrderById } from "./orderStore.js";
-import { notifyOrderConfirmed } from "./notificationService.js";
+import { notifyOrderConfirmed, sendPaymentFailed } from "./email/resendService.js";
 import razorpayInstance from "../config/razorpay.js";
 
 const timingSafeHexEqual = (expected, received) => {
@@ -156,6 +156,15 @@ export const recordPaymentFailed = async ({ razorpayOrderId, razorpayPaymentId, 
     payment.status = "failed";
     payment.failureReason = reason;
     await payment.save();
+  }
+
+  // Email the customer once, only on the FIRST failure record for this payment
+  // (`created`), so Razorpay's webhook retries don't send duplicates. Best-
+  // effort — never affects the webhook/verify response.
+  if (created && order?.email) {
+    sendPaymentFailed(order, { reason }).catch((error) => {
+      console.error(`[email] payment-failed email failed for ${order.orderId}:`, error);
+    });
   }
 
   return { order, payment };
