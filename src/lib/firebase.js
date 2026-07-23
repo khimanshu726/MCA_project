@@ -3,7 +3,6 @@ import {
   FacebookAuthProvider,
   GoogleAuthProvider,
   browserLocalPersistence,
-  browserSessionPersistence,
   connectAuthEmulator,
   getAuth,
   setPersistence,
@@ -42,13 +41,13 @@ if (isFirebaseConfigured) {
   // VITE_FIREBASE_AUTH_EMULATOR_HOST (e.g. in an untracked .env.local). VITE_
   // vars are inlined at build time, so a production build compiles this whole
   // branch away unless someone deliberately sets the var in the production
-  // build environment — and `import.meta.env.DEV` is false there regardless.
+  // build environment and `import.meta.env.DEV` is false there regardless.
   // The server side needs FIREBASE_AUTH_EMULATOR_HOST set on the API process,
   // which firebase-admin honours natively.
   const emulatorHost = import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST;
   if (import.meta.env.DEV && emulatorHost) {
     connectAuthEmulator(firebaseAuth, `http://${emulatorHost}`, { disableWarnings: true });
-    console.warn(`[firebase] Auth is pointed at the LOCAL EMULATOR at ${emulatorHost} — logins here are test fixtures.`);
+    console.warn(`[firebase] Auth is pointed at the LOCAL EMULATOR at ${emulatorHost} - logins here are test fixtures.`);
   }
 }
 
@@ -69,49 +68,36 @@ export const ensureFirebaseAuth = () => {
 const REMEMBER_ME_KEY = "ee-auth-remember-me";
 
 /**
- * Whether the customer asked to stay signed in on this device.
+ * Customer sessions are intentionally persistent now.
  *
- * Stored in localStorage on purpose, and note what it is NOT: this is a UI
- * preference, not a credential. Nothing is authorized by it. Flipping it by
- * hand changes which persistence Firebase uses on the next sign-in and
- * nothing else — it cannot extend a session, because the server enforces the
- * maximum age against the signed auth_time claim regardless.
+ * The previous build offered a session-only mode. The product requirement is
+ * now simpler: once someone signs in successfully, they stay signed in on
+ * this device until they explicitly log out. Keeping the helpers exported
+ * avoids touching every caller at once while making the behavior
+ * deterministic.
  */
-export const getRememberMePreference = () => {
-  try {
-    return localStorage.getItem(REMEMBER_ME_KEY) === "true";
-  } catch {
-    return false;
-  }
-};
+export const getRememberMePreference = () => true;
 
-export const setRememberMePreference = (rememberMe) => {
+export const setRememberMePreference = () => {
   try {
-    localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? "true" : "false");
+    localStorage.setItem(REMEMBER_ME_KEY, "true");
   } catch {
-    // Private mode: fall through to the not-remembered default.
+    // Persistence is enforced in Firebase itself; this flag is only kept so
+    // older builds do not leave a stale false behind.
   }
 };
 
 /**
- * Applies the persistence the customer's choice implies.
+ * Applies the storefront-wide persistence policy.
  *
- * This is the fix for "logged in forever". The previous code pinned
- * browserLocalPersistence unconditionally, and Firebase refresh tokens never
- * expire — so one Google sign-in authenticated that browser permanently, until
- * someone cleared site data. No shop behaves that way.
- *
- * Not remembered now means browserSessionPersistence: the refresh token lives
- * in the tab's session storage and is gone when the browser closes. That is
- * enforced by never writing the credential to disk, so no client-side timer
- * can be bypassed to defeat it.
- *
- * Must be awaited BEFORE any sign-in call, since persistence applies to
+ * All customer sessions use browser-local persistence so a refresh or browser
+ * restart restores the Firebase credential until the customer signs out.
+ * Must still be awaited BEFORE any sign-in call, since persistence applies to
  * credentials stored after it is set.
  */
-export const ensureFirebasePersistence = async (rememberMe = getRememberMePreference()) => {
+export const ensureFirebasePersistence = async () => {
   const auth = ensureFirebaseAuth();
-  const desired = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+  const desired = browserLocalPersistence;
 
   if (appliedPersistence !== desired) {
     appliedPersistence = desired;

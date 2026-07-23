@@ -22,22 +22,18 @@ describe("session max age", () => {
     expect(isSessionMaxAgeExceeded(authTime, true, NOW)).toBe(false);
   });
 
-  it("expires a not-remembered session after 12 hours but keeps a remembered one", () => {
+  it("does not auto-expire a long-lived session anymore", () => {
     const authTime = NOW - 13 * HOUR;
-    expect(isSessionMaxAgeExceeded(authTime, false, NOW)).toBe(true);
+    expect(isSessionMaxAgeExceeded(authTime, false, NOW)).toBe(false);
     expect(isSessionMaxAgeExceeded(authTime, true, NOW)).toBe(false);
   });
 
-  it("expires even a remembered session at the 30-day ceiling", () => {
-    // The whole point of the change: "remember me" must not mean "forever".
-    // This is the ceiling an attacker holding a stolen refresh token inherits.
+  it("allows even very old sessions to remain valid until logout", () => {
     expect(isSessionMaxAgeExceeded(NOW - 29 * DAY, true, NOW)).toBe(false);
-    expect(isSessionMaxAgeExceeded(NOW - 31 * DAY, true, NOW)).toBe(true);
+    expect(isSessionMaxAgeExceeded(NOW - 365 * DAY, true, NOW)).toBe(false);
   });
 
   it("treats a missing or nonsensical auth time as expired, never as valid", () => {
-    // Failing open here would hand an unbounded session to exactly the
-    // malformed token we cannot reason about.
     expect(isSessionMaxAgeExceeded(undefined, true, NOW)).toBe(true);
     expect(isSessionMaxAgeExceeded(null, true, NOW)).toBe(true);
     expect(isSessionMaxAgeExceeded(Number.NaN, true, NOW)).toBe(true);
@@ -50,15 +46,13 @@ describe("session max age", () => {
   });
 
   it("tolerates small clock skew rather than rejecting a just-minted token", () => {
-    // A server running a minute behind Google must not read a token issued
-    // moments ago as issued in the future and bounce a good login.
     expect(isSessionMaxAgeExceeded(NOW + 60 * 1000, true, NOW)).toBe(false);
   });
 
   it("exposes the two windows", () => {
     expect(getSessionMaxAgeMs(true)).toBe(SESSION_MAX_AGE_MS.remembered);
     expect(getSessionMaxAgeMs(false)).toBe(SESSION_MAX_AGE_MS.default);
-    expect(SESSION_MAX_AGE_MS.remembered).toBeLessThanOrEqual(30 * DAY);
+    expect(SESSION_MAX_AGE_MS.remembered).toBe(Number.POSITIVE_INFINITY);
   });
 });
 
@@ -67,22 +61,22 @@ describe("idle timeout", () => {
     expect(isSessionIdle(NOW - 5 * MINUTE, NOW)).toBe(false);
   });
 
-  it("flags inactivity past the threshold", () => {
-    expect(isSessionIdle(NOW - IDLE_TIMEOUT_MS - MINUTE, NOW)).toBe(true);
+  it("does not sign out an inactive customer automatically", () => {
+    expect(isSessionIdle(NOW - 30 * DAY, NOW)).toBe(false);
   });
 
-  it("is not aggressive enough to interrupt normal shopping", () => {
-    // Comparing products in another tab for an hour is not idle in any sense
-    // that should cost someone their basket.
+  it("does not interrupt long-running browsing sessions", () => {
     expect(isSessionIdle(NOW - 1 * HOUR, NOW)).toBe(false);
+    expect(isSessionIdle(NOW - 7 * DAY, NOW)).toBe(false);
   });
 
   it("treats an unknown last-activity as active, not idle", () => {
-    // Unlike auth_time, an absent activity stamp means "we just started
-    // tracking", not "possibly ancient" — signing someone out over it would
-    // log them out for opening the site.
     expect(isSessionIdle(undefined, NOW)).toBe(false);
     expect(isSessionIdle(0, NOW)).toBe(false);
+  });
+
+  it("exports an infinite idle window", () => {
+    expect(IDLE_TIMEOUT_MS).toBe(Number.POSITIVE_INFINITY);
   });
 });
 
@@ -93,25 +87,18 @@ describe("evaluateSession", () => {
     ).toEqual({ valid: true, reason: null });
   });
 
-  it("reports expiry and idleness distinctly, so the UI can explain itself", () => {
+  it("still rejects obviously invalid auth timestamps", () => {
     expect(
-      evaluateSession({ authTimeMs: NOW - 40 * DAY, lastActivityMs: NOW, rememberMe: true }, NOW).reason,
+      evaluateSession({ authTimeMs: NOW + 10 * MINUTE, lastActivityMs: NOW, rememberMe: true }, NOW).reason,
     ).toBe(SESSION_ENDED.EXPIRED);
-
-    expect(
-      evaluateSession(
-        { authTimeMs: NOW - HOUR, lastActivityMs: NOW - IDLE_TIMEOUT_MS - MINUTE, rememberMe: true },
-        NOW,
-      ).reason,
-    ).toBe(SESSION_ENDED.IDLE);
   });
 
-  it("reports max-age expiry ahead of idleness when both apply", () => {
+  it("treats otherwise valid sessions as active even after long gaps", () => {
     const verdict = evaluateSession(
       { authTimeMs: NOW - 40 * DAY, lastActivityMs: NOW - 10 * DAY, rememberMe: true },
       NOW,
     );
-    expect(verdict.reason).toBe(SESSION_ENDED.EXPIRED);
+    expect(verdict).toEqual({ valid: true, reason: null });
   });
 });
 
@@ -120,13 +107,11 @@ describe("session-ended messaging", () => {
     for (const reason of [SESSION_ENDED.EXPIRED, SESSION_ENDED.IDLE, SESSION_ENDED.REVOKED, SESSION_ENDED.INVALID]) {
       const message = sessionEndedMessage(reason);
       expect(message.length).toBeGreaterThan(0);
-      // Never blame the customer for a session ending.
       expect(message).not.toMatch(/you (failed|did)/i);
     }
   });
 
   it("says nothing for a deliberate sign-out", () => {
-    // They know they clicked it; a banner explaining it would be noise.
     expect(sessionEndedMessage(SESSION_ENDED.SIGNED_OUT)).toBe("");
   });
 });
