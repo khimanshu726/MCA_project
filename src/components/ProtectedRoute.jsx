@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useAuthModal } from "../context/AuthModalContext";
+import { requiresEmailVerification } from "../utils/emailVerification";
+import EmailVerificationGate from "./auth/EmailVerificationGate";
 
 /**
  * Gates a route on an authenticated customer — now via the auth modal rather
@@ -16,8 +18,8 @@ import { useAuthModal } from "../context/AuthModalContext";
  * it needs an identity ("Sign in to view your orders") instead of a generic
  * prompt.
  */
-function ProtectedRoute({ children, reason = "Sign in to continue" }) {
-  const { isAuthenticated, isLoading } = useUserAuth();
+function ProtectedRoute({ children, reason = "Sign in to continue", requireVerified = true }) {
+  const { isAuthenticated, isLoading, authUser, refreshProfile } = useUserAuth();
   const { openAuth } = useAuthModal();
   const navigate = useNavigate();
 
@@ -76,6 +78,15 @@ function ProtectedRoute({ children, reason = "Sign in to continue" }) {
         </section>
       </main>
     );
+  }
+
+  // Signed in, but an email/password account that hasn't verified its address.
+  // These routes are the sensitive ones (checkout, account, orders, wishlist,
+  // addresses, designs), so we hold them behind a self-service verify gate.
+  // The server enforces the same rule on order placement (requireVerifiedEmail)
+  // — this is the UX half of a two-sided gate, not the whole gate.
+  if (requireVerified && requiresEmailVerification(authUser)) {
+    return <EmailVerificationGate authUser={authUser} refreshProfile={refreshProfile} />;
   }
 
   return children;
