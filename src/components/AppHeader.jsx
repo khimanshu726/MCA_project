@@ -1,7 +1,8 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ShoppingBag, User, LogOut, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
 import SearchAutocomplete from "./SearchAutocomplete";
+import { useAuthModal } from "../context/AuthModalContext";
 
 function BrandBlock() {
   return (
@@ -12,16 +13,41 @@ function BrandBlock() {
 }
 
 function AccountActions({ isAuthenticated, cartCount, wishlistCount, onSignOut, mobileOpen, onToggleMobile }) {
+  const { openAuth } = useAuthModal();
+  const navigate = useNavigate();
+
+  // Signed out: open the modal in place rather than routing to /login, and go
+  // to the account hub once they're in. The /login page still exists as a
+  // deep-link target; this is just the primary, non-interrupting entry point.
+  const handleSignIn = async () => {
+    const signedIn = await openAuth({ reason: "Sign in to your account" });
+    if (signedIn) {
+      navigate("/account");
+    }
+  };
+
   return (
     <div className="account-actions">
-      <NavLink
-        to={isAuthenticated ? "/account" : "/login"}
-        className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
-        aria-label={isAuthenticated ? "My account" : "Log in"}
-      >
-        <User size={16} strokeWidth={1.8} aria-hidden="true" />
-        <span className="hide-mobile">{isAuthenticated ? "Account" : "Login"}</span>
-      </NavLink>
+      {isAuthenticated ? (
+        <NavLink
+          to="/account"
+          className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
+          aria-label="My account"
+        >
+          <User size={16} strokeWidth={1.8} aria-hidden="true" />
+          <span className="hide-mobile">Account</span>
+        </NavLink>
+      ) : (
+        <button
+          type="button"
+          className="nav-link nav-button utility-link"
+          onClick={handleSignIn}
+          aria-label="Log in"
+        >
+          <User size={16} strokeWidth={1.8} aria-hidden="true" />
+          <span className="hide-mobile">Login</span>
+        </button>
+      )}
       <NavLink
         to="/wishlist"
         className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}

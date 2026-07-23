@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { CartProvider } from "./context/CartContext";
 import { UserAuthProvider } from "./context/UserAuthContext";
+import { AuthModalProvider } from "./context/AuthModalContext";
 import "./styles.css";
 import "./styles/tailwind.css";
 
@@ -41,7 +42,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <BrowserRouter>
         <UserAuthProvider>
           <CartProvider>
-            <App />
+            <AuthModalProvider>
+              <App />
+            </AuthModalProvider>
           </CartProvider>
         </UserAuthProvider>
       </BrowserRouter>

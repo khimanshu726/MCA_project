@@ -50,7 +50,18 @@ function App() {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutLayout />}>
+          {/* Checkout now requires a signed-in customer (guest checkout is
+              retired): a guest who reaches /checkout gets the auth modal over
+              the page, and their guest cart is merged into the account on
+              sign-in (see useCartMerge), so nothing in the basket is lost. */}
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute reason="Sign in to check out">
+                <CheckoutLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Navigate to="address" replace />} />
             <Route path="address" element={<CheckoutAddressPage />} />
             <Route path="review" element={<CheckoutReviewPage />} />
@@ -58,7 +69,7 @@ function App() {
           <Route
             path="/account"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to your account">
                 <AccountPage />
               </ProtectedRoute>
             }
@@ -66,7 +77,7 @@ function App() {
           <Route
             path="/wishlist"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your wishlist">
                 <WishlistPage />
               </ProtectedRoute>
             }
@@ -74,7 +85,7 @@ function App() {
           <Route
             path="/account/orders"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your orders">
                 <OrdersPage />
               </ProtectedRoute>
             }
@@ -82,7 +93,7 @@ function App() {
           <Route
             path="/account/addresses"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to manage your addresses">
                 <AccountAddressesPage />
               </ProtectedRoute>
             }
@@ -90,7 +101,7 @@ function App() {
           <Route
             path="/account/designs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your saved designs">
                 <MyDesignsPage />
               </ProtectedRoute>
             }
@@ -98,7 +109,7 @@ function App() {
           <Route
             path="/account/orders/:orderId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your order">
                 <OrderDetailPage />
               </ProtectedRoute>
             }
