@@ -7,6 +7,7 @@ import PasswordChecklist from "./PasswordChecklist";
 import PasswordField from "./PasswordField";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useToast } from "../hooks/useToast";
+import { mapFirebaseUserFallback } from "../hooks/useCustomerProfile";
 import { isFirebaseConfigured } from "../lib/firebase";
 import {
   registerCustomerWithEmail,
@@ -34,8 +35,6 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
   const navigate = useNavigate();
   const firstFieldRef = useRef(null);
 
-  // Standalone /register page navigates to `destination`; the auth modal passes
-  // `onAuthenticated` to close in place and resume the interrupted action.
   const finishAuth = (user) => {
     if (onAuthenticated) {
       onAuthenticated(user);
@@ -43,7 +42,8 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
       navigate(destination, { replace: true });
     }
   };
-  const { isLoading, refreshProfile } = useUserAuth();
+
+  const { isLoading, primeAuthenticatedSession } = useUserAuth();
   const { toast, pushToast, dismiss } = useToast();
   const [formState, setFormState] = useState(defaultFormState);
   const [touchedFields, setTouchedFields] = useState({});
@@ -94,14 +94,14 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
     setIsProviderBusy(true);
 
     try {
-      await signInCustomerWithGoogle();
-      const user = await refreshProfile();
+      const authUser = await signInCustomerWithGoogle();
+      const readyUser = await primeAuthenticatedSession(authUser);
       pushToast({
         type: "success",
         title: "Signed in successfully",
         message: "Your Google account is ready to use with Elite Empressions.",
       });
-      finishAuth(user);
+      finishAuth(readyUser || mapFirebaseUserFallback(authUser));
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
     } finally {
@@ -135,20 +135,19 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
     setIsSubmitting(true);
 
     try {
-      await registerCustomerWithEmail({
+      const authUser = await registerCustomerWithEmail({
         firstName: formState.firstName.trim(),
         lastName: formState.lastName.trim(),
         email: normalizeEmailInput(formState.email),
         password: formState.password,
       });
-
-      const user = await refreshProfile();
+      const readyUser = await primeAuthenticatedSession(authUser);
       pushToast({
         type: "success",
         title: "Account created",
         message: "Please verify your email before accessing all features.",
       });
-      finishAuth(user);
+      finishAuth(readyUser || mapFirebaseUserFallback(authUser));
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
     } finally {
@@ -266,11 +265,7 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
 
           {submitError ? <p className="field-error auth-error">{submitError}</p> : null}
 
-          <button
-            type="submit"
-            className="auth-submit-button"
-            disabled={!canSubmit}
-          >
+          <button type="submit" className="auth-submit-button" disabled={!canSubmit}>
             {isSubmitting ? "Creating account..." : "Register"}
           </button>
         </form>

@@ -9,7 +9,11 @@ import {
   getRememberMePreference,
   setRememberMePreference,
 } from "../lib/firebase";
-import { loadCustomerProfile, mapFirebaseUserFallback } from "../hooks/useCustomerProfile";
+import {
+  CUSTOMER_PROFILE_TIMEOUT_MS,
+  loadCustomerProfile,
+  mapFirebaseUserFallback,
+} from "../hooks/useCustomerProfile";
 import { registerAuthHandlers } from "../auth/authBridge";
 import { broadcastSessionEnded, broadcastSignedIn, subscribeToSessionEvents } from "../auth/sessionChannel";
 import { clearBuyNowSession } from "../utils/buyNowSession";
@@ -23,10 +27,7 @@ import {
 
 const UserAuthContext = createContext(null);
 
-/** How often the client re-checks its own session against the policy. */
 const SESSION_CHECK_INTERVAL_MS = 60 * 1000;
-
-/** Activity that counts as "the customer is still here". */
 const ACTIVITY_EVENTS = ["pointerdown", "keydown", "scroll", "focus"];
 
 function UserAuthProvider({ children }) {
@@ -35,23 +36,13 @@ function UserAuthProvider({ children }) {
   const [authUser, setAuthUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionEndedReason, setSessionEndedReason] = useState(null);
-  const [rememberMe, setRememberMeState] = useState(() => getRememberMePreference());
+  const [rememberMe, setRememberMeState] = useState(true);
   const queryClient = useQueryClient();
 
   const lastActivityRef = useRef(Date.now());
   const authTimeRef = useRef(null);
-  // Guards against two expiry paths (idle timer and a 401) racing to sign out
-  // and firing two redirects / two toasts for one event.
   const isEndingSessionRef = useRef(false);
 
-  /**
-   * Wipes every trace of the previous customer from this tab.
-   *
-   * Ordering matters: React Query caches are cleared BEFORE state flips, so a
-   * component re-rendering as signed-out can never paint the old customer's
-   * cart or addresses in the gap. The checkout and Buy Now sessions go too —
-   * a half-finished purchase belongs to the person who started it.
-   */
   const clearClientState = useCallback(() => {
     setAuthUser(null);
     setUser(null);
@@ -69,11 +60,6 @@ function UserAuthProvider({ children }) {
     clearPendingDesign();
   }, [queryClient]);
 
-  /**
-   * Ends the session locally. Used for every involuntary ending — expiry,
-   * idle, revocation, a 401 that survived a token refresh — and by the
-   * explicit sign-out below once the server has been told.
-   */
   const endSession = useCallback(
     async (reason, { broadcast = true } = {}) => {
       if (isEndingSessionRef.current) return;
@@ -83,10 +69,7 @@ function UserAuthProvider({ children }) {
         const auth = ensureFirebaseAuth();
         await firebaseSignOut(auth);
       } catch {
-        // Already signed out, or Firebase unavailable. Clearing local state
-        // still has to happen — leaving a customer looking signed in after
-        // their session died is the failure mode this whole change exists to
-        // remove.
+        // Local cleanup still has to happen even if Firebase is already signed out.
       }
 
       clearClientState();
@@ -104,7 +87,38 @@ function UserAuthProvider({ children }) {
     [clearClientState],
   );
 
-  // Firebase is the source of truth for identity; this keeps React in step.
+  const hydrateProfileInBackground = useCallback((firebaseUser, fallbackUser, fallbackToken, isActiveRef) => {
+    void loadCustomerProfile(firebaseUser, { timeoutMs: CUSTOMER_PROFILE_TIMEOUT_MS }).then(
+      ({ user: profileUser, token: profileToken }) => {
+        if (!isActiveRef()) return;
+        if (firebaseAuth?.currentUser?.uid !== firebaseUser.uid) return;
+
+        setUser(profileUser || fallbackUser);
+        setToken(profileToken || fallbackToken || "");
+      },
+    );
+  }, []);
+  const primeAuthenticatedSession = useCallback(async (firebaseUser) => {
+    if (!firebaseUser) return null;
+
+    const tokenResult = await firebaseUser.getIdTokenResult();
+    const authTimeMs = new Date(tokenResult.authTime).getTime();
+    authTimeRef.current = authTimeMs;
+
+    const fallbackUser = mapFirebaseUserFallback(firebaseUser);
+    const fallbackToken = tokenResult.token || (await firebaseUser.getIdToken());
+
+    setAuthUser(firebaseUser);
+    setToken(fallbackToken);
+    setUser(fallbackUser);
+    setSessionEndedReason(null);
+    setIsLoading(false);
+
+    hydrateProfileInBackground(firebaseUser, fallbackUser, fallbackToken, () => firebaseAuth?.currentUser?.uid === firebaseUser.uid);
+
+    return fallbackUser;
+  }, [hydrateProfileInBackground]);
+
   useEffect(() => {
     let isActive = true;
     let unsubscribe = () => undefined;
@@ -124,9 +138,6 @@ function UserAuthProvider({ children }) {
       setAuthUser(nextUser);
 
       try {
-        // auth_time is when the customer actually proved who they are. It
-        // survives token refreshes, which is exactly why the session age is
-        // measured from it rather than from when this tab happened to open.
         const tokenResult = await nextUser.getIdTokenResult();
         if (!isActive) return;
 
@@ -139,26 +150,26 @@ function UserAuthProvider({ children }) {
           rememberMe: getRememberMePreference(),
         });
 
-        // A restored-but-stale session: the browser had a credential, but it
-        // is older than policy allows. End it before any protected data is
-        // fetched with it.
         if (!verdict.valid) {
           setIsLoading(false);
           await endSession(verdict.reason);
           return;
         }
 
-        const { user: profileUser, token: profileToken } = await loadCustomerProfile(nextUser);
-        if (!isActive) return;
-        setUser(profileUser);
-        setToken(profileToken);
+        const fallbackUser = mapFirebaseUserFallback(nextUser);
+        const fallbackToken = tokenResult.token || (await nextUser.getIdToken());
+
+        setToken(fallbackToken);
+        setUser(fallbackUser);
         setSessionEndedReason(null);
+        setIsLoading(false);
+
+        hydrateProfileInBackground(nextUser, fallbackUser, fallbackToken, () => isActive);
       } catch {
         if (isActive) {
           setUser(mapFirebaseUserFallback(nextUser));
+          setIsLoading(false);
         }
-      } finally {
-        if (isActive) setIsLoading(false);
       }
     };
 
@@ -177,10 +188,8 @@ function UserAuthProvider({ children }) {
       isActive = false;
       unsubscribe();
     };
-  }, [endSession]);
+  }, [endSession, hydrateProfileInBackground]);
 
-  // Lets lib/api.js recover a stale token and report an unrecoverable 401
-  // without every API function having to thread auth state through.
   useEffect(() => {
     return registerAuthHandlers({
       getFreshToken: async () => {
@@ -198,23 +207,17 @@ function UserAuthProvider({ children }) {
     });
   }, [endSession]);
 
-  // Another tab signed out, or signed in. Follow it, without echoing the
-  // broadcast back and starting a loop.
   useEffect(() => {
     return subscribeToSessionEvents({
       onSessionEnded: (reason) => {
         endSession(reason || SESSION_ENDED.SIGNED_OUT, { broadcast: false });
       },
       onSignedIn: () => {
-        // Firebase propagates the credential itself under local persistence;
-        // this just makes sure server state for the new customer is refetched
-        // rather than served from the previous one's cache.
         queryClient.invalidateQueries();
       },
     });
   }, [endSession, queryClient]);
 
-  // Idle tracking. Cheap on purpose: a ref write per event, no re-render.
   useEffect(() => {
     const markActive = () => {
       lastActivityRef.current = Date.now();
@@ -233,8 +236,6 @@ function UserAuthProvider({ children }) {
     };
   }, []);
 
-  // Periodic self-check: enforces max age and idle timeout, and refreshes the
-  // ID token before it expires so in-flight requests never race it.
   useEffect(() => {
     if (!authUser) return undefined;
 
@@ -263,10 +264,7 @@ function UserAuthProvider({ children }) {
           setToken(fresh);
         }
       } catch {
-        // A refresh failure here is not fatal on its own — the next request
-        // will retry via the bridge and end the session if it truly can't
-        // recover. Tearing the session down on one transient network blip
-        // would be worse than waiting.
+        // Let the next authenticated request decide whether this was transient.
       }
     }, SESSION_CHECK_INTERVAL_MS);
 
@@ -288,7 +286,7 @@ function UserAuthProvider({ children }) {
     let resolvedUser = mapFirebaseUserFallback(currentUser);
 
     try {
-      const response = await fetchCustomerProfile(nextToken);
+      const response = await fetchCustomerProfile(nextToken, CUSTOMER_PROFILE_TIMEOUT_MS);
       resolvedUser = response.user || resolvedUser;
     } catch {
       resolvedUser = mapFirebaseUserFallback(currentUser);
@@ -298,21 +296,14 @@ function UserAuthProvider({ children }) {
     return resolvedUser;
   }, []);
 
-  /**
-   * Applies the Remember Me choice and returns the auth instance to sign in
-   * with. Must be awaited before the sign-in call — persistence governs
-   * credentials stored after it is set, so setting it afterwards would leave
-   * this session on the previous mode.
-   */
-  const prepareSignIn = useCallback(async (nextRememberMe = false) => {
-    setRememberMePreference(nextRememberMe);
-    setRememberMeState(nextRememberMe);
+  const prepareSignIn = useCallback(async () => {
+    setRememberMePreference(true);
+    setRememberMeState(true);
     lastActivityRef.current = Date.now();
     setSessionEndedReason(null);
-    return ensureFirebasePersistence(nextRememberMe);
+    return ensureFirebasePersistence();
   }, []);
 
-  /** Call after any successful sign-in so other tabs rehydrate. */
   const completeSignIn = useCallback(() => {
     lastActivityRef.current = Date.now();
     setSessionEndedReason(null);
@@ -324,15 +315,6 @@ function UserAuthProvider({ children }) {
     return signInWithPhoneNumber(auth, phoneNumber, verifier);
   }, []);
 
-  /**
-   * Explicit sign-out. Tells the server first so refresh tokens are revoked
-   * for every device, then tears down locally.
-   *
-   * The server call is best-effort: if it fails, the local sign-out still
-   * proceeds. A logout that refused to complete because the network blinked
-   * would strand someone signed in on a shared computer, which is precisely
-   * the case logout exists for.
-   */
   const signOut = useCallback(async () => {
     const currentToken = token;
 
@@ -363,6 +345,7 @@ function UserAuthProvider({ children }) {
       prepareSignIn,
       completeSignIn,
       refreshProfile,
+      primeAuthenticatedSession,
       signInWithPhoneOtp,
       signOut,
       idleTimeoutMs: IDLE_TIMEOUT_MS,
@@ -376,6 +359,7 @@ function UserAuthProvider({ children }) {
       prepareSignIn,
       completeSignIn,
       refreshProfile,
+      primeAuthenticatedSession,
       signInWithPhoneOtp,
       signOut,
       token,
@@ -397,3 +381,7 @@ const useUserAuth = () => {
 };
 
 export { UserAuthProvider, useUserAuth };
+
+
+
+

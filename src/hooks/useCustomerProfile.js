@@ -3,8 +3,10 @@ import { fetchCustomerProfile } from "../lib/api";
 const PROVIDER_ID_MAP = {
   "google.com": "google",
   "facebook.com": "facebook",
-  "phone": "mobile",
+  phone: "mobile",
 };
+
+export const CUSTOMER_PROFILE_TIMEOUT_MS = 5000;
 
 function resolveProviderLabel(user) {
   const primaryProviderId = user.providerData?.[0]?.providerId || user.providerId || "";
@@ -40,10 +42,11 @@ export function mapFirebaseUserFallback(user) {
  * Fetches the customer profile from the backend, falling back to Firebase user data.
  * Returns { user, token } on success.
  */
-export async function loadCustomerProfile(firebaseUser) {
+export async function loadCustomerProfile(firebaseUser, { timeoutMs = CUSTOMER_PROFILE_TIMEOUT_MS } = {}) {
   const nextToken = await firebaseUser.getIdToken();
+
   try {
-    const profileResponse = await fetchCustomerProfile(nextToken);
+    const profileResponse = await fetchCustomerProfile(nextToken, timeoutMs);
     return {
       token: nextToken,
       user: profileResponse.user || mapFirebaseUserFallback(firebaseUser),
