@@ -1,6 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
 import { ShoppingBag, User, LogOut, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
+import SearchAutocomplete from "./SearchAutocomplete";
+import { useAuthModal } from "../context/AuthModalContext";
 
 function BrandBlock() {
   return (
@@ -10,40 +12,39 @@ function BrandBlock() {
   );
 }
 
-function HeaderSearch({ searchTerm, onSearchTermChange, onSubmit }) {
-  return (
-    <form className="header-search" onSubmit={onSubmit} role="search">
-      <label className="search-label" htmlFor="store-search">
-        Search products
-      </label>
-      <div className="search-field-row">
-        <input
-          id="store-search"
-          type="search"
-          placeholder="Search cards, flyers, banners, mugs..."
-          value={searchTerm}
-          onChange={(event) => onSearchTermChange(event.target.value)}
-          aria-label="Search products"
-        />
-        <button type="submit" className="primary-button search-submit">
-          Search
-        </button>
-      </div>
-    </form>
-  );
-}
-
 function AccountActions({ isAuthenticated, cartCount, wishlistCount, onSignOut, mobileOpen, onToggleMobile }) {
+  const { openAuth } = useAuthModal();
+
+  // Signed out: open the modal over the current page. Do NOT navigate anywhere
+  // on success — the modal preserves the page the customer was on, so they stay
+  // put. Forcing /account here was exactly the "always lands on Account after
+  // login" bug; the account hub is one click away on the (now "Account") icon.
+  const handleSignIn = () => {
+    openAuth({ reason: "Sign in to your account" });
+  };
+
   return (
     <div className="account-actions">
-      <NavLink
-        to={isAuthenticated ? "/account" : "/login"}
-        className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
-        aria-label={isAuthenticated ? "My account" : "Log in"}
-      >
-        <User size={16} strokeWidth={1.8} aria-hidden="true" />
-        <span className="hide-mobile">{isAuthenticated ? "Account" : "Login"}</span>
-      </NavLink>
+      {isAuthenticated ? (
+        <NavLink
+          to="/account"
+          className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
+          aria-label="My account"
+        >
+          <User size={16} strokeWidth={1.8} aria-hidden="true" />
+          <span className="hide-mobile">Account</span>
+        </NavLink>
+      ) : (
+        <button
+          type="button"
+          className="nav-link nav-button utility-link"
+          onClick={handleSignIn}
+          aria-label="Log in"
+        >
+          <User size={16} strokeWidth={1.8} aria-hidden="true" />
+          <span className="hide-mobile">Login</span>
+        </button>
+      )}
       <NavLink
         to="/wishlist"
         className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
@@ -135,7 +136,7 @@ function AppHeader({
       <div className="header-main-row">
         <BrandBlock />
 
-        <HeaderSearch
+        <SearchAutocomplete
           searchTerm={searchTerm}
           onSearchTermChange={onSearchTermChange}
           onSubmit={onSearchSubmit}

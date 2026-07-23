@@ -1,23 +1,29 @@
 import { Heart } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useWishlist } from "../../hooks/useWishlist";
+import { useAuthModal } from "../../context/AuthModalContext";
 
 // Self-contained heart toggle (same self-containment pattern as
-// AddToCartButton) — a signed-out click redirects to /login with a return
-// path, mirroring ProtectedRoute's redirect behavior, since the wishlist
-// has no guest tier.
+// AddToCartButton). The wishlist has no guest tier, so a signed-out click opens
+// the auth modal in place rather than navigating away — and the moment the
+// customer signs in, the item they clicked is saved. Nothing is lost to the
+// detour, which is the whole point of the modal over a redirect.
 function WishlistButton({ productId, className = "" }) {
   const { isAuthenticated, wishlistIds, addToWishlist, removeFromWishlist } = useWishlist();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { openAuth } = useAuthModal();
   const isSaved = wishlistIds.has(productId);
 
-  const handleClick = (event) => {
+  const handleClick = async (event) => {
     event.preventDefault();
     event.stopPropagation();
 
     if (!isAuthenticated) {
-      navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
+      const signedIn = await openAuth({ reason: "Sign in to save items to your wishlist" });
+      if (!signedIn) {
+        return;
+      }
+      // Freshly signed in: the item wasn't in this account's list (the click
+      // is what expresses the intent), so add it outright.
+      addToWishlist(productId);
       return;
     }
 

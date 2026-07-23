@@ -15,6 +15,24 @@ vi.mock("../config/firebaseAdmin.js", () => ({
     if (token === "other-token") {
       return { uid: "other-uid", email: "other@example.com", auth_time: Math.floor(Date.now() / 1000) };
     }
+    if (token === "unverified-password-token") {
+      return {
+        uid: "unverified-uid",
+        email: "unverified@example.com",
+        auth_time: Math.floor(Date.now() / 1000),
+        email_verified: false,
+        firebase: { sign_in_provider: "password" },
+      };
+    }
+    if (token === "verified-password-token") {
+      return {
+        uid: "verified-uid",
+        email: "verified@example.com",
+        auth_time: Math.floor(Date.now() / 1000),
+        email_verified: true,
+        firebase: { sign_in_provider: "password" },
+      };
+    }
     const error = new Error("Invalid token");
     error.statusCode = 401;
     throw error;
@@ -110,6 +128,33 @@ describe("POST /api/orders — server-side price/stock validation", () => {
 
     const product = await Product.findOne({ id: "cards-2" });
     expect(product.stock).toBe(7);
+  });
+
+  it("blocks an unverified email/password customer from placing an order (403)", async () => {
+    await seedProduct({ id: "verify-gate", stock: 10 });
+
+    const res = await placeOrder([{ productId: "verify-gate", quantity: 1 }]).set(
+      "Authorization",
+      "Bearer unverified-password-token",
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.code).toBe("EMAIL_NOT_VERIFIED");
+
+    // The gate must not have consumed stock on the way to rejecting.
+    const product = await Product.findOne({ id: "verify-gate" });
+    expect(product.stock).toBe(10);
+  });
+
+  it("allows a verified email/password customer to place an order", async () => {
+    await seedProduct({ id: "verified-ok", stock: 10 });
+
+    const res = await placeOrder([{ productId: "verified-ok", quantity: 1 }]).set(
+      "Authorization",
+      "Bearer verified-password-token",
+    );
+
+    expect(res.statusCode).toBe(201);
   });
 
   it("rejects an order referencing a product that does not exist", async () => {

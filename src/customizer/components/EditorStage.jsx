@@ -9,6 +9,11 @@ import { clamp, resizeLayer, rotatePoint, rotationFromPointer, snapCenter, snapR
 import { measureTextLayerHeight } from "../engine/textMetrics.js";
 
 const STAGE_PADDING = 48;
+// On a phone the desktop gutter eats ~13% of the width before the artboard
+// even starts. Tighten it below the `sm` breakpoint so the canvas dominates
+// the viewport; desktop keeps the roomier gutter untouched.
+const STAGE_PADDING_COMPACT = 16;
+const COMPACT_STAGE_MAX_WIDTH = 640;
 const SNAP_THRESHOLD_PX = 6;
 
 const backgroundCss = (background) => {
@@ -42,11 +47,14 @@ function EditorStage({
   showRulers = false,
   showGuides = true,
   onFitScaleChange,
+  onInteractingChange,
 }) {
   const containerRef = useRef(null);
   const surfaceRef = useRef(null);
   const dragRef = useRef(null);
   const pinchRef = useRef(null);
+  // Timestamp of the last empty-canvas tap, for double-tap-to-fit.
+  const lastBackdropTapRef = useRef(0);
   const cropStartRef = useRef(null);
 
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -61,16 +69,32 @@ function EditorStage({
       return undefined;
     }
 
+    // Measure synchronously up front rather than waiting for the observer's
+    // first callback. Without this the initial containerSize stays {0,0} until
+    // ResizeObserver fires; if that callback is late or missed, fitScale falls
+    // to its 0.05 floor and the artboard collapses to a sliver. Seeding the
+    // size on mount makes the fit correct on the first paint and keeps the
+    // observer purely for subsequent resizes (rotation, panel open/close).
+    const measure = (width, height) => {
+      setContainerSize((current) =>
+        current.width === width && current.height === height ? current : { width, height },
+      );
+    };
+    const rect = node.getBoundingClientRect();
+    measure(rect.width, rect.height);
+
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      setContainerSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      measure(entry.contentRect.width, entry.contentRect.height);
     });
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
 
-  const fitWidthRaw = (containerSize.width - STAGE_PADDING) / canvas.width;
-  const rawFitScale = Math.max(0.05, Math.min(fitWidthRaw, (containerSize.height - STAGE_PADDING) / canvas.height));
+  const stagePadding =
+    containerSize.width > 0 && containerSize.width < COMPACT_STAGE_MAX_WIDTH ? STAGE_PADDING_COMPACT : STAGE_PADDING;
+  const fitWidthRaw = (containerSize.width - stagePadding) / canvas.width;
+  const rawFitScale = Math.max(0.05, Math.min(fitWidthRaw, (containerSize.height - stagePadding) / canvas.height));
   const fitScale = Number.isFinite(rawFitScale) && rawFitScale > 0 ? rawFitScale : 1;
   const fitWidthScale = Number.isFinite(fitWidthRaw) && fitWidthRaw > 0 ? fitWidthRaw : 1;
   const scale = fitScale * ui.zoom;
@@ -106,6 +130,13 @@ function EditorStage({
       actions.endTransaction();
     }
   }, [actions]);
+
+  // Reports whether a direct-manipulation gesture (drag/resize/rotate/pinch)
+  // is in flight, so the chrome can step out of the way while it is (see
+  // StudioCanvas). Derived from the gesture refs so it can never get stuck on.
+  const syncInteracting = useCallback(() => {
+    onInteractingChange?.(Boolean(dragRef.current) || Boolean(pinchRef.current));
+  }, [onInteractingChange]);
 
   const handlePointerMove = useCallback(
     (event) => {
@@ -194,8 +225,9 @@ function EditorStage({
         }
       }
       stopDrag();
+      syncInteracting();
     },
-    [stopDrag],
+    [stopDrag, syncInteracting],
   );
 
   useEffect(() => {
@@ -218,6 +250,7 @@ function EditorStage({
       actions.endTransaction();
       dragRef.current = null;
       pinchRef.current = { points: new Map([[event.pointerId, { x: event.clientX, y: event.clientY }]]) };
+      syncInteracting();
       return;
     }
 
@@ -233,6 +266,7 @@ function EditorStage({
       startPointer: screenToMm(event.clientX, event.clientY),
       startLayer: layer,
     };
+    syncInteracting();
   };
 
   const handleLayerPointerDown = (event, layer) => {
@@ -244,7 +278,22 @@ function EditorStage({
   };
 
   const handleStagePointerDown = (event) => {
-    if (event.target === surfaceRef.current || event.target.dataset.stagebg !== undefined) {
+    const onArtboardBackground = event.target === surfaceRef.current || event.target.dataset.stagebg !== undefined;
+    const onCanvasBackdrop = onArtboardBackground || event.target === containerRef.current;
+
+    // Double-tap empty canvas to fit the artboard to the screen (zoom = fit).
+    // Mirrors Canva/Figma; works with mouse double-click too, harmlessly.
+    if (onCanvasBackdrop) {
+      const now = Date.now();
+      if (now - lastBackdropTapRef.current < 300) {
+        actions.setZoom(1);
+        lastBackdropTapRef.current = 0;
+      } else {
+        lastBackdropTapRef.current = now;
+      }
+    }
+
+    if (onArtboardBackground) {
       if (ui.cropLayerId) {
         applyCrop();
       }
@@ -403,7 +452,7 @@ function EditorStage({
         style={{
           width: canvas.width * scale,
           height: canvas.height * scale,
-          margin: STAGE_PADDING / 2,
+          margin: stagePadding / 2,
           ...backgroundCss(side.background),
         }}
       >

@@ -12,13 +12,24 @@ import {
   authenticateCustomer,
   optionalAuthenticateCustomer,
 } from "../middleware/authenticateCustomer.js";
+import { requireVerifiedEmail } from "../middleware/requireVerifiedEmail.js";
 import { uploadOrderDesignFile } from "../middleware/orderUpload.js";
 import { rejectFileWhenStorageNotDurable } from "../config/uploadStorage.js";
 
 const router = Router();
 
-// Customer checkout (COD or online). Uses optional customer token to link orders to accounts.
-router.post("/", uploadOrderDesignFile, rejectFileWhenStorageNotDurable, optionalAuthenticateCustomer, createOrder);
+// Customer checkout (COD or online). Uses optional customer token to link
+// orders to accounts; requireVerifiedEmail then blocks an authenticated
+// email/password customer who hasn't verified their address (guests and
+// social/OTP providers pass through — see the middleware).
+router.post(
+  "/",
+  uploadOrderDesignFile,
+  rejectFileWhenStorageNotDurable,
+  optionalAuthenticateCustomer,
+  requireVerifiedEmail,
+  createOrder,
+);
 
 // Razorpay signature verification (backwards-compatible route).
 router.post("/verify-payment", verifyPayment);

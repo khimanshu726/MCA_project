@@ -30,9 +30,19 @@ const defaultFormState = {
   acceptedTerms: false,
 };
 
-function CustomerRegisterCard({ destination = "/account" }) {
+function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
   const navigate = useNavigate();
   const firstFieldRef = useRef(null);
+
+  // Standalone /register page navigates to `destination`; the auth modal passes
+  // `onAuthenticated` to close in place and resume the interrupted action.
+  const finishAuth = (user) => {
+    if (onAuthenticated) {
+      onAuthenticated(user);
+    } else {
+      navigate(destination, { replace: true });
+    }
+  };
   const { isLoading, refreshProfile } = useUserAuth();
   const { toast, pushToast, dismiss } = useToast();
   const [formState, setFormState] = useState(defaultFormState);
@@ -85,13 +95,13 @@ function CustomerRegisterCard({ destination = "/account" }) {
 
     try {
       await signInCustomerWithGoogle();
-      await refreshProfile();
+      const user = await refreshProfile();
       pushToast({
         type: "success",
         title: "Signed in successfully",
         message: "Your Google account is ready to use with Elite Empressions.",
       });
-      navigate(destination, { replace: true });
+      finishAuth(user);
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
     } finally {
@@ -132,13 +142,13 @@ function CustomerRegisterCard({ destination = "/account" }) {
         password: formState.password,
       });
 
-      await refreshProfile();
+      const user = await refreshProfile();
       pushToast({
         type: "success",
         title: "Account created",
         message: "Please verify your email before accessing all features.",
       });
-      navigate(destination, { replace: true });
+      finishAuth(user);
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
     } finally {

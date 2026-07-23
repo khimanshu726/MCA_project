@@ -1,4 +1,4 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import AuthSplitShell from "../components/AuthSplitShell";
 import CustomerRegisterCard from "../components/CustomerRegisterCard";
 import { useUserAuth } from "../context/UserAuthContext";
@@ -10,10 +10,14 @@ const REGISTER_HIGHLIGHTS = [
 ];
 
 function UserRegisterPage() {
+  const location = useLocation();
   const { isAuthenticated, isLoading } = useUserAuth();
+  // Same rule as login: Home by default, but resume the protected route the
+  // customer was sent from (if any) once their account exists.
+  const destination = location.state?.from || "/";
 
   if (!isLoading && isAuthenticated) {
-    return <Navigate to="/account" replace />;
+    return <Navigate to={destination} replace />;
   }
 
   return (
@@ -28,7 +32,7 @@ function UserRegisterPage() {
       leftCaption="Sign up to browse print products, save delivery details, and place personalized orders without starting from scratch every time."
       highlights={REGISTER_HIGHLIGHTS}
     >
-      <CustomerRegisterCard destination="/account" />
+      <CustomerRegisterCard destination={destination} />
       <div className="auth-footer-links">
         <Link to="/login">Already have an account?</Link>
       </div>

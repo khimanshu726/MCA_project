@@ -20,9 +20,19 @@ function StudioSheet({ open, title, onClose, children }) {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-14 z-40 flex justify-center px-2 pb-2">
-      <div className="pointer-events-auto flex max-h-[58dvh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-overlay">
-        <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-4">
+    <div
+      className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-2 pb-2"
+      // Sit just above the mobile tool bar, whose height includes the bottom
+      // safe-area inset (see StudioShell).
+      style={{ bottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+    >
+      <div className="pointer-events-auto flex max-h-[62dvh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-overlay">
+        {/* Grab-handle affordance. Not yet draggable (see note above), but it
+            signals the sheet is dismissible and reads as a mobile sheet. */}
+        <div className="flex h-4 shrink-0 items-center justify-center pt-2" aria-hidden="true">
+          <span className="h-1 w-9 rounded-full bg-ink-200" />
+        </div>
+        <div className="flex shrink-0 items-center justify-between gap-2 px-4 pb-1">
           <StudioHeading level={2} className="text-sm font-semibold text-ink-900">
             {title}
           </StudioHeading>
@@ -30,9 +40,9 @@ function StudioSheet({ open, title, onClose, children }) {
             type="button"
             onClick={onClose}
             aria-label="Close panel"
-            className="flex size-7 items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
+            className="-mr-1.5 flex size-11 items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
           >
-            <X size={14} aria-hidden="true" />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
         <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>

@@ -1,10 +1,13 @@
 import {
+  applyActionCode,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
+  verifyPasswordResetCode,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import {
@@ -180,3 +183,29 @@ export const resendCurrentUserVerificationEmail = async (user) => {
 
 export const isPasswordProviderUser = (user) =>
   Boolean(user?.providerData?.some((provider) => provider.providerId === "password"));
+
+/**
+ * The three action-code operations behind the branded /auth/action handler.
+ *
+ * Firebase's verification and password-reset emails carry an `oobCode`. With a
+ * custom action URL configured in the Firebase console, that code arrives at
+ * our own page instead of Firebase's default one, and these functions redeem
+ * it — so the customer never leaves the Elite Impressions look, and an expired
+ * or already-used link fails here where we can explain it, rather than on a
+ * generic Google screen.
+ */
+export const applyEmailVerificationCode = async (oobCode) => {
+  const auth = ensureFirebaseAuth();
+  await applyActionCode(auth, oobCode);
+};
+
+/** Validates a reset code and returns the email it belongs to (for display). */
+export const verifyResetCode = async (oobCode) => {
+  const auth = ensureFirebaseAuth();
+  return verifyPasswordResetCode(auth, oobCode);
+};
+
+export const confirmPasswordResetWithCode = async (oobCode, newPassword) => {
+  const auth = ensureFirebaseAuth();
+  await confirmPasswordReset(auth, oobCode, newPassword);
+};

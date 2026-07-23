@@ -50,6 +50,15 @@ const applyCustomerFromToken = async (req) => {
   req.auth = req.customer;
   req.userRecord = user;
 
+  // Straight off the signed token, where they can't be forged: which provider
+  // authenticated this request, and whether the address is verified. The email
+  // verification gate (requireVerifiedEmail) reads these — never a value the
+  // client could set.
+  req.firebaseClaims = {
+    signInProvider: decodedToken.firebase?.sign_in_provider || "",
+    emailVerified: Boolean(decodedToken.email_verified),
+  };
+
   return req.customer;
 };
 

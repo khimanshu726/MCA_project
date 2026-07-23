@@ -51,13 +51,17 @@ function SelectionFrame({ layer, scale, onHandlePointerDown, onRotatePointerDown
 
       {!layer.locked &&
         handles.map((handle) => (
+          // The button is the (invisible) hit target — small on desktop, a
+          // finger-sized 36px on touch (max-lg) — while the inner span is the
+          // visible dot. Growing only the hit area keeps the chrome looking
+          // identical on desktop but makes handles actually grabbable on a phone.
           <button
             key={handle}
             type="button"
             aria-label={`Resize ${handle}`}
             data-handle={handle}
             onPointerDown={(event) => onHandlePointerDown(event, handle)}
-            className="absolute size-3 rounded-full border border-brand-500 bg-white shadow-sm"
+            className="absolute flex size-3 items-center justify-center max-lg:size-9"
             style={{
               ...HANDLE_POSITIONS[handle],
               transform: "translate(-50%, -50%)",
@@ -65,7 +69,9 @@ function SelectionFrame({ layer, scale, onHandlePointerDown, onRotatePointerDown
               pointerEvents: "auto",
               touchAction: "none",
             }}
-          />
+          >
+            <span className="size-3 rounded-full border border-brand-500 bg-white shadow-sm max-lg:size-4" />
+          </button>
         ))}
 
       {!layer.locked && !isCropping && (

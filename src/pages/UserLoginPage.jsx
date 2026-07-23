@@ -6,7 +6,12 @@ import { useUserAuth } from "../context/UserAuthContext";
 function UserLoginPage() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useUserAuth();
-  const destination = location.state?.from || "/account";
+  // Default to Home after login, matching standard storefront behaviour. The
+  // original destination is only honoured when a protected route sent the
+  // customer here (ProtectedRoute sets location.state.from) — so a deliberate
+  // "Login" from the header lands on Home, while an interrupted attempt to
+  // reach /account, /wishlist, /checkout, etc. resumes there.
+  const destination = location.state?.from || "/";
 
   if (!isLoading && isAuthenticated) {
     return <Navigate to={destination} replace />;

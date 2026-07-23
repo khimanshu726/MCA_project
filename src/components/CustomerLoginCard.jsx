@@ -27,8 +27,20 @@ const focusById = (id) => {
 
 const RESET_COOLDOWN_SECONDS = 60;
 
-function CustomerLoginCard({ destination = "/account" }) {
+function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
   const navigate = useNavigate();
+
+  // Two homes for the same card: the standalone /login page, which navigates
+  // to `destination` on success, and the auth modal, which passes
+  // `onAuthenticated` so the modal closes and the interrupted action resumes
+  // in place. Exactly one of the two runs.
+  const finishAuth = (user) => {
+    if (onAuthenticated) {
+      onAuthenticated(user);
+    } else {
+      navigate(destination, { replace: true });
+    }
+  };
   const {
     isLoading,
     refreshProfile,
@@ -104,9 +116,9 @@ function CustomerLoginCard({ destination = "/account" }) {
         await signInCustomerWithGoogle();
       }
 
-      await refreshProfile();
+      const user = await refreshProfile();
       completeSignIn();
-      navigate(destination, { replace: true });
+      finishAuth(user);
     } catch (error) {
       setSubmitError(getFirebaseAuthErrorMessage(error));
     } finally {
@@ -158,7 +170,7 @@ function CustomerLoginCard({ destination = "/account" }) {
         pushToast({ type: "success", title: "Signed in", message: "Welcome back." });
       }
 
-      navigate(destination, { replace: true });
+      finishAuth(user);
     } catch (error) {
       setLoginError(mapLoginError(error));
       // Leave focus on the password so a corrected retry is one keystroke away.
@@ -218,9 +230,9 @@ function CustomerLoginCard({ destination = "/account" }) {
 
   const handleVerifyOtp = async (confirmationResult, code) => {
     await confirmationResult.confirm(code);
-    await refreshProfile();
+    const user = await refreshProfile();
     completeSignIn();
-    navigate(destination, { replace: true });
+    finishAuth(user);
   };
 
   return (

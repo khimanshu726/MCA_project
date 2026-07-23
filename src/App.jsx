@@ -16,6 +16,7 @@ import MyDesignsPage from "./pages/MyDesignsPage";
 import AccountAddressesPage from "./pages/AccountAddressesPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import UserRegisterPage from "./pages/UserRegisterPage";
+import AuthActionPage from "./pages/AuthActionPage";
 import WishlistPage from "./pages/WishlistPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
@@ -50,7 +51,18 @@ function App() {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutLayout />}>
+          {/* Checkout now requires a signed-in customer (guest checkout is
+              retired): a guest who reaches /checkout gets the auth modal over
+              the page, and their guest cart is merged into the account on
+              sign-in (see useCartMerge), so nothing in the basket is lost. */}
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute reason="Sign in to check out">
+                <CheckoutLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Navigate to="address" replace />} />
             <Route path="address" element={<CheckoutAddressPage />} />
             <Route path="review" element={<CheckoutReviewPage />} />
@@ -58,7 +70,7 @@ function App() {
           <Route
             path="/account"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to your account">
                 <AccountPage />
               </ProtectedRoute>
             }
@@ -66,7 +78,7 @@ function App() {
           <Route
             path="/wishlist"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your wishlist">
                 <WishlistPage />
               </ProtectedRoute>
             }
@@ -74,7 +86,7 @@ function App() {
           <Route
             path="/account/orders"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your orders">
                 <OrdersPage />
               </ProtectedRoute>
             }
@@ -82,7 +94,7 @@ function App() {
           <Route
             path="/account/addresses"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to manage your addresses">
                 <AccountAddressesPage />
               </ProtectedRoute>
             }
@@ -90,7 +102,7 @@ function App() {
           <Route
             path="/account/designs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your saved designs">
                 <MyDesignsPage />
               </ProtectedRoute>
             }
@@ -98,7 +110,7 @@ function App() {
           <Route
             path="/account/orders/:orderId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute reason="Sign in to view your order">
                 <OrderDetailPage />
               </ProtectedRoute>
             }
@@ -115,6 +127,9 @@ function App() {
         <Route path="/customize/:productId" element={<CustomizePage />} />
         <Route path="/login" element={<UserLoginPage />} />
         <Route path="/register" element={<UserRegisterPage />} />
+        {/* Branded landing for Firebase verification / password-reset links
+            (configure the custom action URL to point here — see docs/AUTH.md). */}
+        <Route path="/auth/action" element={<AuthActionPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

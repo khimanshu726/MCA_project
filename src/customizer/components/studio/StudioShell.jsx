@@ -39,8 +39,20 @@ function StudioShell({ appBar, rail, panel, canvas, inspector, statusBar, sheet 
   return (
     // studio-scope opts this subtree into the scoped form-control reset in
     // tailwind.css — the storefront keeps its own control styling.
-    <div className="studio-scope flex h-dvh flex-col overflow-hidden bg-ink-100">
-      <header className="z-20 flex h-14 shrink-0 items-center border-b border-ink-100 bg-white px-3">
+    <div
+      className="studio-scope flex h-dvh flex-col overflow-hidden bg-ink-100"
+      // Landscape notches sit on the left/right edge — inset the whole studio
+      // from them. env() resolves to 0 everywhere there's no inset (desktop),
+      // so this is a no-op off-device.
+      style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
+    >
+      {/* App bar grows by the top safe-area inset (notch / status bar) so its
+          controls never sit under system UI. Height is 3.5rem + inset, padded
+          down by the inset; on desktop that's exactly 3.5rem (h-14). */}
+      <header
+        className="z-20 flex shrink-0 items-center border-b border-ink-100 bg-white px-3"
+        style={{ height: "calc(3.5rem + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}
+      >
         {appBar}
       </header>
 
@@ -60,7 +72,13 @@ function StudioShell({ appBar, rail, panel, canvas, inspector, statusBar, sheet 
       {/* Mobile: one sheet serves both panel and inspector, over the canvas. */}
       <div className="lg:hidden">{sheet}</div>
 
-      <div className="z-10 flex h-14 min-w-0 shrink-0 items-center border-t border-ink-100 bg-white lg:hidden">
+      {/* Mobile tool toolbar: taller than the app bar so the labelled,
+          finger-sized tiles (see StudioSidebar) sit without clipping, and
+          padded by the bottom safe-area inset (home indicator / gesture bar). */}
+      <div
+        className="z-10 flex min-w-0 shrink-0 items-center border-t border-ink-100 bg-white lg:hidden"
+        style={{ height: "calc(4rem + env(safe-area-inset-bottom))", paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         {rail}
       </div>
 
