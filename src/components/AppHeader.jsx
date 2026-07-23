@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { ShoppingBag, User, LogOut, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
 import SearchAutocomplete from "./SearchAutocomplete";
@@ -14,16 +14,13 @@ function BrandBlock() {
 
 function AccountActions({ isAuthenticated, cartCount, wishlistCount, onSignOut, mobileOpen, onToggleMobile }) {
   const { openAuth } = useAuthModal();
-  const navigate = useNavigate();
 
-  // Signed out: open the modal in place rather than routing to /login, and go
-  // to the account hub once they're in. The /login page still exists as a
-  // deep-link target; this is just the primary, non-interrupting entry point.
-  const handleSignIn = async () => {
-    const signedIn = await openAuth({ reason: "Sign in to your account" });
-    if (signedIn) {
-      navigate("/account");
-    }
+  // Signed out: open the modal over the current page. Do NOT navigate anywhere
+  // on success — the modal preserves the page the customer was on, so they stay
+  // put. Forcing /account here was exactly the "always lands on Account after
+  // login" bug; the account hub is one click away on the (now "Account") icon.
+  const handleSignIn = () => {
+    openAuth({ reason: "Sign in to your account" });
   };
 
   return (
