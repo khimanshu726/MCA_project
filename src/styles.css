@@ -1552,6 +1552,23 @@ select {
   .auth-modal-panel { animation: none; }
 }
 
+/* Branded action-link handler (/auth/action) status blocks. */
+.auth-action-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  color: var(--ink-700);
+  font-size: 0.95rem;
+}
+.auth-action-status .auth-submit-button { align-self: stretch; }
+.auth-action-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink-950);
+  margin: 0;
+}
+
 .auth-submit-button {
   /* Now hosts a spinner + label while signing in; the flex centres the pair.
      Unchanged when idle — a single line of text centres the same way. */

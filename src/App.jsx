@@ -16,6 +16,7 @@ import MyDesignsPage from "./pages/MyDesignsPage";
 import AccountAddressesPage from "./pages/AccountAddressesPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import UserRegisterPage from "./pages/UserRegisterPage";
+import AuthActionPage from "./pages/AuthActionPage";
 import WishlistPage from "./pages/WishlistPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
@@ -126,6 +127,9 @@ function App() {
         <Route path="/customize/:productId" element={<CustomizePage />} />
         <Route path="/login" element={<UserLoginPage />} />
         <Route path="/register" element={<UserRegisterPage />} />
+        {/* Branded landing for Firebase verification / password-reset links
+            (configure the custom action URL to point here — see docs/AUTH.md). */}
+        <Route path="/auth/action" element={<AuthActionPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
