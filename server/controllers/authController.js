@@ -19,9 +19,25 @@ import {
   findUserByMobile,
   hasDuplicateUser,
 } from "../services/userStore.js";
-import { revokeFirebaseSessions } from "../config/firebaseAdmin.js";
+import {
+  buildEmailVerificationLink,
+  buildPasswordResetLink,
+  revokeFirebaseSessions,
+} from "../config/firebaseAdmin.js";
+import {
+  isResendConfigured,
+  sendPasswordResetLinkEmail,
+  sendVerificationLinkEmail,
+} from "../services/email/resendService.js";
 import { saveOtpForMobile, verifyOtpForMobile } from "../services/otpStore.js";
 import { sendOtpSms } from "../services/smsService.js";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Same generic answer whether or not the address is registered — the whole
+// point of not leaking which emails have accounts (see requestPasswordReset).
+const GENERIC_RESET_MESSAGE =
+  "If an account exists for that email, a password reset link is on its way. Check your spam folder too.";
 
 const hasValidationErrors = (errors) => Object.values(errors).some(Boolean);
 
@@ -297,6 +313,89 @@ export const logoutCustomer = async (req, res) => {
     console.error("Failed to revoke sessions on logout:", error);
     return res.json({ message: "Signed out locally.", revoked: false });
   }
+};
+
+/**
+ * Public password-reset request (Option B). Generates a Firebase reset link via
+ * the Admin SDK and sends it as branded HTML through Resend.
+ *
+ * ENUMERATION SAFETY is the load-bearing property here. The response is byte-
+ * identical whether or not the address exists:
+ *   - unknown email  -> generatePasswordResetLink throws auth/user-not-found,
+ *                        which we swallow, then return the generic message.
+ *   - known email    -> link generated, email sent, same generic message.
+ * The only branch that differs is a GLOBAL condition (provider flag off, Admin
+ * unconfigured, or Resend disabled) that is independent of any specific email,
+ * so it can't be used as an oracle. In those cases we return provider:"firebase"
+ * and the client falls back to the Firebase-sent email — a config-only rollback.
+ */
+export const requestPasswordReset = async (req, res) => {
+  const email = normalizeEmail(req.body.email || req.body.identifier || "");
+
+  if (!email || !EMAIL_PATTERN.test(email)) {
+    return res.status(400).json({ message: "Enter a valid email address." });
+  }
+
+  // Global fallback conditions — same for every email, so no information leaks.
+  if (appConfig.emailSecurityProvider !== "resend" || !isResendConfigured()) {
+    return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
+  }
+
+  try {
+    const link = await buildPasswordResetLink(email);
+    // Fire the send; sendEmail never throws and a delivery failure must not
+    // change the response (that would be an oracle during a Resend blip).
+    await sendPasswordResetLinkEmail(email, link);
+  } catch (error) {
+    // Admin SDK unconfigured is a server fault, not the customer's — let the
+    // client use Firebase so recovery still works. This is global, not per-email.
+    if (error?.statusCode === 503) {
+      return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
+    }
+    // auth/user-not-found (and anything else) is swallowed: the generic reply
+    // below is returned so an unknown address is indistinguishable from a known
+    // one. Real errors are logged without the address for triage.
+    if (error?.code && error.code !== "auth/user-not-found" && error.code !== "auth/email-not-found") {
+      console.error("[auth] password reset link generation failed:", error?.code || error?.message);
+    }
+  }
+
+  return res.json({ provider: "resend", message: GENERIC_RESET_MESSAGE });
+};
+
+/**
+ * Authenticated email-verification (re)send (Option B). The customer is signed
+ * in, so this is their own address — enumeration isn't a concern, and we can
+ * fall back to Firebase on any error to maximise the chance the mail goes out.
+ */
+export const requestEmailVerification = async (req, res) => {
+  const email = req.customer?.email;
+  const provider = req.firebaseClaims?.signInProvider;
+  const alreadyVerified = req.firebaseClaims?.emailVerified;
+
+  if (!email) {
+    return res.status(400).json({ message: "This account has no email address to verify." });
+  }
+  if (provider !== "password") {
+    return res.status(400).json({ message: "This account doesn't use email/password sign-in." });
+  }
+  if (alreadyVerified) {
+    return res.json({ provider: "resend", alreadyVerified: true, message: "Your email is already verified." });
+  }
+
+  if (appConfig.emailSecurityProvider !== "resend" || !isResendConfigured()) {
+    return res.json({ provider: "firebase", message: "Verification email requested." });
+  }
+
+  try {
+    const link = await buildEmailVerificationLink(email);
+    await sendVerificationLinkEmail(email, link);
+  } catch (error) {
+    console.error("[auth] verification link generation failed:", error?.code || error?.message);
+    return res.json({ provider: "firebase", message: "Verification email requested." });
+  }
+
+  return res.json({ provider: "resend", message: "Verification email sent. Check your inbox." });
 };
 
 export const handleGoogleCallback = async (req, res) => {

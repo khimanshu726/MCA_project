@@ -13,6 +13,8 @@ import {
   loginUser,
   logoutCustomer,
   registerCustomer,
+  requestEmailVerification,
+  requestPasswordReset,
   sendOtp,
   verifyOtp,
 } from "../controllers/authController.js";
@@ -39,6 +41,19 @@ const otpLimiter = rateLimit({
   },
 });
 
+// Password reset is unauthenticated and sends email, so it's a spam / mailbox-
+// bombing vector — limit it tightly per IP. The generic response is preserved
+// (a 429 body still says nothing about whether the account exists).
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many password reset requests. Please wait before trying again.",
+  },
+});
+
 const redirectWhenGoogleUnavailable = (_req, res) =>
   res.redirect(`${appConfig.authFailureRedirect}?error=google_not_configured`);
 
@@ -61,6 +76,11 @@ router.get("/customer/me", authenticateCustomer, getCurrentCustomerUser);
 // Revokes every refresh token for this account, so signing out here signs the
 // account out on every device rather than only clearing local state.
 router.post("/customer/logout", authenticateCustomer, logoutCustomer);
+// Account-security email (Option B): backend generates the Firebase link and
+// sends branded HTML via Resend. Password reset is public + enumeration-safe;
+// verification (re)send is authenticated (it's the caller's own address).
+router.post("/customer/password-reset", passwordResetLimiter, requestPasswordReset);
+router.post("/customer/verify-email/send", authenticateCustomer, authLimiter, requestEmailVerification);
 
 router.get(
   "/google",

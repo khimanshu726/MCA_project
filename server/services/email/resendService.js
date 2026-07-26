@@ -11,6 +11,8 @@ import { orderShipped } from "./templates/orderShipped.js";
 import { orderDelivered } from "./templates/orderDelivered.js";
 import { welcomeEmail } from "./templates/welcomeEmail.js";
 import { adminNewOrder } from "./templates/adminNewOrder.js";
+import { passwordReset } from "./templates/passwordReset.js";
+import { emailVerification } from "./templates/emailVerification.js";
 
 /**
  * Resend-backed transactional email. Every send goes through sendEmail(), which
@@ -22,6 +24,13 @@ import { adminNewOrder } from "./templates/adminNewOrder.js";
 const resendClient = appConfig.resendApiKey ? new Resend(appConfig.resendApiKey) : null;
 const FROM = appConfig.emailFrom;
 const ADMIN_TO = appConfig.adminNotificationEmail;
+
+/**
+ * Whether Resend can actually send. The account-security endpoints read this to
+ * decide whether to send branded mail (Option B) or tell the client to fall
+ * back to Firebase-sent mail (Option A) — a config-only rollback path.
+ */
+export const isResendConfigured = () => Boolean(resendClient);
 
 // One-time boot warnings so a misconfigured deploy is visible in logs rather
 // than silently dropping mail.
@@ -106,6 +115,18 @@ export const sendWelcomeEmail = (user) => {
 export const sendAdminOrderEmail = (order) => {
   const { subject, html, text } = adminNewOrder(order);
   return sendEmail({ to: ADMIN_TO, subject, html, text, template: "adminNewOrder" });
+};
+
+// ── Account-security senders (Option B) ─────────────────────────────────────
+
+export const sendPasswordResetLinkEmail = (email, link) => {
+  const { subject, html, text } = passwordReset(email, link);
+  return sendEmail({ to: email, subject, html, text, template: "passwordReset" });
+};
+
+export const sendVerificationLinkEmail = (email, link) => {
+  const { subject, html, text } = emailVerification(email, link);
+  return sendEmail({ to: email, subject, html, text, template: "emailVerification" });
 };
 
 // ── Orchestrators with idempotency ─────────────────────────────────────────

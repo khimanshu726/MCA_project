@@ -17,7 +17,29 @@ import {
   firestoreDb,
   googleProvider,
 } from "../lib/firebase";
+import { requestEmailVerificationEmail, requestPasswordResetEmail } from "../lib/api";
 import { devError } from "../utils/logger";
+
+/**
+ * Sends the verification email for a signed-in customer through the backend
+ * (Option B: branded Resend HTML). Falls back to Firebase's own mailer when the
+ * server says it isn't handling it (provider:"firebase") or is unreachable, so
+ * a signed-up customer is never left without a way to verify. Best-effort:
+ * never throws.
+ */
+const dispatchVerificationEmail = async (user) => {
+  try {
+    const token = await user.getIdToken();
+    const result = await requestEmailVerificationEmail(token);
+    if (result?.provider === "firebase") {
+      await sendEmailVerification(user);
+    }
+  } catch {
+    // Backend unreachable / errored — fall back to Firebase-sent so the
+    // customer still gets a verification email.
+    await sendEmailVerification(user);
+  }
+};
 
 const providerMap = {
   "google.com": "google",
@@ -107,7 +129,7 @@ export const registerCustomerWithEmail = async ({ firstName, lastName, email, pa
   });
 
   if (!currentUser.emailVerified) {
-    await sendEmailVerification(currentUser);
+    await dispatchVerificationEmail(currentUser);
   }
 
   await currentUser.reload();
@@ -142,9 +164,28 @@ export const signInCustomerWithFacebook = async () => {
   return currentUser;
 };
 
+/**
+ * Requests a password-reset email. Prefers the backend (Option B: branded
+ * Resend HTML), and falls back to the Firebase client SDK when the server says
+ * it isn't handling it (provider:"firebase") or can't be reached — so account
+ * recovery keeps working even if the backend or Resend is down.
+ *
+ * The backend's reply is deliberately generic (it never reveals whether the
+ * address is registered); this function mirrors that by never surfacing a
+ * "no such account" signal to the caller.
+ */
 export const sendCustomerPasswordReset = async (email) => {
-  const auth = ensureFirebaseAuth();
-  await sendPasswordResetEmail(auth, email);
+  try {
+    const result = await requestPasswordResetEmail(email);
+    if (result?.provider === "firebase") {
+      const auth = ensureFirebaseAuth();
+      await sendPasswordResetEmail(auth, email);
+    }
+  } catch {
+    // Backend unreachable — fall back to Firebase-sent so recovery still works.
+    const auth = ensureFirebaseAuth();
+    await sendPasswordResetEmail(auth, email);
+  }
 };
 
 /**
@@ -177,7 +218,7 @@ export const resendCurrentUserVerificationEmail = async (user) => {
     throw error;
   }
 
-  await sendEmailVerification(user);
+  await dispatchVerificationEmail(user);
   await syncCustomerUserDocument(user, { provider: resolveProvider(user, "email") });
 };
 
