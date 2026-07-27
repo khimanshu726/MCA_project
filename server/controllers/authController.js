@@ -14,6 +14,7 @@ import {
 } from "../utils/authHelpers.js";
 import {
   createUserRecord,
+  findAdminByEmail,
   findUserByEmail,
   findUserById,
   findUserByMobile,
@@ -101,7 +102,10 @@ export const loginUser = async (req, res) => {
     });
   }
 
-  const user = await findUserByEmail(identifier);
+  // Admin-scoped lookup: a passwordless customer record sharing this email (the
+  // same person signed in as a Firebase customer) must never shadow the admin
+  // account and turn a correct password into "Invalid credentials".
+  const user = await findAdminByEmail(identifier);
 
   if (!user || !user.password) {
     return res.status(401).json({ message: "Invalid credentials." });
