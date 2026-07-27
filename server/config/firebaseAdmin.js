@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { appConfig } from "../config.js";
 
 dotenv.config();
 
@@ -73,3 +74,33 @@ export const revokeFirebaseSessions = async (uid) => {
   const auth = requireAdminAuth();
   await auth.revokeRefreshTokens(uid);
 };
+
+/**
+ * `ActionCodeSettings` for the generated security links.
+ *
+ * `url` is the CONTINUE url (where the customer lands after finishing the
+ * action), NOT the action handler itself — the handler is still governed by the
+ * Firebase Console "custom action URL" (see docs/AUTH.md). We point both at
+ * /auth/action so the whole flow stays on the branded page. Built lazily so a
+ * test overriding storefrontUrl is honoured.
+ */
+const actionCodeSettings = () => ({
+  url: `${appConfig.storefrontUrl}/auth/action`,
+  handleCodeInApp: false,
+});
+
+/**
+ * Generate the password-reset / email-verification links server-side, so the
+ * email can be composed and sent as branded HTML through Resend rather than by
+ * Firebase's own mailer (Option B — see docs/EMAIL_DELIVERY_OPTIONS.md).
+ *
+ * Each returns a fully-formed URL embedding a single-use `oobCode`; the redeem
+ * still happens client-side on /auth/action. `generatePasswordResetLink` throws
+ * `auth/user-not-found` for an unknown address — the caller MUST treat that as
+ * a non-event to avoid leaking which emails are registered.
+ */
+export const buildPasswordResetLink = (email) =>
+  requireAdminAuth().generatePasswordResetLink(email, actionCodeSettings());
+
+export const buildEmailVerificationLink = (email) =>
+  requireAdminAuth().generateEmailVerificationLink(email, actionCodeSettings());

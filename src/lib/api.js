@@ -69,7 +69,7 @@ const readBody = async (response) => {
  * A FormData body cannot be replayed: the browser consumes the underlying
  * stream when it sends it, so retrying with the same object uploads nothing.
  * Rather than silently sending an empty design file on retry, these are not
- * retried — the caller sees the 401 and the session-ended handler still fires.
+ * retried ï¿½ the caller sees the 401 and the session-ended handler still fires.
  */
 const isReplayable = (body) => !(body instanceof FormData);
 
@@ -123,6 +123,23 @@ export const logoutCustomerSession = (token) =>
     method: "POST",
     token,
     timeoutMs: 5000,
+  });
+
+// Account-security email (Option B). The server replies with { provider }:
+// "resend" means it handled the send; "firebase" tells the caller to fall back
+// to the Firebase client SDK. See customerAuthService.
+export const requestPasswordResetEmail = (email) =>
+  request("/auth/customer/password-reset", {
+    method: "POST",
+    body: { email },
+    timeoutMs: 8000,
+  });
+
+export const requestEmailVerificationEmail = (token) =>
+  request("/auth/customer/verify-email/send", {
+    method: "POST",
+    token,
+    timeoutMs: 8000,
   });
 
 export const createRazorpayOrder = (formData, token) =>

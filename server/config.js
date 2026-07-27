@@ -98,4 +98,14 @@ export const appConfig = {
   // Public storefront base, used for CTA links in emails (view order, track,
   // retry payment, explore products).
   storefrontUrl: (process.env.STOREFRONT_URL || process.env.CLIENT_ORIGIN || "https://eliteimpressions.co.in").replace(/\/$/, ""),
+
+  // Who sends account-security emails (verification + password reset):
+  //   "resend"   -> backend generates the link via the Firebase Admin SDK and
+  //                 sends branded HTML through Resend (Option B).
+  //   "firebase" -> the client falls back to Firebase-sent emails (Option A).
+  // The endpoints report the active provider so the client knows whether to
+  // fall back, giving a config-only rollback with no redeploy. Defaults to
+  // "resend"; anything other than "resend" is treated as "firebase".
+  emailSecurityProvider:
+    (process.env.EMAIL_SECURITY_PROVIDER || "resend").toLowerCase() === "resend" ? "resend" : "firebase",
 };
