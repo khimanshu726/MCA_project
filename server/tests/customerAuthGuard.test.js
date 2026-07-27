@@ -138,15 +138,19 @@ describe("checkout with a valid token", () => {
 
 describe("server-enforced session lifetime", () => {
   /**
-   * The security boundary for "logged in forever".
+   * The age ceiling was removed deliberately: "Keep customers signed in until
+   * logout" set SESSION_MAX_AGE_MS to Infinity, so a session no longer expires
+   * just because time has passed. A long-lived, signature-valid token is now
+   * accepted.
    *
-   * Firebase refresh tokens never expire, so a client that keeps refreshing
-   * can hold a technically-valid ID token indefinitely. The signature check
-   * alone would accept it. The ceiling is enforced here instead, against the
-   * signed auth_time claim — the moment the customer actually proved who they
-   * were, which survives every refresh and cannot be edited by the client.
+   * What still ends a session — and what this block still guards — is an
+   * explicit logout (refresh-token revocation) or a token that carries no
+   * auth_time we can trust (the fail-closed case below). Age alone is no longer
+   * a boundary.
    */
-  it("rejects a signature-valid token whose session has outlived the ceiling", async () => {
+  it("keeps a long-lived session valid — sessions end at logout, not by age", async () => {
+    // Far older than the former 30-day cap, yet still accepted now that the
+    // ceiling is gone.
     const thirtyOneDaysAgo = Math.floor((Date.now() - 31 * 24 * 60 * 60 * 1000) / 1000);
     mockVerify.mockResolvedValue({
       uid: "firebase-uid-old",
@@ -154,14 +158,12 @@ describe("server-enforced session lifetime", () => {
       auth_time: thirtyOneDaysAgo,
     });
 
-    const res = await placeOrder("perfectly-signed-but-ancient-token");
+    const res = await placeOrder("perfectly-signed-and-still-valid-token");
 
-    expect(res.statusCode).toBe(401);
-    expect(res.body.code).toBe("SESSION_EXPIRED");
-    expect(await Order.countDocuments()).toBe(0);
+    expect(res.statusCode).toBe(201);
   });
 
-  it("accepts a session comfortably inside the ceiling", async () => {
+  it("accepts a normal recent session", async () => {
     const tenDaysAgo = Math.floor((Date.now() - 10 * 24 * 60 * 60 * 1000) / 1000);
     mockVerify.mockResolvedValue({
       uid: "firebase-uid-recent",
