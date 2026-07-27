@@ -143,6 +143,31 @@ describe("ensureDefaultAdminUser", () => {
     expect(await bcrypt.compare("new-chosen-password", updated.password)).toBe(true);
     expect(await bcrypt.compare("old-password", updated.password)).toBe(false);
   });
+
+  it("creates the configured-email admin even when a stale admin holds the default phone", async () => {
+    const { appConfig } = await import("../config.js");
+    // A leftover admin on a DIFFERENT email but the same default phone — this
+    // used to be matched by the removed findUserByMobile fallback, which stopped
+    // a changed ADMIN_EMAIL from ever getting its own account.
+    await User.create({
+      id: "stale-admin",
+      email: "stale-admin@example.com",
+      mobile: appConfig.adminPhone,
+      password: bcrypt.hashSync("stale", 10),
+      provider: "email",
+      role: "admin",
+    });
+
+    process.env.ADMIN_PASSWORD = "configured-admin-password";
+    const { ensureDefaultAdminUser } = await loadUserStore();
+    const admin = await ensureDefaultAdminUser();
+
+    // The configured email gets its own admin, not the stale one.
+    expect(admin.email).toBe(appConfig.adminEmail);
+    expect(admin.email).not.toBe("stale-admin@example.com");
+    expect(await User.countDocuments({ role: "admin" })).toBe(2);
+    expect(await bcrypt.compare("configured-admin-password", admin.password)).toBe(true);
+  });
 });
 
 describe("admin login lookup (role-aware)", () => {

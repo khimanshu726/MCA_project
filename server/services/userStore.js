@@ -194,12 +194,15 @@ const reconcileAdminPassword = async (adminUser) => {
 };
 
 export const ensureDefaultAdminUser = async () => {
-  const existingUser =
-    (await findUserByEmail(appConfig.adminEmail)) ||
-    (await findUserByMobile(appConfig.adminPhone));
+  // Resolve the admin by its configured EMAIL only. The previous fallback
+  // `|| findUserByMobile(appConfig.adminPhone)` matched a pre-existing admin by
+  // the shared default phone (9876543210), so changing ADMIN_EMAIL never
+  // created a new account — it kept reconciling the stale one, and the new
+  // email had no admin to sign in with. Email is the admin's identity.
+  const existingAdmin = await findAdminByEmail(appConfig.adminEmail);
 
-  if (existingUser) {
-    const reconciled = await reconcileAdminPassword(existingUser);
+  if (existingAdmin) {
+    const reconciled = await reconcileAdminPassword(existingAdmin);
     await warnIfAdminUsesPublishedPassword(reconciled);
     console.log(`[admin] Admin login ready for ${reconciled.email}`);
     return reconciled;
@@ -217,13 +220,15 @@ export const ensureDefaultAdminUser = async () => {
     return null;
   }
 
-  return createUserRecord({
+  const created = await createUserRecord({
     email: appConfig.adminEmail,
     mobile: appConfig.adminPhone,
     password: resolveAdminPasswordHash(),
     provider: "email",
     role: "admin",
   });
+  console.log(`[admin] Created admin account. Admin login ready for ${created.email}`);
+  return created;
 };
 
 const mapFirebaseProvider = (providerId = "") => {
