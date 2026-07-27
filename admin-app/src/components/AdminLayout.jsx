@@ -9,7 +9,6 @@ function AdminLayout() {
     <div className="app-shell admin-shell">
       <header className="site-header admin-header">
         <div className="brand-block">
-          <p className="eyebrow">Admin panel</p>
           {/* The panel manages the catalog as well as orders now. */}
           <h1>Elite Empressions</h1>
           <p className="brand-copy">Signed in as {admin?.email || admin?.mobile || "Admin"}.</p>
