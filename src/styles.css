@@ -541,6 +541,8 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--ink-200);
 }
 .secondary-button:hover { border-color: var(--ink-950); transform: translateY(-1px); }
+.secondary-button:disabled { opacity: 0.5; color: var(--ink-400); cursor: not-allowed; }
+.secondary-button:disabled:hover { border-color: var(--ink-200); transform: none; }
 
 .ghost-button {
   background: transparent;

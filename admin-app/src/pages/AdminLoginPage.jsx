@@ -9,10 +9,9 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { completeOtpAuth, requestOtp, signInWithPassword } = useAdminAuth();
+  const { completeOtpAuth, requestOtp } = useAdminAuth();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [otpRequested, setOtpRequested] = useState(false);
   const [otpPreview, setOtpPreview] = useState("");
@@ -38,21 +37,6 @@ function AdminLoginPage() {
     resetFeedback();
   };
 
-  const handlePasswordLogin = async (event) => {
-    event.preventDefault();
-    resetFeedback();
-    setIsSubmitting(true);
-
-    try {
-      await signInWithPassword(email.trim(), password);
-      navigate(destination, { replace: true });
-    } catch (submitError) {
-      setError(submitError.message || "Unable to sign in.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSendCode = async () => {
     resetFeedback();
     setIsSendingCode(true);
@@ -73,6 +57,10 @@ function AdminLoginPage() {
 
   const handleOtpLogin = async (event) => {
     event.preventDefault();
+    // Guard against an accidental Enter in the email field before a code exists.
+    if (otp.trim().length !== 6) {
+      return;
+    }
     resetFeedback();
     setIsSubmitting(true);
 
@@ -91,13 +79,13 @@ function AdminLoginPage() {
       <section className="section-panel admin-login-panel">
         <div className="section-heading">
           <p className="eyebrow">Admin Login</p>
-          <h2>Sign in with your email</h2>
+          <h2>Sign in with a one-time code</h2>
           <p className="section-copy">
-            Use your admin email with a password, or get a one-time code sent to your inbox.
+            Enter your admin email and we&apos;ll send a 6-digit sign-in code to your inbox.
           </p>
         </div>
 
-        <form className="delivery-form-card admin-login-form" onSubmit={handlePasswordLogin}>
+        <form className="delivery-form-card admin-login-form" onSubmit={handleOtpLogin}>
           <InputField
             label="Email address"
             htmlFor="admin-email"
@@ -114,26 +102,6 @@ function AdminLoginPage() {
             />
           </InputField>
 
-          <InputField label="Password" htmlFor="admin-password">
-            <input
-              id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </InputField>
-
-          <button type="submit" className="primary-button" disabled={isSubmitting || !isEmailValid || !password.trim()}>
-            {isSubmitting ? "Signing in..." : "Login with Password"}
-          </button>
-        </form>
-
-        <div className="auth-divider">
-          <span>or use a one-time code</span>
-        </div>
-
-        <form className="delivery-form-card admin-login-form" onSubmit={handleOtpLogin}>
           {otpRequested ? (
             <InputField
               label="Sign-in code"
@@ -150,6 +118,10 @@ function AdminLoginPage() {
                 onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </InputField>
+          ) : null}
+
+          {!isEmailValid ? (
+            <p className="admin-otp-hint">Enter your admin email address above to receive a sign-in code.</p>
           ) : null}
 
           <div className="auth-actions-grid">
