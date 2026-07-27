@@ -1402,6 +1402,25 @@ select {
   transform: none;
 }
 .auth-provider-logo { width: 20px; height: 20px; }
+.auth-provider-stack.icon-only {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+}
+.auth-provider-button.icon-only {
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  border-radius: 999px;
+  justify-content: center;
+  gap: 0;
+}
+.auth-provider-button.icon-only .auth-provider-logo {
+  width: 22px;
+  height: 22px;
+}
 .auth-divider {
   display: flex;
   align-items: center;
@@ -1705,6 +1724,30 @@ select {
   padding: 0.25rem;
 }
 .auth-password-toggle:hover { color: var(--ink-950); }
+/* When the field hosts an inline submit control, make room for both it and the
+   Show/Hide toggle. Scoped to .has-submit so the register/reset fields keep
+   their original single-control spacing. */
+.auth-password-shell.has-submit input { padding-right: 7.75rem; }
+.auth-password-shell.has-submit .auth-password-toggle { right: 3.25rem; }
+.auth-password-submit {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink-950);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out), opacity 0.2s var(--ease-out);
+}
+.auth-password-submit:hover:not(:disabled) { transform: translateY(-50%) scale(1.06); }
+.auth-password-submit:disabled { opacity: 0.45; cursor: not-allowed; }
 .auth-password-checklist {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2999,3 +3042,5 @@ textarea {
     min-height: 44px;
   }
 }
+
+

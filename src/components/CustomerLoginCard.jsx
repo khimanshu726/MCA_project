@@ -209,6 +209,7 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
           isBusy={!isFirebaseConfigured || isLoading || isEmailSubmitting || isProviderBusy}
           onGoogle={() => handleProviderSignIn("google")}
           onFacebook={() => handleProviderSignIn("facebook")}
+          iconOnly
         />
 
         <div className="auth-divider">
@@ -250,6 +251,9 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
             autoComplete="current-password"
             placeholder="Enter your password"
             disabled={isEmailSubmitting}
+            showSubmit
+            isSubmitting={isEmailSubmitting}
+            submitDisabled={!canSubmit}
           />
 
           <div className="auth-form-meta">
@@ -266,7 +270,6 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
                   : "Forgot Password?"}
             </button>
           </div>
-          <p className="text-sm text-ink-500">You'll stay signed in on this device until you log out.</p>
 
           {loginError ? (
             <div className="auth-error" role="alert">
@@ -297,16 +300,7 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
             </p>
           ) : null}
 
-          <button type="submit" className="auth-submit-button" disabled={!canSubmit}>
-            {isEmailSubmitting ? (
-              <>
-                <span className="auth-spinner" aria-hidden="true" />
-                Signing In...
-              </>
-            ) : (
-              "Login with Password"
-            )}
-          </button>
+
         </form>
 
         <PhoneOtpForm
@@ -330,3 +324,8 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
 }
 
 export default CustomerLoginCard;
+
+
+
+
+
