@@ -121,4 +121,81 @@ describe("ensureDefaultAdminUser", () => {
 
     expect(error.mock.calls.some((c) => /SECURITY/.test(String(c[0])))).toBe(false);
   });
+
+  it("reconciles an existing admin's password when ADMIN_PASSWORD changes", async () => {
+    const { appConfig } = await import("../config.js");
+    // Admin seeded earlier with an OLD password.
+    await User.create({
+      id: "admin-rotate",
+      email: appConfig.adminEmail,
+      mobile: appConfig.adminPhone,
+      password: bcrypt.hashSync("old-password", 10),
+      provider: "email",
+      role: "admin",
+    });
+
+    // Operator sets a new password in the environment and redeploys.
+    process.env.ADMIN_PASSWORD = "new-chosen-password";
+    const { ensureDefaultAdminUser } = await loadUserStore();
+    await ensureDefaultAdminUser();
+
+    const updated = await User.findOne({ role: "admin" });
+    expect(await bcrypt.compare("new-chosen-password", updated.password)).toBe(true);
+    expect(await bcrypt.compare("old-password", updated.password)).toBe(false);
+  });
+});
+
+describe("admin login lookup (role-aware)", () => {
+  it("findAdminByEmail returns the admin, not a passwordless customer sharing the email", async () => {
+    const email = "shared@example.com";
+    await User.create({ id: "cust", email, password: "", provider: "google", role: "customer" });
+    await User.create({
+      id: "adm",
+      email,
+      password: bcrypt.hashSync("pw", 10),
+      provider: "email",
+      role: "admin",
+    });
+
+    const { findAdminByEmail } = await loadUserStore();
+    const admin = await findAdminByEmail(email);
+
+    expect(admin).toBeTruthy();
+    expect(admin.role).toBe("admin");
+    expect(admin.id).toBe("adm");
+  });
+
+  it("loginUser authenticates the admin even when a customer shares the email", async () => {
+    const email = "owner@example.com";
+    // Firebase customer on the same address — no password.
+    await User.create({ id: "cust2", email, password: "", provider: "google", role: "customer" });
+    await User.create({
+      id: "adm2",
+      email,
+      password: bcrypt.hashSync("secret-admin-pw", 10),
+      provider: "email",
+      role: "admin",
+    });
+
+    const { loginUser } = await import("../controllers/authController.js");
+    const req = { body: { identifier: email, password: "secret-admin-pw" } };
+    let statusCode = 200;
+    let jsonBody = null;
+    const res = {
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        jsonBody = body;
+        return this;
+      },
+    };
+
+    await loginUser(req, res);
+
+    expect(statusCode).toBe(200);
+    expect(jsonBody?.token).toBeTruthy();
+    expect(jsonBody?.user?.role).toBe("admin");
+  });
 });

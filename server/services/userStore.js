@@ -34,6 +34,22 @@ export const findUserByEmail = async (email) => {
   return user ? user.toObject() : null;
 };
 
+/**
+ * Resolves the ADMIN account for an email, ignoring any other record that
+ * happens to share it. This matters because a person can hold two accounts on
+ * the same address: an admin (role "admin", with a bcrypt password) and a
+ * customer created by Firebase sign-in (role "customer", no password). A plain
+ * findUserByEmail can return the passwordless customer, and admin password
+ * login would then reject a correct password with "Invalid credentials".
+ * Scoping to role "admin" is what makes admin sign-in deterministic.
+ */
+export const findAdminByEmail = async (email) => {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+  const user = await User.findOne({ email: new RegExp(`^${normalizedEmail}$`, "i"), role: "admin" });
+  return user ? user.toObject() : null;
+};
+
 export const findUserByMobile = async (mobile) => {
   const normalizedMobile = normalizeMobile(mobile);
   if (!normalizedMobile) return null;
@@ -140,14 +156,53 @@ const warnIfAdminUsesPublishedPassword = async (adminUser) => {
   }
 };
 
+/**
+ * Brings an existing admin's password back in line with the environment.
+ *
+ * The seed below is create-only, which meant a changed ADMIN_PASSWORD never
+ * took effect: the account kept its original hash and the operator was locked
+ * out with their new (correct) password. Since there is no admin
+ * password-change UI, the ADMIN_PASSWORD / ADMIN_PASSWORD_HASH env vars are the
+ * single source of truth, so we reconcile to them on boot.
+ *
+ * Gated on hasExplicitAdminPassword(): with no explicit password we do NOT
+ * rotate (that would re-apply the published default), preserving the deliberate
+ * "warn, don't rotate" stance for that case. Returns the (possibly updated) user.
+ */
+const reconcileAdminPassword = async (adminUser) => {
+  if (!hasExplicitAdminPassword() || !adminUser?.password) {
+    return adminUser;
+  }
+
+  let alreadyMatches = false;
+  if (process.env.ADMIN_PASSWORD) {
+    alreadyMatches = await bcrypt.compare(process.env.ADMIN_PASSWORD, adminUser.password).catch(() => false);
+  } else if (process.env.ADMIN_PASSWORD_HASH) {
+    alreadyMatches = adminUser.password === process.env.ADMIN_PASSWORD_HASH;
+  }
+
+  if (alreadyMatches) {
+    return adminUser;
+  }
+
+  const updated = await updateUserRecord(adminUser.id, (current) => ({
+    ...current,
+    password: resolveAdminPasswordHash(),
+  }));
+  console.log("[admin] Reconciled admin password from the environment.");
+  return updated || adminUser;
+};
+
 export const ensureDefaultAdminUser = async () => {
   const existingUser =
     (await findUserByEmail(appConfig.adminEmail)) ||
     (await findUserByMobile(appConfig.adminPhone));
 
   if (existingUser) {
-    await warnIfAdminUsesPublishedPassword(existingUser);
-    return existingUser;
+    const reconciled = await reconcileAdminPassword(existingUser);
+    await warnIfAdminUsesPublishedPassword(reconciled);
+    console.log(`[admin] Admin login ready for ${reconciled.email}`);
+    return reconciled;
   }
 
   // Seeding a known-credential admin is a convenience for local development and
