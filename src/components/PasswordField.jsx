@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 import InputField from "./InputField";
 
 function PasswordField({
@@ -13,12 +14,20 @@ function PasswordField({
   autoComplete = "current-password",
   placeholder = "Enter password",
   disabled = false,
+  // Optional inline submit affordance. The login form removed its full-width
+  // "Login with Password" button, but a form with two inputs and no submit
+  // control won't implicitly submit on Enter — this small type="submit" button
+  // restores that (and gives a click target). Off by default, so the register
+  // and reset password fields are unaffected.
+  showSubmit = false,
+  isSubmitting = false,
+  submitDisabled = false,
 }) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
     <InputField label={label} htmlFor={id} error={error} helperText={helperText}>
-      <div className="auth-password-shell">
+      <div className={`auth-password-shell${showSubmit ? " has-submit" : ""}`}>
         <input
           id={id}
           type={isVisible ? "text" : "password"}
@@ -44,6 +53,20 @@ function PasswordField({
         >
           {isVisible ? "Hide" : "Show"}
         </button>
+        {showSubmit ? (
+          <button
+            type="submit"
+            className="auth-password-submit"
+            disabled={submitDisabled || isSubmitting}
+            aria-label="Sign in"
+          >
+            {isSubmitting ? (
+              <span className="auth-spinner" aria-hidden="true" />
+            ) : (
+              <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
       </div>
     </InputField>
   );
