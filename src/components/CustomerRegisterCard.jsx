@@ -229,7 +229,6 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
             placeholder="Create a strong password"
           />
 
-          <PasswordChecklist checks={passwordChecks} />
 
           <PasswordField
             id="register-confirm-password"
@@ -248,6 +247,8 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
             autoComplete="new-password"
             placeholder="Confirm your password"
           />
+
+          <PasswordChecklist checks={passwordChecks} />
 
           <label className="auth-checkbox-row" htmlFor="register-terms">
             <input

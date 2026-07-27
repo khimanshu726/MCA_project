@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
-import { STOREFRONT_URL } from "../lib/adminAppUrls";
+
 import { useAdminAuth } from "../context/AdminAuthContext";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -145,11 +145,6 @@ function AdminLoginPage() {
         {error ? <p className="field-error">{error}</p> : null}
         {successMessage ? <p className="submit-message">{successMessage}</p> : null}
 
-        <div className="action-row">
-          <a className="mini-link" href={STOREFRONT_URL}>
-            Back to storefront
-          </a>
-        </div>
       </section>
     </main>
   );
