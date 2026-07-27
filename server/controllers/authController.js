@@ -27,10 +27,16 @@ import {
 } from "../config/firebaseAdmin.js";
 import {
   isResendConfigured,
+  sendLoginOtpEmail,
   sendPasswordResetLinkEmail,
   sendVerificationLinkEmail,
 } from "../services/email/resendService.js";
-import { saveOtpForMobile, verifyOtpForMobile } from "../services/otpStore.js";
+import {
+  saveOtpForEmail,
+  saveOtpForMobile,
+  verifyOtpForEmail,
+  verifyOtpForMobile,
+} from "../services/otpStore.js";
 import { sendOtpSms } from "../services/smsService.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,6 +45,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // point of not leaking which emails have accounts (see requestPasswordReset).
 const GENERIC_RESET_MESSAGE =
   "If an account exists for that email, a password reset link is on its way. Check your spam folder too.";
+
+// Same reply whether or not the email belongs to an admin — the send only
+// happens for a real admin, so an unknown email learns nothing.
+const GENERIC_ADMIN_OTP_MESSAGE =
+  "If an admin account exists for that email, a sign-in code has been sent. Check your spam folder too.";
 
 const hasValidationErrors = (errors) => Object.values(errors).some(Boolean);
 
@@ -261,6 +272,74 @@ export const verifyOtp = async (req, res) => {
     console.error("[AUTH] Error verifying OTP", error);
     return res.status(500).json({ message: "Error verifying OTP" });
   }
+};
+
+/**
+ * Admin email OTP — request a one-time code. Enumeration-safe: a code is
+ * generated and mailed only for a real admin, and every request returns the
+ * same generic reply, so an unknown email is indistinguishable from an admin's.
+ * `devOtp` is returned only outside production, to make local testing possible.
+ */
+export const sendAdminEmailOtp = async (req, res) => {
+  const email = normalizeEmail(req.body.email || "");
+
+  if (!email || !EMAIL_PATTERN.test(email)) {
+    return res.status(400).json({ message: "Enter a valid email address." });
+  }
+
+  const admin = await findAdminByEmail(email);
+  if (!admin) {
+    return res.json({ message: GENERIC_ADMIN_OTP_MESSAGE });
+  }
+
+  const code = String(crypto.randomInt(100000, 999999));
+  const otpResult = await saveOtpForEmail(email, code);
+
+  if (!otpResult.ok) {
+    return res.status(429).json({ message: otpResult.message });
+  }
+
+  await sendLoginOtpEmail(email, code);
+
+  // In production the reply is exactly the generic message — byte-identical to
+  // the unknown-email branch above, so it reveals nothing. The code + expiry are
+  // added only outside production, to make local testing possible.
+  const payload = { message: GENERIC_ADMIN_OTP_MESSAGE };
+  if (process.env.NODE_ENV !== "production") {
+    payload.devOtp = code;
+    payload.expiresAt = otpResult.expiresAt;
+  }
+  return res.json(payload);
+};
+
+/**
+ * Admin email OTP — verify a code and issue an admin session. The code must be
+ * valid AND the email must still resolve to an admin account.
+ */
+export const verifyAdminEmailOtp = async (req, res) => {
+  const email = normalizeEmail(req.body.email || "");
+  const otp = String(req.body.otp || "").trim();
+
+  if (!email || !EMAIL_PATTERN.test(email) || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({ message: "Enter your email and the 6-digit code." });
+  }
+
+  const otpIsValid = await verifyOtpForEmail(email, otp);
+  if (!otpIsValid) {
+    return res.status(401).json({ message: "Invalid or expired code." });
+  }
+
+  const admin = await findAdminByEmail(email);
+  if (!admin) {
+    return res.status(401).json({ message: "Invalid or expired code." });
+  }
+
+  const token = issueAuthToken(admin);
+
+  return res.json({
+    token,
+    user: mapUserForClient(admin),
+  });
 };
 
 export const getCurrentAuthUser = async (req, res) => {

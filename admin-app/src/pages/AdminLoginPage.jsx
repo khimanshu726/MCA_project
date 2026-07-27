@@ -2,49 +2,49 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import { STOREFRONT_URL } from "../lib/adminAppUrls";
-import { GOOGLE_AUTH_URL } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
-import { detectLoginType, normalizeMobileInput } from "../utils/authDetection";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { completeOtpAuth, requestOtp, signInWithPassword } = useAdminAuth();
-  const [identifier, setIdentifier] = useState("");
+
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [otpRequestedFor, setOtpRequestedFor] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
   const [otpPreview, setOtpPreview] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
 
   const destination = location.state?.from || "/admin/orders";
-  const loginType = useMemo(() => detectLoginType(identifier), [identifier]);
-  const isMobileLogin = loginType === "mobile";
-  const isEmailLogin = loginType === "email";
+  const isEmailValid = useMemo(() => EMAIL_PATTERN.test(email.trim().toLowerCase()), [email]);
 
-  const handleIdentifierChange = (rawValue) => {
-    const nextLoginType = detectLoginType(rawValue);
-    const nextValue = nextLoginType === "mobile" ? normalizeMobileInput(rawValue) : rawValue;
-
-    setIdentifier(nextValue);
-    setPassword("");
-    setOtp("");
-    setOtpRequestedFor("");
-    setOtpPreview("");
+  const resetFeedback = () => {
     setError("");
     setSuccessMessage("");
   };
 
+  const handleEmailChange = (value) => {
+    setEmail(value);
+    // Any change invalidates a code that was sent to the previous address.
+    setOtpRequested(false);
+    setOtp("");
+    setOtpPreview("");
+    resetFeedback();
+  };
+
   const handlePasswordLogin = async (event) => {
     event.preventDefault();
+    resetFeedback();
     setIsSubmitting(true);
-    setError("");
-    setSuccessMessage("");
 
     try {
-      await signInWithPassword(identifier, password);
+      await signInWithPassword(email.trim(), password);
       navigate(destination, { replace: true });
     } catch (submitError) {
       setError(submitError.message || "Unable to sign in.");
@@ -53,34 +53,34 @@ function AdminLoginPage() {
     }
   };
 
-  const handleSendOtp = async () => {
-    setIsSubmitting(true);
-    setError("");
-    setSuccessMessage("");
+  const handleSendCode = async () => {
+    resetFeedback();
+    setIsSendingCode(true);
 
     try {
-      const response = await requestOtp(identifier);
-      setOtpRequestedFor(identifier);
+      const response = await requestOtp(email.trim());
+      setOtpRequested(true);
       setOtpPreview(response.devOtp || "");
-      setSuccessMessage("OTP sent successfully. Enter it below to continue.");
+      setSuccessMessage(
+        "If an admin account exists for this email, a sign-in code is on its way. Check your inbox and spam.",
+      );
     } catch (submitError) {
-      setError(submitError.message || "Unable to send OTP.");
+      setError(submitError.message || "Unable to send a sign-in code.");
     } finally {
-      setIsSubmitting(false);
+      setIsSendingCode(false);
     }
   };
 
   const handleOtpLogin = async (event) => {
     event.preventDefault();
+    resetFeedback();
     setIsSubmitting(true);
-    setError("");
-    setSuccessMessage("");
 
     try {
-      await completeOtpAuth(identifier, otp);
+      await completeOtpAuth(email.trim(), otp.trim());
       navigate(destination, { replace: true });
     } catch (submitError) {
-      setError(submitError.message || "Unable to verify OTP.");
+      setError(submitError.message || "Unable to verify the code.");
     } finally {
       setIsSubmitting(false);
     }
@@ -91,78 +91,82 @@ function AdminLoginPage() {
       <section className="section-panel admin-login-panel">
         <div className="section-heading">
           <p className="eyebrow">Admin Login</p>
-          <h2>Sign in with email, mobile OTP, or Google.</h2>
-          <p className="section-copy">Enter your email address or 10-digit mobile number to continue.</p>
+          <h2>Sign in with your email</h2>
+          <p className="section-copy">
+            Use your admin email with a password, or get a one-time code sent to your inbox.
+          </p>
         </div>
 
-        <form className="delivery-form-card admin-login-form" onSubmit={isMobileLogin ? handleOtpLogin : handlePasswordLogin}>
+        <form className="delivery-form-card admin-login-form" onSubmit={handlePasswordLogin}>
           <InputField
-            label="Email or Mobile Number"
-            htmlFor="auth-identifier"
-            helperText={isEmailLogin ? "Email login detected." : isMobileLogin ? "Mobile login detected." : "Use a valid email or 10-digit mobile number."}
+            label="Email address"
+            htmlFor="admin-email"
+            helperText={
+              email && !isEmailValid ? "Enter a valid email address." : "The email registered to your admin account."
+            }
           >
             <input
-              id="auth-identifier"
-              type="text"
-              value={identifier}
-              onChange={(event) => handleIdentifierChange(event.target.value)}
+              id="admin-email"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(event) => handleEmailChange(event.target.value)}
             />
           </InputField>
 
-          {isEmailLogin ? (
-            <InputField label="Password" htmlFor="auth-password">
-              <input
-                id="auth-password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </InputField>
-          ) : null}
+          <InputField label="Password" htmlFor="admin-password">
+            <input
+              id="admin-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </InputField>
 
-          {isMobileLogin && otpRequestedFor === identifier ? (
+          <button type="submit" className="primary-button" disabled={isSubmitting || !isEmailValid || !password.trim()}>
+            {isSubmitting ? "Signing in..." : "Login with Password"}
+          </button>
+        </form>
+
+        <div className="auth-divider">
+          <span>or use a one-time code</span>
+        </div>
+
+        <form className="delivery-form-card admin-login-form" onSubmit={handleOtpLogin}>
+          {otpRequested ? (
             <InputField
-              label="OTP"
-              htmlFor="auth-otp"
-              helperText={otpPreview ? `Development OTP: ${otpPreview}` : "Enter the 6-digit OTP sent to your phone."}
+              label="Sign-in code"
+              htmlFor="admin-otp"
+              helperText={otpPreview ? `Development code: ${otpPreview}` : "Enter the 6-digit code sent to your email."}
             >
               <input
-                id="auth-otp"
+                id="admin-otp"
                 type="text"
                 inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
                 value={otp}
-                onChange={(event) => setOtp(normalizeMobileInput(event.target.value).slice(0, 6))}
+                onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </InputField>
           ) : null}
 
           <div className="auth-actions-grid">
             <button
-              type={isEmailLogin ? "submit" : "button"}
-              className="primary-button"
-              disabled={isSubmitting || !isEmailLogin || !password.trim()}
-            >
-              {isSubmitting && isEmailLogin ? "Logging in..." : "Login with Password"}
-            </button>
-
-            <button
-              type={isMobileLogin && otpRequestedFor === identifier ? "submit" : "button"}
+              type="button"
               className="secondary-button"
-              disabled={isSubmitting || !isMobileLogin || identifier.length !== 10}
-              onClick={isMobileLogin && otpRequestedFor !== identifier ? handleSendOtp : undefined}
+              onClick={handleSendCode}
+              disabled={isSendingCode || !isEmailValid}
             >
-              {isSubmitting && isMobileLogin
-                ? otpRequestedFor === identifier
-                  ? "Verifying..."
-                  : "Sending OTP..."
-                : otpRequestedFor === identifier
-                  ? "Login with OTP"
-                  : "Send OTP"}
+              {isSendingCode ? "Sending code..." : otpRequested ? "Resend code" : "Email me a sign-in code"}
             </button>
 
-            <button type="button" className="secondary-button social-button" onClick={() => window.location.assign(GOOGLE_AUTH_URL)}>
-              Continue with Google
-            </button>
+            {otpRequested ? (
+              <button type="submit" className="primary-button" disabled={isSubmitting || otp.length !== 6}>
+                {isSubmitting ? "Verifying..." : "Verify & sign in"}
+              </button>
+            ) : null}
           </div>
         </form>
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { fetchAdminProfile, loginAdmin, sendLoginOtp, verifyLoginOtp } from "../lib/adminApi";
+import { fetchAdminProfile, loginAdmin, sendAdminEmailOtp, verifyAdminEmailOtp } from "../lib/adminApi";
 
 const ADMIN_SESSION_KEY = "elite-admin-session";
 const AdminAuthContext = createContext(null);
@@ -46,17 +46,11 @@ function AdminAuthProvider({ children }) {
     return response.user;
   };
 
-  const requestOtp = async (mobile) => sendLoginOtp({ mobile });
+  const requestOtp = async (email) => sendAdminEmailOtp({ email });
 
-  const completeOtpAuth = async (mobile, otp) => {
-    const response = await verifyLoginOtp({ mobile, otp });
+  const completeOtpAuth = async (email, otp) => {
+    const response = await verifyAdminEmailOtp({ email, otp });
     applySession(response.token, response.user);
-    return response.user;
-  };
-
-  const completeExternalSignIn = async (token) => {
-    const response = await fetchAdminProfile(token);
-    applySession(token, response.user);
     return response.user;
   };
 
@@ -89,7 +83,6 @@ function AdminAuthProvider({ children }) {
       signInWithPassword,
       requestOtp,
       completeOtpAuth,
-      completeExternalSignIn,
       refreshProfile,
       signOut,
     }),
