@@ -2,7 +2,6 @@ const DEFAULT_API_BASE_URL = import.meta.env.PROD ? "/api" : "http://localhost:4
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || DEFAULT_API_BASE_URL;
 export const API_ASSET_BASE_URL = API_BASE_URL.replace(/\/api$/, "");
-export const GOOGLE_AUTH_URL = `${API_BASE_URL}/auth/google`;
 
 const buildHeaders = (headers, body, token) => {
   const nextHeaders = { ...headers };
@@ -53,14 +52,14 @@ export const loginAdmin = (credentials) =>
     body: credentials,
   });
 
-export const sendLoginOtp = (payload) =>
-  request("/auth/send-otp", {
+export const sendAdminEmailOtp = (payload) =>
+  request("/auth/admin/email-otp/send", {
     method: "POST",
     body: payload,
   });
 
-export const verifyLoginOtp = (payload) =>
-  request("/auth/verify-otp", {
+export const verifyAdminEmailOtp = (payload) =>
+  request("/auth/admin/email-otp/verify", {
     method: "POST",
     body: payload,
   });

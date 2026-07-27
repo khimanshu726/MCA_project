@@ -15,17 +15,25 @@ import {
   registerCustomer,
   requestEmailVerification,
   requestPasswordReset,
+  sendAdminEmailOtp,
   sendOtp,
+  verifyAdminEmailOtp,
   verifyOtp,
 } from "../controllers/authController.js";
 
 const router = Router();
+
+// Per-IP limiters accumulate across a whole test file (all requests share
+// 127.0.0.1), which would 429 unrelated assertions. Skip them under test — the
+// store-level OTP rate limit (otpStore) is exercised directly instead.
+const skipInTest = () => process.env.NODE_ENV === "test" || Boolean(process.env.VITEST);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTest,
   message: {
     message: "Too many authentication attempts. Please try again shortly.",
   },
@@ -36,6 +44,7 @@ const otpLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTest,
   message: {
     message: "Too many OTP requests. Please wait before trying again.",
   },
@@ -49,6 +58,7 @@ const passwordResetLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTest,
   message: {
     message: "Too many password reset requests. Please wait before trying again.",
   },
@@ -69,6 +79,9 @@ router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", authLimiter, verifyOtp);
 router.get("/me", authenticateRequest, authorizeRoles("admin"), getCurrentAuthUser);
 router.post("/admin/login", authLimiter, loginUser);
+// Admin email OTP: a one-time code mailed to a verified admin address (Resend).
+router.post("/admin/email-otp/send", otpLimiter, sendAdminEmailOtp);
+router.post("/admin/email-otp/verify", authLimiter, verifyAdminEmailOtp);
 router.get("/admin/me", authenticateRequest, authorizeRoles("admin"), getCurrentAuthUser);
 router.post("/customer/register", authLimiter, registerCustomer);
 router.post("/customer/login", authLimiter, loginCustomer);

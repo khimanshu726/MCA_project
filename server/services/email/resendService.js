@@ -13,6 +13,7 @@ import { welcomeEmail } from "./templates/welcomeEmail.js";
 import { adminNewOrder } from "./templates/adminNewOrder.js";
 import { passwordReset } from "./templates/passwordReset.js";
 import { emailVerification } from "./templates/emailVerification.js";
+import { loginOtp } from "./templates/loginOtp.js";
 
 /**
  * Resend-backed transactional email. Every send goes through sendEmail(), which
@@ -127,6 +128,11 @@ export const sendPasswordResetLinkEmail = (email, link) => {
 export const sendVerificationLinkEmail = (email, link) => {
   const { subject, html, text } = emailVerification(email, link);
   return sendEmail({ to: email, subject, html, text, template: "emailVerification" });
+};
+
+export const sendLoginOtpEmail = (email, code) => {
+  const { subject, html, text } = loginOtp(email, code);
+  return sendEmail({ to: email, subject, html, text, template: "loginOtp" });
 };
 
 // ── Orchestrators with idempotency ─────────────────────────────────────────
