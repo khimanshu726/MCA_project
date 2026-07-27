@@ -350,6 +350,12 @@
   cursor: default;
 }
 
+.admin-otp-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--ink-500, #6b7280);
+}
+
 .image-thumb-actions button:not(:disabled):hover {
   background: #fff;
 }
