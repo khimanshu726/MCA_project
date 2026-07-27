@@ -66,6 +66,27 @@ const splitDisplayName = (displayName = "") => {
   };
 };
 
+/**
+ * The Firestore "users" doc is a best-effort MIRROR — it is written here and
+ * read nowhere in the app (the backend Mongo record, synced during
+ * authenticateCustomer, is the source of truth). So it must never gate sign-in.
+ *
+ * Firestore has no request timeout: if the project's database is unreachable,
+ * not provisioned, or blocked by rules, getDoc/setDoc don't fail fast — the SDK
+ * retries for a long window. Awaiting that inside the sign-in path is exactly
+ * what made Google login take ~a minute. We bound each op with a short timeout,
+ * and the sign-in callers fire this without awaiting.
+ */
+const FIRESTORE_SYNC_TIMEOUT_MS = 4000;
+
+const withTimeout = (promise, ms, label) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+
 export const syncCustomerUserDocument = async (user, profile = {}) => {
   if (!user || !firestoreDb) {
     return null;
@@ -73,7 +94,7 @@ export const syncCustomerUserDocument = async (user, profile = {}) => {
 
   try {
     const userRef = doc(firestoreDb, "users", user.uid);
-    const snapshot = await getDoc(userRef);
+    const snapshot = await withTimeout(getDoc(userRef), FIRESTORE_SYNC_TIMEOUT_MS, "Firestore profile read");
     const existingData = snapshot.exists() ? snapshot.data() : {};
     const resolvedNames =
       profile.firstName || profile.lastName
@@ -101,7 +122,7 @@ export const syncCustomerUserDocument = async (user, profile = {}) => {
       payload.createdAt = serverTimestamp();
     }
 
-    await setDoc(userRef, payload, { merge: true });
+    await withTimeout(setDoc(userRef, payload, { merge: true }), FIRESTORE_SYNC_TIMEOUT_MS, "Firestore profile write");
     return payload;
   } catch (error) {
     devError("[Auth] Firestore profile sync failed", error);
@@ -121,7 +142,8 @@ export const registerCustomerWithEmail = async ({ firstName, lastName, email, pa
   }
 
   const currentUser = resolveCurrentUser(auth, credential.user);
-  await syncCustomerUserDocument(currentUser, {
+  // Background mirror only — never gate registration on Firestore.
+  void syncCustomerUserDocument(currentUser, {
     firstName,
     lastName,
     displayName,
@@ -141,7 +163,8 @@ export const signInCustomerWithEmail = async ({ email, password }) => {
   const auth = await ensureFirebasePersistence();
   const credential = await signInWithEmailAndPassword(auth, email, password);
   const currentUser = resolveCurrentUser(auth, credential.user);
-  await syncCustomerUserDocument(currentUser, { provider: "email" });
+  // Background mirror only — never gate sign-in on Firestore.
+  void syncCustomerUserDocument(currentUser, { provider: "email" });
   await currentUser.getIdToken(true);
   return currentUser;
 };
@@ -150,7 +173,9 @@ export const signInCustomerWithGoogle = async () => {
   const auth = await ensureFirebasePersistence();
   const credential = await signInWithPopup(auth, googleProvider);
   const currentUser = resolveCurrentUser(auth, credential.user);
-  await syncCustomerUserDocument(currentUser, { provider: "google" });
+  // Mirror to Firestore in the background — it's read nowhere and must not gate
+  // sign-in (it swallows its own errors; see syncCustomerUserDocument).
+  void syncCustomerUserDocument(currentUser, { provider: "google" });
   await currentUser.getIdToken(true);
   return currentUser;
 };
@@ -159,7 +184,8 @@ export const signInCustomerWithFacebook = async () => {
   const auth = await ensureFirebasePersistence();
   const credential = await signInWithPopup(auth, facebookProvider);
   const currentUser = resolveCurrentUser(auth, credential.user);
-  await syncCustomerUserDocument(currentUser, { provider: "facebook" });
+  // Background mirror only — never gate sign-in on Firestore.
+  void syncCustomerUserDocument(currentUser, { provider: "facebook" });
   await currentUser.getIdToken(true);
   return currentUser;
 };
