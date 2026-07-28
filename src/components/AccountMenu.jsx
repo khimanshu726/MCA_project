@@ -34,6 +34,30 @@ function AccountMenu() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const closeTimerRef = useRef(null);
+
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const openMenu = () => {
+    cancelClose();
+    setOpen(true);
+  };
+
+  // A short grace period so moving the pointer across the gap between the
+  // trigger and the panel doesn't dismiss the menu before it can be reached.
+  // Re-entering (mouse back over the trigger or panel) cancels the pending close.
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => setOpen(false), 160);
+  };
+
+  // Clear any pending close timer on unmount.
+  useEffect(() => cancelClose, []);
 
   // Any navigation dismisses the menu.
   useEffect(() => {
@@ -78,8 +102,8 @@ function AccountMenu() {
       className="account-menu"
       data-open={open}
       ref={containerRef}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={openMenu}
+      onMouseLeave={scheduleClose}
     >
       <button
         type="button"
