@@ -1,8 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
-import { ShoppingBag, User, LogOut, Menu, X, Heart } from "lucide-react";
+import { ShoppingBag, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
 import SearchAutocomplete from "./SearchAutocomplete";
-import { useAuthModal } from "../context/AuthModalContext";
+import AccountMenu from "./AccountMenu";
 
 function BrandBlock() {
   return (
@@ -12,39 +12,12 @@ function BrandBlock() {
   );
 }
 
-function AccountActions({ isAuthenticated, cartCount, wishlistCount, onSignOut, mobileOpen, onToggleMobile }) {
-  const { openAuth } = useAuthModal();
-
-  // Signed out: open the modal over the current page. Do NOT navigate anywhere
-  // on success — the modal preserves the page the customer was on, so they stay
-  // put. Forcing /account here was exactly the "always lands on Account after
-  // login" bug; the account hub is one click away on the (now "Account") icon.
-  const handleSignIn = () => {
-    openAuth({ reason: "Sign in to your account" });
-  };
-
+function AccountActions({ cartCount, wishlistCount, mobileOpen, onToggleMobile }) {
   return (
     <div className="account-actions">
-      {isAuthenticated ? (
-        <NavLink
-          to="/account"
-          className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
-          aria-label="My account"
-        >
-          <User size={16} strokeWidth={1.8} aria-hidden="true" />
-          <span className="hide-mobile">Account</span>
-        </NavLink>
-      ) : (
-        <button
-          type="button"
-          className="nav-link nav-button utility-link"
-          onClick={handleSignIn}
-          aria-label="Log in"
-        >
-          <User size={16} strokeWidth={1.8} aria-hidden="true" />
-          <span className="hide-mobile">Login</span>
-        </button>
-      )}
+      {/* Amazon-style account flyout: greeting + a menu of account links, with
+          Sign Out living inside the menu (no separate logout button). */}
+      <AccountMenu />
       <NavLink
         to="/wishlist"
         className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
@@ -63,16 +36,6 @@ function AccountActions({ isAuthenticated, cartCount, wishlistCount, onSignOut, 
         <span className="hide-mobile">Cart</span>
         <span className="nav-count">{cartCount}</span>
       </NavLink>
-      {isAuthenticated ? (
-        <button
-          type="button"
-          className="nav-link nav-button utility-link hide-mobile"
-          onClick={onSignOut}
-          aria-label="Log out"
-        >
-          <LogOut size={16} strokeWidth={1.8} aria-hidden="true" />
-        </button>
-      ) : null}
       <button
         type="button"
         className="nav-link nav-button utility-link show-mobile"
@@ -124,10 +87,8 @@ function AppHeader({
   searchTerm,
   onSearchTermChange,
   onSearchSubmit,
-  isAuthenticated,
   cartCount,
   wishlistCount,
-  onSignOut,
   mobileOpen,
   onToggleMobile,
 }) {
@@ -143,10 +104,8 @@ function AppHeader({
         />
 
         <AccountActions
-          isAuthenticated={isAuthenticated}
           cartCount={cartCount}
           wishlistCount={wishlistCount}
-          onSignOut={onSignOut}
           mobileOpen={mobileOpen}
           onToggleMobile={onToggleMobile}
         />

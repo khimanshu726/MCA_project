@@ -431,6 +431,132 @@ a { color: inherit; text-decoration: none; }
 }
 .nav-link.utility-link.active .nav-count { background: #fff; color: var(--ink-950); }
 
+/* ── Account menu (Amazon-style flyout) ─────────────────────────────── */
+.account-menu { position: relative; display: inline-flex; }
+
+.account-menu-trigger {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.account-menu-icon { display: none; }
+
+.account-menu-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+.account-menu-greeting {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--ink-500);
+}
+.account-menu-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.account-menu-title svg { transition: transform 0.2s var(--ease-out); }
+.account-menu[data-open="true"] .account-menu-title svg { transform: rotate(180deg); }
+
+.account-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  min-width: 250px;
+  padding: 0.85rem;
+  background: #fff;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--r-lg, 16px);
+  box-shadow: var(--shadow-lg, 0 20px 45px rgba(40, 30, 20, 0.16));
+  animation: account-menu-in 0.16s var(--ease-out);
+}
+@keyframes account-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Caret pointing up to the trigger. */
+.account-menu-panel::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 26px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid var(--ink-200);
+  border-top: 1px solid var(--ink-200);
+  transform: rotate(45deg);
+}
+
+.account-menu-heading {
+  margin: 0 0 0.5rem;
+  padding: 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-500);
+}
+.account-menu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+.account-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: var(--ink-800);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out);
+}
+.account-menu-item:hover { background: var(--ink-100); color: var(--ink-950); }
+.account-menu-item svg { color: var(--ink-500); flex-shrink: 0; }
+.account-menu-item:hover svg { color: var(--accent); }
+
+.account-menu-divider {
+  height: 1px;
+  margin: 0.5rem 0;
+  background: var(--ink-200);
+}
+.account-menu-signout { color: var(--accent); font-weight: 600; }
+
+.account-menu-guest { display: flex; flex-direction: column; gap: 0.7rem; align-items: stretch; }
+.account-menu-signin { width: 100%; }
+.account-menu-guest-note { margin: 0; text-align: center; font-size: 0.8rem; color: var(--ink-600); }
+.account-menu-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Mobile: collapse the two-line label to a single account icon. */
+@media (max-width: 720px) {
+  .account-menu-icon { display: inline-flex; }
+  .account-menu-labels { display: none; }
+  .account-menu-panel { position: fixed; top: auto; right: 0.75rem; left: 0.75rem; min-width: 0; }
+  .account-menu-panel::before { display: none; }
+}
+
 .header-nav-row {
   max-width: 1240px;
   margin: 0 auto;
