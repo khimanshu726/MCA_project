@@ -302,7 +302,7 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null, onSwitch
                         Create your account {"->"}
                       </button>
                     ) : (
-                      <Link className="auth-error-link" to="/register">
+                      <Link className="auth-error-link" to="/login">
                         Create your account {"->"}
                       </Link>
                     )
