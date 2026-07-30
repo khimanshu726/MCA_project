@@ -170,7 +170,7 @@ function AuthModal({ isOpen, view, reason, onClose, onSwitchView, onAuthenticate
 
         <div className="auth-modal-body">
           {view === "login" ? (
-            <CustomerLoginCard onAuthenticated={onAuthenticated} />
+            <CustomerLoginCard onAuthenticated={onAuthenticated} onSwitchToRegister={() => onSwitchView("register")} />
           ) : (
             <CustomerRegisterCard onAuthenticated={onAuthenticated} />
           )}
