@@ -200,17 +200,48 @@ export const signInCustomerWithFacebook = async () => {
  * address is registered); this function mirrors that by never surfacing a
  * "no such account" signal to the caller.
  */
-export const sendCustomerPasswordReset = async (email) => {
+const noAccountError = () => {
+  const error = new Error("No account found for that email address.");
+  error.code = "no-account";
+  return error;
+};
+
+// Firebase's client SDK reports an unknown address as auth/user-not-found; map
+// it to our single "no-account" code so the UI can prompt sign-up consistently.
+const firebaseResetOrNoAccount = async (email) => {
   try {
-    const result = await requestPasswordResetEmail(email);
-    if (result?.provider === "firebase") {
-      const auth = ensureFirebaseAuth();
-      await sendPasswordResetEmail(auth, email);
+    await sendPasswordResetEmail(ensureFirebaseAuth(), email);
+  } catch (error) {
+    if (error?.code === "auth/user-not-found") {
+      throw noAccountError();
     }
-  } catch {
-    // Backend unreachable — fall back to Firebase-sent so recovery still works.
-    const auth = ensureFirebaseAuth();
-    await sendPasswordResetEmail(auth, email);
+    throw error;
+  }
+};
+
+export const sendCustomerPasswordReset = async (email) => {
+  let result;
+  try {
+    result = await requestPasswordResetEmail(email);
+  } catch (error) {
+    // The backend answered "no account" (404) — surface it so the UI can prompt
+    // sign-up. Do NOT fall back to Firebase, which would just re-confirm it.
+    if (error?.code === "no-account" || error?.payload?.code === "no-account") {
+      throw noAccountError();
+    }
+    // A genuine application error (the server responded) must not be masked by a
+    // Firebase send; only an unreachable backend (no status) warrants the fallback.
+    if (error?.status) {
+      throw error;
+    }
+    await firebaseResetOrNoAccount(email);
+    return;
+  }
+
+  // provider:"firebase" is the server's Option-A / send-failure handoff — deliver
+  // via the Firebase client. provider:"resend" means the branded mail already went.
+  if (result?.provider === "firebase") {
+    await firebaseResetOrNoAccount(email);
   }
 };
 

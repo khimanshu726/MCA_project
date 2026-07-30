@@ -166,10 +166,20 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
       pushToast({
         type: "success",
         title: "Reset link sent",
-        message: `If an account exists for ${normalizeEmailInput(email)}, a reset link is on its way. Check spam too.`,
+        message: `A reset link is on its way to ${normalizeEmailInput(email)}. Check spam too.`,
       });
       setResetCooldownSeconds(RESET_COOLDOWN_SECONDS);
     } catch (error) {
+      // No account for this email → tell the customer plainly and point them to
+      // sign-up, matching how the login form handles an unknown address.
+      if (error?.code === "no-account") {
+        setLoginError({
+          message: `We couldn't find an account for ${normalizeEmailInput(email)}. Create one to get started.`,
+          showRegister: true,
+        });
+        focusById("login-email");
+        return;
+      }
       const message = getFirebaseAuthErrorMessage(error);
       setSubmitError(message);
       pushToast({ type: "error", title: "Couldn't send reset link", message });

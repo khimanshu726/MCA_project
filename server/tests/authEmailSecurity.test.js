@@ -95,21 +95,19 @@ describe("POST /api/auth/customer/password-reset", () => {
     expect(sent.html).toContain("oobCode=CODE");
   });
 
-  it("is enumeration-safe: an unknown address returns the identical generic reply and sends nothing", async () => {
-    // Known address: link resolves (default), mail is sent.
-    const known = await request(app).post("/api/auth/customer/password-reset").send({ email: "known@example.com" });
-
-    // Unknown address: the Admin SDK throws user-not-found, which must be swallowed.
+  it("tells the client no account exists for an unknown address, and sends nothing", async () => {
+    // Amazon/Flipkart behaviour (deliberately chosen over enumeration privacy):
+    // an unknown address gets a distinct 404 so the UI can prompt sign-up,
+    // rather than a misleading "reset link sent".
     sendMock.mockClear();
     const notFound = new Error("no user");
     notFound.code = "auth/user-not-found";
     buildPasswordResetLinkMock.mockRejectedValueOnce(notFound);
+
     const unknown = await request(app).post("/api/auth/customer/password-reset").send({ email: "ghost@example.com" });
 
-    // Same status, same provider, same message — no oracle.
-    expect(unknown.statusCode).toBe(known.statusCode);
-    expect(unknown.body).toEqual(known.body);
-    // And nothing was actually mailed for the unknown address.
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.body.code).toBe("no-account");
     expect(sendMock).not.toHaveBeenCalled();
   });
 
