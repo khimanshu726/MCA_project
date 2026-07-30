@@ -71,20 +71,23 @@ Add:
 Without this, Google sign-in and the action links fail with
 `auth/unauthorized-domain`.
 
-### 2. Custom action URL (branded verification & reset links)
+### 2. Branded action links (verification & reset)
 
-**Authentication → Templates → (edit any template) → Customize action URL**
+For **Option B** (backend-generated links sent via Resend) this is handled in
+code and needs **no Firebase Console setting**: `toBrandedActionLink`
+(`server/config/firebaseAdmin.js`) takes the link `generatePasswordResetLink` /
+`generateEmailVerificationLink` returns, extracts the single-use `oobCode`, and
+rebuilds it as `${STOREFRONT_URL}/auth/action?mode=…&oobCode=…` — pointing
+straight at our branded `/auth/action` page (`src/pages/AuthActionPage.jsx`),
+which redeems the code with the client SDK. Set **`STOREFRONT_URL`** to the
+branded domain (`https://eliteimpressions.co.in`) so the link uses it.
 
-Set it to:
-
-```
-https://eliteimpressions.co.in/auth/action
-```
-
-Firebase then appends `?mode=…&oobCode=…` and the link lands on our branded
-`/auth/action` page (`src/pages/AuthActionPage.jsx`) instead of Google's default
-screen. The page already handles `verifyEmail`, `resetPassword`, and
-`recoverEmail`, including expired/used-code errors.
+> A Firebase Console **Customize action URL** (`Authentication → Templates → edit
+> → Customize action URL → https://eliteimpressions.co.in/auth/action`) is only
+> needed for links Firebase itself mails (the Option A fallback). Option B no
+> longer depends on it, because the backend already points links at the branded
+> page. The page handles `verifyEmail`, `resetPassword`, and `recoverEmail`,
+> including expired/used-code errors.
 
 ### 3. Branded email templates
 

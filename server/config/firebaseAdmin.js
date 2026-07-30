@@ -90,17 +90,47 @@ const actionCodeSettings = () => ({
 });
 
 /**
+ * Rewrites a Firebase-generated action link so it points straight at OUR branded
+ * /auth/action page, carrying the single-use `oobCode` (and `mode`).
+ *
+ * Without a custom action URL configured in the Firebase Console, generate*Link
+ * returns a link to Firebase's DEFAULT handler
+ * (…firebaseapp.com/__/auth/action?…&oobCode=…&continueUrl=…). Firebase processes
+ * the action there and then redirects to the continue URL WITHOUT the oobCode —
+ * so the branded page (AuthActionPage) only ever saw a codeless URL and errored
+ * with "This link is missing its security code". Extracting the oobCode and
+ * building the link ourselves removes that dependency entirely: the email links
+ * directly to the branded page, which redeems the code with the client SDK
+ * (which supplies the apiKey), independent of any Console setting or page domain.
+ */
+export const toBrandedActionLink = (firebaseLink) => {
+  try {
+    const src = new URL(firebaseLink);
+    const oobCode = src.searchParams.get("oobCode");
+    if (!oobCode) return firebaseLink; // Unexpected shape — leave it untouched.
+
+    const out = new URL(`${appConfig.storefrontUrl}/auth/action`);
+    const mode = src.searchParams.get("mode");
+    if (mode) out.searchParams.set("mode", mode);
+    out.searchParams.set("oobCode", oobCode);
+    return out.toString();
+  } catch {
+    return firebaseLink;
+  }
+};
+
+/**
  * Generate the password-reset / email-verification links server-side, so the
  * email can be composed and sent as branded HTML through Resend rather than by
  * Firebase's own mailer (Option B — see docs/EMAIL_DELIVERY_OPTIONS.md).
  *
- * Each returns a fully-formed URL embedding a single-use `oobCode`; the redeem
- * still happens client-side on /auth/action. `generatePasswordResetLink` throws
- * `auth/user-not-found` for an unknown address — the caller MUST treat that as
- * a non-event to avoid leaking which emails are registered.
+ * Each returns a URL to the branded /auth/action page embedding a single-use
+ * `oobCode`; the redeem happens client-side there. `generatePasswordResetLink`
+ * throws `auth/user-not-found` for an unknown address — the caller MUST treat
+ * that as a non-event to avoid leaking which emails are registered.
  */
-export const buildPasswordResetLink = (email) =>
-  requireAdminAuth().generatePasswordResetLink(email, actionCodeSettings());
+export const buildPasswordResetLink = async (email) =>
+  toBrandedActionLink(await requireAdminAuth().generatePasswordResetLink(email, actionCodeSettings()));
 
-export const buildEmailVerificationLink = (email) =>
-  requireAdminAuth().generateEmailVerificationLink(email, actionCodeSettings());
+export const buildEmailVerificationLink = async (email) =>
+  toBrandedActionLink(await requireAdminAuth().generateEmailVerificationLink(email, actionCodeSettings()));
