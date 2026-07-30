@@ -40,6 +40,10 @@ export const issueAuthToken = (user) =>
 
 export const mapUserForClient = (user) => ({
   id: user.id,
+  // The registered name (synced from the Firebase displayName). Without this the
+  // profile fetch overwrote the client user with a nameless shape, so the header
+  // greeting fell back to the email local-part instead of the person's name.
+  username: user.username || "",
   email: user.email || "",
   mobile: user.mobile || "",
   provider: user.provider || "email",
