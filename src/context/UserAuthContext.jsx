@@ -93,7 +93,14 @@ function UserAuthProvider({ children }) {
         if (!isActiveRef()) return;
         if (firebaseAuth?.currentUser?.uid !== firebaseUser.uid) return;
 
-        setUser(profileUser || fallbackUser);
+        // Keep the Firebase displayName if the backend profile doesn't carry one,
+        // so hydration never drops the person's name and leaves the greeting on
+        // the email local-part.
+        setUser(
+          profileUser
+            ? { ...profileUser, displayName: profileUser.displayName || fallbackUser?.displayName || "" }
+            : fallbackUser,
+        );
         setToken(profileToken || fallbackToken || "");
       },
     );
