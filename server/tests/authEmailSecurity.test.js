@@ -130,6 +130,30 @@ describe("POST /api/auth/customer/password-reset", () => {
     expect(res.body.provider).toBe("firebase");
     expect(sendMock).not.toHaveBeenCalled();
   });
+
+  it("does NOT claim success when the Resend send fails — hands off to Firebase instead", async () => {
+    // Link generation succeeds (default), but Resend rejects the send. The old
+    // code discarded this result and returned provider:"resend" (a false "reset
+    // link sent"); it must now report provider:"firebase" so the client delivers
+    // via Firebase and the customer actually receives a reset email.
+    sendMock.mockResolvedValueOnce({ data: null, error: { message: "domain not verified" } });
+
+    const res = await request(app).post("/api/auth/customer/password-reset").send({ email: "known@example.com" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.provider).toBe("firebase");
+    expect(buildPasswordResetLinkMock).toHaveBeenCalledWith("known@example.com");
+    expect(sendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("also hands off to Firebase when the Resend send throws (network/SDK failure)", async () => {
+    sendMock.mockRejectedValueOnce(new Error("connection reset"));
+
+    const res = await request(app).post("/api/auth/customer/password-reset").send({ email: "known@example.com" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.provider).toBe("firebase");
+  });
 });
 
 describe("POST /api/auth/customer/verify-email/send", () => {
