@@ -28,7 +28,7 @@ const focusById = (id) => {
 
 const RESET_COOLDOWN_SECONDS = 60;
 
-function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
+function CustomerLoginCard({ destination = "/", onAuthenticated = null, onSwitchToRegister = null }) {
   const navigate = useNavigate();
 
   const finishAuth = (user) => {
@@ -297,9 +297,15 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null }) {
                     </button>
                   ) : null}
                   {loginError.showRegister ? (
-                    <Link className="auth-error-link" to="/register">
-                      Create your account {"->"}
-                    </Link>
+                    onSwitchToRegister ? (
+                      <button type="button" className="auth-error-link" onClick={onSwitchToRegister}>
+                        Create your account {"->"}
+                      </button>
+                    ) : (
+                      <Link className="auth-error-link" to="/register">
+                        Create your account {"->"}
+                      </Link>
+                    )
                   ) : null}
                 </p>
               ) : null}
