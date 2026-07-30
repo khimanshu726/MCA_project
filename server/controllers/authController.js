@@ -419,30 +419,55 @@ export const requestPasswordReset = async (req, res) => {
     return res.status(400).json({ message: "Enter a valid email address." });
   }
 
-  // Global fallback conditions — same for every email, so no information leaks.
+  console.log(`[auth] password-reset requested for ${email}`);
+
+  // Config rollback (Option A): Resend/Option-B not active → tell the client to
+  // send via Firebase's own mailer. Same for every email, so nothing leaks.
   if (appConfig.emailSecurityProvider !== "resend" || !isResendConfigured()) {
+    console.log("[auth] password-reset: Resend not active → client falls back to Firebase-sent mail.");
     return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
   }
 
+  // 1) Generate the Firebase reset link via the Admin SDK.
+  let link;
   try {
-    const link = await buildPasswordResetLink(email);
-    // Fire the send; sendEmail never throws and a delivery failure must not
-    // change the response (that would be an oracle during a Resend blip).
-    await sendPasswordResetLinkEmail(email, link);
+    link = await buildPasswordResetLink(email);
   } catch (error) {
-    // Admin SDK unconfigured is a server fault, not the customer's — let the
-    // client use Firebase so recovery still works. This is global, not per-email.
+    // Admin SDK unconfigured → client uses Firebase so recovery still works.
     if (error?.statusCode === 503) {
+      console.error("[auth] password-reset: Firebase Admin not configured → client falls back to Firebase-sent mail.");
       return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
     }
-    // auth/user-not-found (and anything else) is swallowed: the generic reply
-    // below is returned so an unknown address is indistinguishable from a known
-    // one. Real errors are logged without the address for triage.
-    if (error?.code && error.code !== "auth/user-not-found" && error.code !== "auth/email-not-found") {
-      console.error("[auth] password reset link generation failed:", error?.code || error?.message);
+    // Unknown address: there is genuinely nothing to send. Stay enumeration-safe
+    // — the reply is byte-identical to the success case, so a stranger can't
+    // probe which emails are registered.
+    if (error?.code === "auth/user-not-found" || error?.code === "auth/email-not-found") {
+      console.log(`[auth] password-reset: no Firebase user for ${email} — generic success, no mail sent.`);
+      return res.json({ provider: "resend", message: GENERIC_RESET_MESSAGE });
     }
+    // Any other failure (permissions, unauthorized continue URI, network) is a
+    // real server fault. Fall back to Firebase-sent so the customer can still
+    // recover, and log the real reason so it's fixable — never a silent success.
+    console.error(`[auth] password-reset: link generation failed for ${email}:`, error?.code || error?.message);
+    return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
   }
 
+  // 2) Send the branded mail and ACT ON THE RESULT. The previous version threw
+  // the result away, so a Resend rejection became a false "reset link sent" and
+  // the customer got nothing — the exact bug this endpoint is being fixed for.
+  const result = await sendPasswordResetLinkEmail(email, link);
+  if (!result?.sent) {
+    console.error(
+      `[auth] password-reset: Resend send FAILED for ${email} ` +
+        `(${result?.error?.message || result?.error || result?.reason || "unknown"}) → ` +
+        "client falls back to Firebase-sent mail.",
+    );
+    // Don't claim success we didn't achieve. Hand off to Firebase so recovery
+    // works, while the failure above stays visible in the logs for a real fix.
+    return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
+  }
+
+  console.log(`[auth] password-reset: branded reset email sent to ${email} (resend id=${result.id || "-"}).`);
   return res.json({ provider: "resend", message: GENERIC_RESET_MESSAGE });
 };
 
