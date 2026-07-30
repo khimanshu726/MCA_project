@@ -438,12 +438,14 @@ export const requestPasswordReset = async (req, res) => {
       console.error("[auth] password-reset: Firebase Admin not configured → client falls back to Firebase-sent mail.");
       return res.json({ provider: "firebase", message: GENERIC_RESET_MESSAGE });
     }
-    // Unknown address: there is genuinely nothing to send. Stay enumeration-safe
-    // — the reply is byte-identical to the success case, so a stranger can't
-    // probe which emails are registered.
+    // Unknown address: there is genuinely nothing to reset. Tell the client
+    // plainly so it can prompt sign-up (Amazon/Flipkart behaviour), rather than
+    // a misleading "reset link sent" for an email that has no account. This
+    // deliberately reveals registration status; the per-IP passwordResetLimiter
+    // throttles bulk probing.
     if (error?.code === "auth/user-not-found" || error?.code === "auth/email-not-found") {
-      console.log(`[auth] password-reset: no Firebase user for ${email} — generic success, no mail sent.`);
-      return res.json({ provider: "resend", message: GENERIC_RESET_MESSAGE });
+      console.log(`[auth] password-reset: no account for ${email} — returning no-account.`);
+      return res.status(404).json({ code: "no-account", message: "No account found for that email address." });
     }
     // Any other failure (permissions, unauthorized continue URI, network) is a
     // real server fault. Fall back to Firebase-sent so the customer can still
