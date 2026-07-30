@@ -1,4 +1,4 @@
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import AuthSplitShell from "../components/AuthSplitShell";
 import CustomerLoginCard from "../components/CustomerLoginCard";
 import { useUserAuth } from "../context/UserAuthContext";
@@ -22,14 +22,8 @@ function UserLoginPage() {
       eyebrow="Welcome back!"
       title="Login to your account"
       subtitle="Sign in to pick up your saved cart, delivery details, and print-ready orders."
-      promptText="Not registered?"
-      promptLinkTo="/register"
-      promptLinkLabel="Create an account"
     >
       <CustomerLoginCard destination={destination} />
-      <div className="auth-footer-links">
-        <Link to="/register">Create new account</Link>
-      </div>
     </AuthSplitShell>
   );
 }
