@@ -36,7 +36,7 @@ function AccountPage() {
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">User Dashboard</p>
-          <h2>Welcome back to Elite Empressions.</h2>
+          <h2>Welcome back to Elite Impressions.</h2>
           <p className="section-copy">Manage your profile and track all your previous orders natively.</p>
         </div>
 

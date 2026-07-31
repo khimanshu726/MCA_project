@@ -14,7 +14,7 @@ export async function generateInvoicePdf(order) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text("Elite Empressions", marginX, y);
+  doc.text("Elite Impressions", marginX, y);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.text("Tax Invoice", 547 - marginX, y, { align: "right" });

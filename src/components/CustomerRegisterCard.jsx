@@ -99,7 +99,7 @@ function CustomerRegisterCard({ destination = "/", onAuthenticated = null }) {
       pushToast({
         type: "success",
         title: "Signed in successfully",
-        message: "Your Google account is ready to use with Elite Empressions.",
+        message: "Your Google account is ready to use with Elite Impressions.",
       });
       finishAuth(readyUser || mapFirebaseUserFallback(authUser));
     } catch (error) {

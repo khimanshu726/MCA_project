@@ -39,9 +39,10 @@ function SiteFooter() {
 
   return (
     <footer className="site-footer">
+      <div className="cmyk-rule" aria-hidden="true" />
       <div className="footer-grid">
         <div className="footer-brand">
-          <h3>Elite Empressions</h3>
+          <h3>Elite Impressions</h3>
           <p>
             Premium print products crafted for growing brands - business cards, packaging,
             merchandise, custom gifts, and event print made easier to order.
@@ -49,7 +50,7 @@ function SiteFooter() {
           {/* Rendered only when at least one profile is configured — an empty
               row of dead buttons says less than no row at all. */}
           {socialLinks.length > 0 ? (
-            <nav className="footer-social" aria-label="Elite Empressions on social media">
+            <nav className="footer-social" aria-label="Elite Impressions on social media">
               {socialLinks.map(({ id, label, url }) => (
                 <a
                   key={id}
@@ -93,7 +94,7 @@ function SiteFooter() {
       </div>
 
       <div className="footer-bottom">
-        <span>&copy; {new Date().getFullYear()} Elite Empressions. All rights reserved.</span>
+        <span>&copy; {new Date().getFullYear()} Elite Impressions. All rights reserved.</span>
         {/* Privacy Policy / Terms of Service / Cookies used to sit here as
             `href="#"` — links that consumed a click and did nothing, because
             no such pages exist. They are omitted rather than faked: the one

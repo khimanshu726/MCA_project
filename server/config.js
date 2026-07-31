@@ -69,7 +69,7 @@ export const appConfig = {
   jwtSecret: process.env.JWT_SECRET || "elite-empressions-local-secret",
   adminEmail: process.env.ADMIN_EMAIL || "admin@elite-empressions.local",
   adminPhone: process.env.ADMIN_PHONE || "9876543210",
-  adminName: process.env.ADMIN_NAME || "Elite Empressions Admin",
+  adminName: process.env.ADMIN_NAME || "Elite Impressions Admin",
   // Admin credentials are resolved at call time by the helpers above; see
   // services/userStore.js. `adminPasswordHash` deliberately isn't a field here
   // any more — an import-time hash of a default is what made this untestable.
