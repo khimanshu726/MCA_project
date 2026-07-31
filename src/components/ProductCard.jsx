@@ -36,6 +36,9 @@ function ProductCard({ product, className = "" }) {
           {product.badge ? <span className="product-badge">{product.badge}</span> : null}
         </div>
         <h3>{product.name}</h3>
+        {product.materials?.length ? (
+          <p className="product-spec">{product.materials.join(" · ")}</p>
+        ) : null}
         <p>{product.description}</p>
         <div className="product-meta-list">
           {product.leadTime ? <span className="meta-pill">{product.leadTime}</span> : null}

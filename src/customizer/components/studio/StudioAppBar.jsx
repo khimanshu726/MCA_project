@@ -123,7 +123,7 @@ function StudioAppBar({
 
       <span className="ml-1 mr-2 flex shrink-0 items-center gap-2" aria-hidden="true">
         <span className="size-6 shrink-0 rounded-lg bg-brand-500" />
-        <span className="hidden font-display text-sm text-ink-900 xl:inline">Elite Empressions</span>
+        <span className="hidden font-display text-sm text-ink-900 xl:inline">Elite Impressions</span>
       </span>
 
       <Divider />

@@ -1,5 +1,5 @@
 export const sendOtpSms = async (mobile, otp) => {
-  console.log(`[MOCK OTP] Elite Empressions -> ${mobile}: ${otp}`);
+  console.log(`[MOCK OTP] Elite Impressions -> ${mobile}: ${otp}`);
 
   return {
     delivered: true,

@@ -6,8 +6,8 @@ import AccountMenu from "./AccountMenu";
 
 function BrandBlock() {
   return (
-    <Link to="/" className="brand-block" aria-label="Elite Empressions home">
-      <h1>Elite Empressions</h1>
+    <Link to="/" className="brand-block" aria-label="Elite Impressions home">
+      <h1>Elite Impressions</h1>
     </Link>
   );
 }
@@ -115,6 +115,7 @@ function AppHeader({
         <PrimaryNav />
         <CategoryNav />
       </div>
+      <div className="cmyk-rule" aria-hidden="true" />
     </header>
   );
 }

@@ -47,7 +47,7 @@ export async function openRazorpayCheckout({ orderResponse, prefill, onVerified,
     key: razorpay.key_id,
     amount: razorpay?.amount ?? Math.round((order.price || 0) * 100),
     currency: razorpay?.currency ?? "INR",
-    name: "Elite Empressions",
+    name: "Elite Impressions",
     description: "Print Shop Order",
     order_id: order.razorpayOrderId,
     modal: {

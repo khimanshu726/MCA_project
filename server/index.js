@@ -97,7 +97,7 @@ app.get("/api/health", (_req, res) => {
 
   res.json({
     ok: true,
-    service: "Elite Empressions order API",
+    service: "Elite Impressions order API",
     razorpay: {
       configured: Boolean(razorpayInstance),
       webhookSecretSet: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET),

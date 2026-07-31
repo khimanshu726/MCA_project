@@ -23,7 +23,7 @@ function UserRegisterPage() {
   return (
     <AuthSplitShell
       eyebrow="Create your account"
-      title="Start ordering with Elite Empressions"
+      title="Start ordering with Elite Impressions"
       subtitle="Create your customer account with secure Google, Facebook, or real phone OTP sign-in."
       promptText="Already registered?"
       promptLinkTo="/login"

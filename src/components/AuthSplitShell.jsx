@@ -18,7 +18,7 @@ function AuthSplitShell({
   children,
   leftHeadline = "Maximum convenience for custom print orders",
   leftCaption =
-    "Elite Empressions helps customers log in quickly, manage their details, and move from product selection to checkout without extra friction.",
+    "Elite Impressions helps customers log in quickly, manage their details, and move from product selection to checkout without extra friction.",
   highlights = defaultHighlights,
 }) {
   return (
@@ -54,12 +54,12 @@ function AuthSplitShell({
             <div className="auth-footer-brand">
               <span className="auth-brand-mark">EI</span>
               <div>
-                <strong>Elite Empressions</strong>
+                <strong>Elite Impressions</strong>
                 <span>Print storefront platform</span>
               </div>
             </div>
             <p>
-              Elite Empressions is built for smooth account access, saved customer details,
+              Elite Impressions is built for smooth account access, saved customer details,
               and quick print ordering.
             </p>
           </div>

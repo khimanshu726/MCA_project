@@ -24,7 +24,7 @@ const testimonials = [
   },
   {
     quote:
-      "Elite Empressions is our go-to for launch collateral. Consistent color, premium paper stocks, zero surprises.",
+      "Elite Impressions is our go-to for launch collateral. Consistent color, premium paper stocks, zero surprises.",
     name: "Rohan Patel",
     title: "Head of Brand, Firelane",
     initials: "RP",
@@ -201,7 +201,7 @@ function HomePage() {
 
       <section className="brand-story">
         <div>
-          <p className="eyebrow">Why Elite Empressions</p>
+          <p className="eyebrow">Why Elite Impressions</p>
           <h2>Crafted for businesses that care about detail.</h2>
           <p style={{ marginTop: "1rem", marginBottom: "1.75rem" }}>
             We combine premium print execution with a cleaner digital ordering flow, so every
