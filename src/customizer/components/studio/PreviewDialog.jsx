@@ -65,10 +65,10 @@ function PreviewDialog({ open, onClose, design, template }) {
               <img
                 src={preview.dataUrl}
                 alt={`${preview.label} preview`}
-                className="w-full rounded-lg border border-ink-100 shadow-sm"
+                className="w-full rounded-lg border border-ink-100 shadow-raised"
               />
-              <figcaption className="mt-1.5 text-center text-xs text-ink-500">
-                {preview.label} · shown without guides, exactly as it prints
+              <figcaption className="mt-2 text-center font-mono text-[11px] uppercase tracking-wide text-ink-400">
+                {preview.label} · exactly as it prints
               </figcaption>
             </figure>
           ))}
