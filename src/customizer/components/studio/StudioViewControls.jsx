@@ -104,7 +104,7 @@ function StudioViewControls({
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((open) => !open)}
-          className="min-w-14 rounded-lg px-2 py-1 text-center text-xs font-semibold tabular-nums text-ink-700 transition-colors duration-150 hover:bg-ink-50"
+          className="min-w-14 rounded-lg px-2 py-1 text-center font-mono text-xs font-semibold tabular-nums text-ink-700 transition-colors duration-150 hover:bg-ink-50"
         >
           {label}
         </button>

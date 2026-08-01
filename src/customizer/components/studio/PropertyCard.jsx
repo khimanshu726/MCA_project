@@ -19,7 +19,7 @@ function PropertyCard({ title, actions = null, children, inset = true }) {
     <section className={inset ? "rounded-xl bg-ink-50 p-3" : ""}>
       {title ? (
         <div className="mb-2.5 flex items-center justify-between gap-2">
-          <StudioHeading level={3} className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+          <StudioHeading level={3} className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-400">
             {title}
           </StudioHeading>
           {actions}

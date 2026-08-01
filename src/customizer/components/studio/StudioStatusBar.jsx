@@ -54,7 +54,7 @@ function StudioStatusBar({ template, validation, layerCount }) {
         : "Ready to print";
 
   return (
-    <div className="flex w-full items-center justify-between text-xs text-ink-400">
+    <div className="flex w-full items-center justify-between font-mono text-[11px] uppercase tracking-wide text-ink-400">
       <span className="tabular-nums">
         {template.trim.width} × {template.trim.height} mm · bleed {template.bleed} mm · {layerCount}{" "}
         {layerCount === 1 ? "layer" : "layers"}

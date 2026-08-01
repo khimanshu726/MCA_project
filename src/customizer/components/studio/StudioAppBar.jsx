@@ -122,7 +122,7 @@ function StudioAppBar({
       </button>
 
       <span className="ml-1 mr-2 flex shrink-0 items-center gap-2" aria-hidden="true">
-        <span className="size-6 shrink-0 rounded-lg bg-brand-500" />
+        <span className="size-6 shrink-0 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 shadow-panel" />
         <span className="hidden font-display text-sm text-ink-900 xl:inline">Elite Impressions</span>
       </span>
 
@@ -132,7 +132,7 @@ function StudioAppBar({
       <ProjectName value={projectName} onChange={onProjectNameChange} />
       <span
         aria-live="polite"
-        className="ml-1 hidden shrink-0 items-center gap-2 text-xs text-ink-400 md:flex"
+        className="ml-1 hidden shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-ink-400 md:flex"
       >
         {isDirty ? (
           <>

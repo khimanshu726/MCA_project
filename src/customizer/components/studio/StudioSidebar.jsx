@@ -91,7 +91,7 @@ export const StudioRail = memo(function StudioRail({
       {showQuickActions ? (
         <div className="mt-3 hidden border-t border-ink-100 pt-3 lg:flex lg:flex-col lg:gap-1">
           <div className="flex items-center justify-between gap-2 px-2.5 pb-1">
-            <StudioHeading level={3} className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+            <StudioHeading level={3} className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-400">
               Start
             </StudioHeading>
             <button

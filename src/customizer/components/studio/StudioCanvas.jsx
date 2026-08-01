@@ -41,7 +41,16 @@ function StudioCanvas({
   const [isInteracting, setIsInteracting] = useState(false);
 
   return (
-    <div className="relative h-full w-full bg-ink-100">
+    <div
+      className="relative h-full w-full bg-ink-100"
+      // A whisper-faint neutral dot grid adds a little studio depth without
+      // warming the surround or shifting the artboard's perceived colour
+      // (~4.5% ink, well below where simultaneous contrast bites).
+      style={{
+        backgroundImage: "radial-gradient(circle at 1px 1px, rgba(23,24,27,0.045) 1px, transparent 0)",
+        backgroundSize: "22px 22px",
+      }}
+    >
       <EditorStage
         template={template}
         side={side}
