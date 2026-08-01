@@ -66,22 +66,69 @@ const buildStarters = (template, productName) => {
   ];
 };
 
+/**
+ * A tiny visual of each layout, drawn to the product's real aspect ratio so a
+ * business card reads wide and a banner tall. Representative blocks only — the
+ * real content is applied as editable layers on click.
+ */
+function StarterThumb({ id, aspect }) {
+  return (
+    <div
+      className="relative w-full overflow-hidden rounded-lg bg-white shadow-panel ring-1 ring-ink-100"
+      style={{ aspectRatio: aspect }}
+    >
+      {id === "bold-headline" ? (
+        <div className="absolute inset-0 grid place-items-center p-2">
+          <div className="h-[16%] min-h-[4px] w-3/4 rounded-sm bg-ink-800" />
+        </div>
+      ) : null}
+
+      {id === "headline-subline" ? (
+        <div className="absolute inset-0 grid place-items-center p-2">
+          <div className="flex w-3/4 flex-col items-center gap-[8%]">
+            <div className="h-[14%] min-h-[4px] w-full rounded-sm bg-ink-800" />
+            <div className="h-[9%] min-h-[3px] w-2/3 rounded-sm bg-ink-300" />
+          </div>
+        </div>
+      ) : null}
+
+      {id === "accent-band" ? (
+        <>
+          <div className="absolute inset-x-0 bottom-0 h-[32%] bg-brand-500" />
+          <div className="absolute inset-x-0 bottom-[11%] mx-auto h-[11%] min-h-[3px] w-2/3 rounded-sm bg-white" />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function StartersPanel({ template, productName, actions }) {
   const starters = buildStarters(template, productName);
+  const aspect = template?.trim ? `${template.trim.width} / ${template.trim.height}` : "7 / 4";
 
   return (
-    <div className="flex flex-col gap-2">
-      {starters.map((starter) => (
-        <button
-          key={starter.id}
-          type="button"
-          onClick={() => actions.addLayers(starter.layers())}
-          className="rounded-xl bg-ink-50 px-3 py-3 text-left text-sm font-medium text-ink-800 transition-colors hover:bg-ink-100"
-        >
-          {starter.label}
-        </button>
-      ))}
-      <span className="block text-xs leading-relaxed text-ink-400">Starters drop editable layers onto the canvas — nothing is fixed.</span>
+    <div className="flex flex-col gap-3">
+      <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-400">Quick layouts</p>
+
+      <div className="grid grid-cols-2 gap-2">
+        {starters.map((starter) => (
+          <button
+            key={starter.id}
+            type="button"
+            onClick={() => actions.addLayers(starter.layers())}
+            className="group flex flex-col gap-1.5 rounded-xl border border-ink-100 p-1.5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-raised"
+          >
+            <StarterThumb id={starter.id} aspect={aspect} />
+            <span className="px-0.5 text-xs font-medium text-ink-800 transition-colors group-hover:text-ink-950">
+              {starter.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <span className="block text-xs leading-relaxed text-ink-400">
+        Layouts drop editable layers onto the canvas — nothing is fixed.
+      </span>
     </div>
   );
 }
