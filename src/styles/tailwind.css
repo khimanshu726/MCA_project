@@ -50,6 +50,9 @@
 @theme {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Fraunces", "Playfair Display", Georgia, serif;
+  /* Spec-sheet mono — matches the storefront; used for labels, sizes, zoom, and
+     print facts so the studio reads like a pressroom job ticket. */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
 
   --color-brand-50: #fbf1ec;
   --color-brand-100: #f4e1d6;
