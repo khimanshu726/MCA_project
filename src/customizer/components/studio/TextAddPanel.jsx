@@ -20,26 +20,29 @@ function TextAddPanel({ template, actions }) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      {PRESETS.map((preset) => (
-        <button
-          key={preset.id}
-          type="button"
-          onClick={() => addPreset(preset)}
-          className="rounded-xl bg-ink-50 px-3 py-3 text-left transition-colors hover:bg-ink-100"
-        >
-          <span
-            className="block text-ink-900"
-            style={{
-              fontFamily: `"${preset.font}", sans-serif`,
-              fontWeight: preset.weight,
-              fontSize: 15 * preset.sizeFactor,
-            }}
+    <div className="flex flex-col gap-3">
+      <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-400">Text styles</p>
+      <div className="flex flex-col gap-2">
+        {PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => addPreset(preset)}
+            className="rounded-xl border border-ink-100 bg-white px-3 py-3 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-raised"
           >
-            {preset.label}
-          </span>
-        </button>
-      ))}
+            <span
+              className="block text-ink-900"
+              style={{
+                fontFamily: `"${preset.font}", sans-serif`,
+                fontWeight: preset.weight,
+                fontSize: 15 * preset.sizeFactor,
+              }}
+            >
+              {preset.label}
+            </span>
+          </button>
+        ))}
+      </div>
       <span className="block text-xs leading-relaxed text-ink-400">Double-click any text on the canvas to edit it in place.</span>
     </div>
   );

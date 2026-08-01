@@ -30,10 +30,10 @@ function UploadsPanel({ onImagesReady, isBusy, recentUploads = [], onReuseUpload
       {recentUploads.length > 0 ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <StudioHeading level={3} className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+            <StudioHeading level={3} className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-400">
               Recent
             </StudioHeading>
-            <span className="text-xs tabular-nums text-ink-400">{recentUploads.length}</span>
+            <span className="font-mono text-[11px] tabular-nums text-ink-400">{recentUploads.length}</span>
           </div>
 
           {recentUploads.length > 5 ? (
@@ -63,7 +63,7 @@ function UploadsPanel({ onImagesReady, isBusy, recentUploads = [], onReuseUpload
                   title={`Add ${upload.name}`}
                   aria-label={`Add ${upload.name}`}
                   onClick={() => onReuseUpload(upload)}
-                  className="group aspect-square overflow-hidden rounded-lg bg-ink-50 transition-shadow duration-150 hover:shadow-raised"
+                  className="group aspect-square overflow-hidden rounded-lg border border-ink-100 bg-ink-50 transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-raised"
                 >
                   <img
                     src={upload.src}
