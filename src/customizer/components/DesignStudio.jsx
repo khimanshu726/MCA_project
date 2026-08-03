@@ -7,6 +7,7 @@ import StudioCanvas from "./studio/StudioCanvas.jsx";
 import StudioStatusBar from "./studio/StudioStatusBar.jsx";
 import StudioInspector from "./studio/StudioInspector.jsx";
 import StudioSheet from "./studio/StudioSheet.jsx";
+import StudioStart from "./studio/StudioStart.jsx";
 import { RAIL_ITEMS, StudioPanel, StudioRail } from "./studio/StudioSidebar.jsx";
 import PreviewDialog from "./studio/PreviewDialog.jsx";
 import Dialog from "../../components/ui/Dialog.jsx";
@@ -78,6 +79,10 @@ function DesignStudio({
   const [showDraftNotice, setShowDraftNotice] = useState(recoveredDraft);
   const [showEmptyState, setShowEmptyState] = useState(true);
   const [isPickingProduct, setIsPickingProduct] = useState(false);
+  // A fresh session opens on the Start screen (blank / quick layout / reopen a
+  // saved design). Anything resuming real work — a saved design opened by id or
+  // a recovered draft — skips it and lands straight on the canvas.
+  const [hasStarted, setHasStarted] = useState(Boolean(initialDesign) || recoveredDraft);
   const replaceInputRef = useRef(null);
 
   useAutosave({ productId: product.id, design, isDirty });
@@ -419,9 +424,33 @@ function DesignStudio({
     actions.addLayer(layer);
   }, [actions, template]);
 
+  const handleStartBlank = useCallback(() => setHasStarted(true), []);
+  const handleStartWithStarter = useCallback(
+    (starter) => {
+      actions.addLayers(starter.layers());
+      setShowEmptyState(false);
+      setHasStarted(true);
+    },
+    [actions],
+  );
+
   const sheetTitle = selectedLayer
     ? "Properties"
     : RAIL_ITEMS.find((item) => item.id === activePanel)?.label || "";
+
+  if (!hasStarted) {
+    return (
+      <StudioStart
+        product={product}
+        template={template}
+        products={products}
+        onBack={handleBack}
+        onSelectProduct={handleSelectProduct}
+        onBlank={handleStartBlank}
+        onStarter={handleStartWithStarter}
+      />
+    );
+  }
 
   return (
     <>
