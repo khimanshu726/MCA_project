@@ -39,14 +39,21 @@ function ProductCard({ product, className = "" }) {
         {product.materials?.length ? (
           <p className="product-spec">{product.materials.join(" · ")}</p>
         ) : null}
-        <p>{product.description}</p>
+        <p className="product-desc">{product.description}</p>
         <div className="product-meta-list">
+          {/* Availability reads as a semantic status pill (colour carries meaning)
+              rather than a neutral spec chip — the card said nothing about stock,
+              so the first hint a product was unbuyable used to be a zero-priced
+              cart line. */}
+          {isProductOutOfStock(product) ? (
+            <span className="status-pill out">Sold out</span>
+          ) : isProductLowStock(product) ? (
+            <span className="status-pill low">Only {product.stock} left</span>
+          ) : (
+            <span className="status-pill in">In stock</span>
+          )}
           {product.leadTime ? <span className="meta-pill">{product.leadTime}</span> : null}
           {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
-          {/* The card said nothing about availability, so the first hint you
-              got that a product was unbuyable was a zero-priced cart line. */}
-          {isProductOutOfStock(product) ? <span className="meta-pill">Out of stock</span> : null}
-          {isProductLowStock(product) ? <span className="meta-pill">Only {product.stock} left</span> : null}
         </div>
         <div className="product-card-footer">
           <div className="product-price-block">
