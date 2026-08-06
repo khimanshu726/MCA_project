@@ -5,13 +5,9 @@ import { MemoryRouter } from "react-router-dom";
 import HomePage from "../pages/HomePage.jsx";
 
 /**
- * The Featured products rail runs a live catalog query. The rest of the page
- * is static. useProducts is mocked to a resolved-but-empty answer so the page
- * renders deterministically without a QueryClient — and so the rail lands on
- * its empty branch rather than mounting ProductCards, which would otherwise
- * drag cart/wishlist providers into a page-layout test. The rail's own
- * loading / outage / empty branches are simple enough to trust from the shape
- * of the code; what is worth protecting here is the page itself:
+ * The homepage no longer runs a product query, so the loading / outage /
+ * empty-result branches the previous suite covered do not exist here. What
+ * is worth protecting on the new page is different:
  *
  *  - the CTAs still reach real routes, and category links are still encoded
  *    (the "Labels & Packaging" truncation bug was a query-string defect, not
@@ -19,13 +15,8 @@ import HomePage from "../pages/HomePage.jsx";
  *    puts a category name in a URL);
  *  - the duplicated text-roll label does not leak into the accessible name;
  *  - the decorative hero backdrop cannot swallow a click meant for the CTA;
- *  - the live clock actually ticks and is cleaned up;
- *  - the sections stay in order with sequential numbering.
+ *  - the live clock actually ticks and is cleaned up.
  */
-
-vi.mock("../hooks/useProducts", () => ({
-  useProducts: () => ({ data: { items: [] }, isLoading: false, isFetching: false, refetch: vi.fn() }),
-}));
 
 const renderHome = () =>
   render(
@@ -142,20 +133,16 @@ describe("HomePage — press clock", () => {
 });
 
 describe("HomePage — content", () => {
-  it("renders the sections in order with their numbering", () => {
+  it("renders the three sections in order with their numbering", () => {
     renderHome();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/launch-ready/i);
 
     const headings = screen.getAllByRole("heading", { level: 2 });
     expect(headings[0]).toHaveTextContent(/cleaner ordering flow/i);
-    expect(headings[1]).toHaveTextContent(/best-sellers/i);
-    expect(headings[2]).toHaveTextContent(/our work/i);
+    expect(headings[1]).toHaveTextContent(/our work/i);
 
-    // Badges carry the running section count; the live rail sits between the
-    // intro and the case studies.
     expect(screen.getByText("Introducing Elite Impressions")).toBeInTheDocument();
-    expect(screen.getByText("Featured products")).toBeInTheDocument();
     expect(screen.getByText("Featured client work")).toBeInTheDocument();
   });
 
