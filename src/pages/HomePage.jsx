@@ -2,6 +2,7 @@ import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import ResponsiveImage from "../components/ResponsiveImage";
 import HeroBackdrop from "../components/home/HeroBackdrop";
+import FeaturedRail from "../components/home/FeaturedRail";
 import RollButton from "../components/home/RollButton";
 import SectionBadge from "../components/home/SectionBadge";
 import ShowcaseCard from "../components/home/ShowcaseCard";
@@ -165,11 +166,14 @@ function HomePage() {
         </div>
       </section>
 
-      {/* ---------- 3. Work ---------- */}
+      {/* ---------- 3. Featured products (live catalog) ---------- */}
+      <FeaturedRail />
+
+      {/* ---------- 4. Work ---------- */}
       <section className="bg-bone-100 pb-16 pt-16 sm:pb-20 sm:pt-20 lg:pb-28 lg:pt-28">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
           <SectionBadge
-            number="2"
+            number="3"
             label="Featured client work"
             borderClassName="border-ink-300"
           />
