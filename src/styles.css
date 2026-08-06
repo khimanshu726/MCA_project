@@ -1544,11 +1544,29 @@ select {
 .auth-benefits-list li { display: flex; align-items: flex-start; gap: 0.85rem; color: rgba(255,255,255,0.88); font-size: 0.92rem; line-height: 1.5; }
 .auth-benefit-icon {
   width: 24px; height: 24px; flex: none;
-  background: rgba(255,255,255,0.1); border-radius: var(--r-full);
+  background: rgba(184, 70, 29, 0.22);
+  border: 1px solid rgba(244, 225, 214, 0.28);
+  border-radius: var(--r-full);
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--accent-soft);
-  font-size: 0.75rem;
-  font-weight: 700;
+  margin-top: 1px;
+}
+
+/* CMYK registration rule — the print-craft signature, echoed on the dark auth
+   showcase so the sign-in screen still reads as the same brand as the header. */
+.auth-cmyk-rule {
+  display: block;
+  height: 3px;
+  width: 108px;
+  margin-top: 1.6rem;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--cmyk-c) 0 25%,
+    var(--cmyk-m) 25% 50%,
+    var(--cmyk-y) 50% 75%,
+    #ffffff 75% 100%
+  );
 }
 .auth-showcase-footer { color: rgba(255,255,255,0.45); font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .auth-showcase-footer p { color: rgba(255,255,255,0.45); font-size: 0.78rem; line-height: 1.5; }

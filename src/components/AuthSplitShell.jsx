@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Check } from "lucide-react";
 import authIllustration from "../assets/images/auth-illustration.svg";
 import ResponsiveImage from "./ResponsiveImage";
 
@@ -38,11 +39,12 @@ function AuthSplitShell({
           <div className="auth-showcase-copy">
             <h2>{leftHeadline}</h2>
             <p>{leftCaption}</p>
+            <span className="auth-cmyk-rule" aria-hidden="true" />
             <ul className="auth-benefits-list">
               {highlights.map((item) => (
                 <li key={item}>
                   <span className="auth-benefit-icon" aria-hidden="true">
-                    ?
+                    <Check size={13} strokeWidth={3} />
                   </span>
                   <span>{item}</span>
                 </li>

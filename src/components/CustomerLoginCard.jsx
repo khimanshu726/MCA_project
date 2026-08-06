@@ -293,17 +293,17 @@ function CustomerLoginCard({ destination = "/", onAuthenticated = null, onSwitch
                       onClick={handleForgotPassword}
                       disabled={isResettingPassword || resetCooldownSeconds > 0}
                     >
-                      {resetCooldownSeconds > 0 ? `Reset password (${resetCooldownSeconds}s)` : "Reset password ->"}
+                      {resetCooldownSeconds > 0 ? `Reset password (${resetCooldownSeconds}s)` : "Reset password →"}
                     </button>
                   ) : null}
                   {loginError.showRegister ? (
                     onSwitchToRegister ? (
                       <button type="button" className="auth-error-link" onClick={onSwitchToRegister}>
-                        Create your account {"->"}
+                        Create your account {"→"}
                       </button>
                     ) : (
                       <Link className="auth-error-link" to="/login">
-                        Create your account {"->"}
+                        Create your account {"→"}
                       </Link>
                     )
                   ) : null}
