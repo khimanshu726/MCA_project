@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { AlignCenter, AlignLeft, AlignRight, Bold, CaseUpper, Italic, Underline } from "lucide-react";
 import { FONT_OPTIONS, GRADIENT_PRESETS, TEXT_COLOR_SWATCHES } from "../fonts.js";
 import { measureTextLayerHeight } from "../engine/textMetrics.js";
+import Slider from "../../components/ui/Slider.jsx";
 
 const ToggleButton = ({ label, active, onClick, children }) => (
   <button
@@ -28,6 +30,27 @@ const FieldLabel = ({ children }) => (
  */
 function TextPanel({ selectedLayer, actions }) {
   const textLayer = selectedLayer?.type === "text" ? selectedLayer : null;
+
+  // Open the undo transaction lazily on the first value change of a drag
+  // (rather than on pointer-down, which would fight the Radix Slider's own
+  // internal pointer handling) and close it on commit. Works for keyboard
+  // nudges too, where there is no pointer gesture at all.
+  const txOpenRef = useRef(false);
+  const sliderProps = (key) => ({
+    onValueChange: (next) => {
+      if (!txOpenRef.current) {
+        actions.beginTransaction();
+        txOpenRef.current = true;
+      }
+      updateText({ [key]: next }, { transient: true });
+    },
+    onValueCommit: () => {
+      if (txOpenRef.current) {
+        actions.endTransaction();
+        txOpenRef.current = false;
+      }
+    },
+  });
 
   const updateText = (patch, options = {}) => {
     if (!textLayer) {
@@ -115,32 +138,24 @@ function TextPanel({ selectedLayer, actions }) {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-2">
               <FieldLabel>Letter spacing</FieldLabel>
-              <input
-                type="range"
-                min="-0.05"
-                max="0.5"
-                step="0.01"
+              <Slider
+                min={-0.05}
+                max={0.5}
+                step={0.01}
                 value={textLayer.letterSpacing || 0}
-                onPointerDown={() => actions.beginTransaction()}
-                onChange={(event) => updateText({ letterSpacing: Number(event.target.value) }, { transient: true })}
-                onPointerUp={() => actions.endTransaction()}
-                className="accent-brand-500"
+                {...sliderProps("letterSpacing")}
               />
             </label>
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-2">
               <FieldLabel>Line spacing</FieldLabel>
-              <input
-                type="range"
-                min="0.9"
-                max="2.5"
-                step="0.05"
+              <Slider
+                min={0.9}
+                max={2.5}
+                step={0.05}
                 value={textLayer.lineHeight || 1.25}
-                onPointerDown={() => actions.beginTransaction()}
-                onChange={(event) => updateText({ lineHeight: Number(event.target.value) }, { transient: true })}
-                onPointerUp={() => actions.endTransaction()}
-                className="accent-brand-500"
+                {...sliderProps("lineHeight")}
               />
             </label>
           </div>
@@ -201,16 +216,13 @@ function TextPanel({ selectedLayer, actions }) {
             <label className="flex flex-col gap-1">
               <FieldLabel>Outline</FieldLabel>
               <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.05}
                   value={textLayer.strokeWidth || 0}
-                  onPointerDown={() => actions.beginTransaction()}
-                  onChange={(event) => updateText({ strokeWidth: Number(event.target.value) }, { transient: true })}
-                  onPointerUp={() => actions.endTransaction()}
-                  className="min-w-0 flex-1 accent-brand-500"
+                  {...sliderProps("strokeWidth")}
+                  className="min-w-0 flex-1"
                 />
                 <input
                   type="color"
