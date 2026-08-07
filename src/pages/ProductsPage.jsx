@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
 
@@ -90,13 +91,16 @@ function ProductsPage() {
             <label className="field-label" htmlFor="catalog-search">
               Search catalog
             </label>
-            <input
-              id="catalog-search"
-              type="search"
-              value={searchInput}
-              placeholder="Search visiting cards, banners, packaging..."
-              onChange={handleSearchChange}
-            />
+            <div className="catalog-search-field">
+              <Search size={16} className="catalog-search-icon" aria-hidden="true" />
+              <input
+                id="catalog-search"
+                type="search"
+                value={searchInput}
+                placeholder="Search visiting cards, banners, packaging..."
+                onChange={handleSearchChange}
+              />
+            </div>
           </div>
 
           <div className="catalog-sort">
