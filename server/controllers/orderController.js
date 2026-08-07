@@ -223,6 +223,12 @@ export const createOrder = async (req, res, next) => {
           amount: Math.round(pricing.total * 100),
           currency: "INR",
           receipt: order.orderId,
+          // Auto-capture authorized payments so funds settle without a manual
+          // step. Without this (and with Dashboard auto-capture off), an
+          // authorized payment is auto-refunded after ~5 days — the customer
+          // pays but nothing settles. Belt-and-braces alongside the Dashboard
+          // capture setting.
+          payment_capture: 1,
         });
         order.razorpayOrderId = razorpayOrder.id;
         order.paymentStatus = "Pending";
