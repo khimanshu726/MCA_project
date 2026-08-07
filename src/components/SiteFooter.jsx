@@ -39,7 +39,6 @@ function SiteFooter() {
 
   return (
     <footer className="site-footer">
-      <div className="cmyk-rule" aria-hidden="true" />
       <div className="footer-grid">
         <div className="footer-brand">
           <h3>Elite Impressions</h3>

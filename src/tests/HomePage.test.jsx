@@ -1,22 +1,18 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HomePage from "../pages/HomePage.jsx";
+import { categories } from "../data";
 
-/**
- * The homepage no longer runs a product query, so the loading / outage /
- * empty-result branches the previous suite covered do not exist here. What
- * is worth protecting on the new page is different:
- *
- *  - the CTAs still reach real routes, and category links are still encoded
- *    (the "Labels & Packaging" truncation bug was a query-string defect, not
- *    a category-grid one — the same mistake is available to any link that
- *    puts a category name in a URL);
- *  - the duplicated text-roll label does not leak into the accessible name;
- *  - the decorative hero backdrop cannot swallow a click meant for the CTA;
- *  - the live clock actually ticks and is cleaned up.
- */
+const mockUseProducts = vi.fn();
+
+vi.mock("../hooks/useProducts", () => ({ useProducts: (f) => mockUseProducts(f) }));
+// ProductCard pulls in the cart/auth stack; the homepage's own behaviour is
+// what's under test, so it's stubbed down to something identifiable.
+vi.mock("../components/ProductCard", () => ({
+  default: ({ product }) => <div data-testid="product-card">{product.name}</div>,
+}));
 
 const renderHome = () =>
   render(
@@ -25,132 +21,130 @@ const renderHome = () =>
     </MemoryRouter>,
   );
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+const success = (items) => ({ data: { items }, isLoading: false, isFetching: false, refetch: vi.fn() });
 
-describe("HomePage — navigation", () => {
-  it("points the primary CTAs at real routes", () => {
-    renderHome();
-
-    expect(screen.getByRole("link", { name: /start customizing/i })).toHaveAttribute(
-      "href",
-      "/customize",
-    );
-    // Rendered twice — once in the stacked layout, once in the desktop grid.
-    // Both must agree; a divergence means one branch was edited alone.
-    const catalogLinks = screen.getAllByRole("link", { name: /browse the catalog/i });
-    expect(catalogLinks.length).toBeGreaterThan(0);
-    catalogLinks.forEach((link) => expect(link).toHaveAttribute("href", "/products"));
+describe("HomePage — shop by category", () => {
+  beforeEach(() => {
+    mockUseProducts.mockReturnValue(success([{ id: "p1", name: "Classic Visiting Card" }]));
   });
 
-  it("encodes category names that would otherwise break the query string", () => {
+  it("links every category card to its category listing, not a single product", () => {
+    // Regression for the defect where a card titled "Visiting Cards" opened
+    // /products/classic-card — one hardcoded product's detail page — under a
+    // heading promising a browsable category.
+    const { container } = renderHome();
+    // Scoped to the category grid: some of these words also appear in links
+    // elsewhere on the page (the essentials CTAs), and a page-wide query would
+    // match those too.
+    const grid = container.querySelector(".category-grid");
+    const hrefs = [...grid.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+
+    expect(hrefs).toHaveLength(categories.length);
+
+    categories.forEach((category) => {
+      const expected = `/products?category=${encodeURIComponent(category.searchCategory)}`;
+      expect(hrefs).toContain(expected);
+    });
+
+    // None of them may be a bare product-detail path — the shape of the bug.
+    hrefs.forEach((href) => {
+      expect(href).toContain("/products?category=");
+      expect(href).not.toMatch(/^\/products\/[^?]+$/);
+    });
+  });
+
+  it("encodes category names containing characters that would break the query string", () => {
     const { container } = renderHome();
 
-    const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    const merch = hrefs.find((href) => href?.includes("Clothing"));
+    const ampersandCategory = categories.find((c) => c.searchCategory.includes("&"));
+    expect(ampersandCategory).toBeTruthy();
 
-    // A raw "&" truncates the parameter and silently filters by "Clothing "
-    // rather than "Clothing & Merchandise".
-    expect(merch).toBe("/products?category=Clothing%20%26%20Merchandise");
-    expect(merch).not.toContain("Clothing & ");
+    const hrefs = [...container.querySelectorAll(".category-grid a")].map((a) => a.getAttribute("href"));
+    const target = hrefs.find((h) => h.includes(encodeURIComponent(ampersandCategory.searchCategory)));
+
+    // A raw "&" would truncate the parameter and silently filter by the wrong
+    // category — "Labels " rather than "Labels & Packaging".
+    expect(target).toBeTruthy();
+    expect(target).toContain("%26");
   });
 
-  it("gives every work card a destination", () => {
-    renderHome();
-
-    const cards = screen.getAllByRole("article");
-    expect(cards.length).toBeGreaterThanOrEqual(2);
-
-    cards.forEach((card) => {
-      const link = within(card).getByRole("link");
-      expect(link.getAttribute("href")).toMatch(/^\/products\?category=/);
+  it("points every card at a category the catalog data actually defines", () => {
+    categories.forEach((category) => {
+      expect(category.searchCategory).toBeTruthy();
+      expect(category.searchCategory).toBe(category.title);
     });
   });
 });
 
-describe("HomePage — text-roll buttons", () => {
-  it("does not double the label in the accessible name", () => {
-    // The roll effect renders the label twice inside a clipped window. If the
-    // second copy is exposed, the button announces as "Start customizing
-    // Start customizing" — the reason it carries aria-hidden.
+describe("HomePage — popular products states", () => {
+  it("renders the products when the query succeeds", () => {
+    mockUseProducts.mockReturnValue(success([{ id: "p1", name: "Classic Visiting Card" }]));
     renderHome();
 
-    const cta = screen.getByRole("link", { name: /start customizing/i });
-    expect(cta).toHaveAccessibleName("Start customizing");
+    expect(screen.getAllByTestId("product-card")).toHaveLength(1);
+    expect(screen.queryByText(/couldn.t load popular products/i)).not.toBeInTheDocument();
   });
 
-  it("keeps both label copies in the DOM so the roll has something to reveal", () => {
-    const { container } = renderHome();
-
-    const copies = [...container.querySelectorAll("span")].filter(
-      (node) => node.textContent === "Start customizing" && node.children.length === 0,
-    );
-    expect(copies).toHaveLength(2);
-  });
-});
-
-describe("HomePage — hero backdrop", () => {
-  it("is decorative and cannot intercept a click", () => {
-    const { container } = renderHome();
-
-    const backdrop = container.querySelector(".axion-shader");
-    expect(backdrop).toBeTruthy();
-    expect(backdrop).toHaveAttribute("aria-hidden", "true");
-    // pointer-events is set in axion-home.css, which jsdom does not apply;
-    // asserting the class is the honest check that the rule can reach it.
-    expect(backdrop.className).toContain("axion-shader");
-  });
-});
-
-describe("HomePage — press clock", () => {
-  it("renders a time and advances it", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-01T09:30:00Z"));
-
-    renderHome();
-    expect(screen.getByText(/\d{2}:\d{2} press time/)).toBeInTheDocument();
-
-    vi.setSystemTime(new Date("2026-01-01T10:31:00Z"));
-    vi.advanceTimersByTime(1000);
-
-    // The label re-renders from the new clock rather than freezing at mount.
-    expect(screen.getByText(/\d{2}:\d{2} press time/)).toBeInTheDocument();
-  });
-
-  it("clears its interval on unmount", () => {
-    vi.useFakeTimers();
-    const clear = vi.spyOn(window, "clearInterval");
-
-    const { unmount } = renderHome();
-    unmount();
-
-    // Left running, it sets state on an unmounted tree once a second for the
-    // rest of the session.
-    expect(clear).toHaveBeenCalled();
-    clear.mockRestore();
-  });
-});
-
-describe("HomePage — content", () => {
-  it("renders the three sections in order with their numbering", () => {
+  it("shows a loading message while the query is pending", () => {
+    mockUseProducts.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, refetch: vi.fn() });
     renderHome();
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/launch-ready/i);
-
-    const headings = screen.getAllByRole("heading", { level: 2 });
-    expect(headings[0]).toHaveTextContent(/cleaner ordering flow/i);
-    expect(headings[1]).toHaveTextContent(/our work/i);
-
-    expect(screen.getByText("Introducing Elite Impressions")).toBeInTheDocument();
-    expect(screen.getByText("Featured client work")).toBeInTheDocument();
+    expect(screen.getByText(/loading popular products/i)).toBeInTheDocument();
   });
 
-  it("gives every image real alt text", () => {
+  it("explains itself when the query never returned an answer", () => {
+    // The defect: a paused/indeterminate query reports neither isError nor
+    // isLoading, so the old three-way branch fell through to success and
+    // rendered an empty grid — indistinguishable from "no best-sellers exist".
+    mockUseProducts.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, refetch: vi.fn() });
     renderHome();
 
-    screen.getAllByRole("img").forEach((img) => {
-      expect(img.getAttribute("alt")?.trim()).toBeTruthy();
-    });
+    expect(screen.getByText(/couldn.t load popular products/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+    expect(screen.queryAllByTestId("product-card")).toHaveLength(0);
+  });
+
+  it("offers a retry that actually refetches", () => {
+    const refetch = vi.fn();
+    mockUseProducts.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, refetch });
+    renderHome();
+
+    screen.getByRole("button", { name: /try again/i }).click();
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the retry while a retry is in flight", () => {
+    mockUseProducts.mockReturnValue({ data: undefined, isLoading: false, isFetching: true, refetch: vi.fn() });
+    renderHome();
+
+    expect(screen.getByRole("button", { name: /retrying/i })).toBeDisabled();
+  });
+
+  it("distinguishes 'nothing is featured' from 'we couldn't reach the server'", () => {
+    // An answer that legitimately contains nothing is not an outage. Telling
+    // someone we couldn't load anything when an admin has simply unfeatured
+    // every product would be false.
+    mockUseProducts.mockReturnValue(success([]));
+    renderHome();
+
+    expect(screen.getByText(/no products are featured right now/i)).toBeInTheDocument();
+    expect(screen.queryByText(/couldn.t load popular products/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /try again/i })).not.toBeInTheDocument();
+  });
+
+  it("never renders a bare empty grid in any non-success state", () => {
+    for (const state of [
+      { data: undefined, isLoading: false, isFetching: false, refetch: vi.fn() },
+      { data: { items: [] }, isLoading: false, isFetching: false, refetch: vi.fn() },
+    ]) {
+      mockUseProducts.mockReturnValue(state);
+      const { container, unmount } = renderHome();
+
+      const grid = container.querySelector(".product-grid");
+      // The exact shape of the original defect: <div class="product-grid"></div>
+      // with nothing inside and nothing said.
+      expect(grid).toBeNull();
+      unmount();
+    }
   });
 });

@@ -115,7 +115,6 @@ function AppHeader({
         <PrimaryNav />
         <CategoryNav />
       </div>
-      <div className="cmyk-rule" aria-hidden="true" />
     </header>
   );
 }
