@@ -34,11 +34,6 @@
   --accent-soft: #f4e1d6;
   --accent-tint: rgba(184, 70, 29, 0.08);
 
-  /* CMYK press cues — the registration-bar craft motif (header + footer). */
-  --cmyk-c: #12b6e6;
-  --cmyk-m: #e23c96;
-  --cmyk-y: #f2c40a;
-
   /* Support */
   --sage: #4b6b5b;
   --sage-soft: #dfe6e0;
@@ -983,18 +978,6 @@ a { color: inherit; text-decoration: none; }
   margin: 0.1rem 0 0;
 }
 
-/* CMYK registration bar — the print-craft signature under the header + above the footer. */
-.cmyk-rule {
-  height: 3px;
-  width: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--cmyk-c) 0 25%,
-    var(--cmyk-m) 25% 50%,
-    var(--cmyk-y) 50% 75%,
-    var(--ink-950) 75% 100%
-  );
-}
 .card-actions-inline { display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; }
 
 /* Whole-card click target (ProductCard.jsx): a transparent link stretched over
@@ -1592,22 +1575,6 @@ select {
   margin-top: 1px;
 }
 
-/* CMYK registration rule — the print-craft signature, echoed on the dark auth
-   showcase so the sign-in screen still reads as the same brand as the header. */
-.auth-cmyk-rule {
-  display: block;
-  height: 3px;
-  width: 108px;
-  margin-top: 1.6rem;
-  border-radius: 2px;
-  background: linear-gradient(
-    90deg,
-    var(--cmyk-c) 0 25%,
-    var(--cmyk-m) 25% 50%,
-    var(--cmyk-y) 50% 75%,
-    #ffffff 75% 100%
-  );
-}
 .auth-showcase-footer { color: rgba(255,255,255,0.45); font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .auth-showcase-footer p { color: rgba(255,255,255,0.45); font-size: 0.78rem; line-height: 1.5; }
 .auth-footer-brand {

@@ -39,7 +39,6 @@ function AuthSplitShell({
           <div className="auth-showcase-copy">
             <h2>{leftHeadline}</h2>
             <p>{leftCaption}</p>
-            <span className="auth-cmyk-rule" aria-hidden="true" />
             <ul className="auth-benefits-list">
               {highlights.map((item) => (
                 <li key={item}>
