@@ -56,6 +56,9 @@ const EMPTY_FORM = {
   sku: "",
   badge: "",
   materials: "",
+  // Admin-defined selectable options (e.g. Paper type, Size). Each row's values
+  // are edited as comma-separated text, mirroring `materials`.
+  options: [],
   audience: "",
   status: "draft",
   featured: false,
@@ -74,6 +77,10 @@ const toForm = (product) => ({
   sku: product.sku || "",
   badge: product.badge || "",
   materials: (product.materials || []).join(", "),
+  options: (product.options || []).map((option) => ({
+    label: option.label || "",
+    values: (option.values || []).join(", "),
+  })),
   audience: product.audience || "",
   status: product.status || "draft",
   featured: Boolean(product.featured),
@@ -98,6 +105,9 @@ const toPayload = (form) => ({
   sku: form.sku.trim(),
   badge: form.badge.trim(),
   materials: splitList(form.materials),
+  options: form.options
+    .map((option) => ({ label: option.label.trim(), values: splitList(option.values) }))
+    .filter((option) => option.label),
   audience: form.audience.trim(),
   status: form.status,
   featured: form.featured,
@@ -217,6 +227,22 @@ function AdminProductsPage() {
     const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
     setForm((current) => ({ ...current, [key]: value }));
   };
+
+  // Options repeater — each row is { label, values } where values is edited as
+  // comma-separated text (split into an array in toPayload).
+  const addOption = () =>
+    setForm((current) => ({ ...current, options: [...current.options, { label: "", values: "" }] }));
+
+  const setOptionField = (index, key) => (event) => {
+    const { value } = event.target;
+    setForm((current) => ({
+      ...current,
+      options: current.options.map((option, i) => (i === index ? { ...option, [key]: value } : option)),
+    }));
+  };
+
+  const removeOption = (index) =>
+    setForm((current) => ({ ...current, options: current.options.filter((_, i) => i !== index) }));
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -467,6 +493,54 @@ function AdminProductsPage() {
               <InputField label="Materials" htmlFor="f-materials" helperText="Comma-separated finishes or options.">
                 <input id="f-materials" type="text" value={form.materials} onChange={setField("materials")} />
               </InputField>
+
+              {/* Admin-defined selectable options (e.g. Paper type, Size). Customers
+                  pick these on the institutional bulk-quote form. Spec only — they
+                  never change price. */}
+              <div className="input-field">
+                <span className="field-label strong-label">Options</span>
+                <p className="section-copy" style={{ margin: "0 0 0.5rem" }}>
+                  Selectable choices shown on the bulk-quote form — e.g. Paper type, Size. Values are comma-separated.
+                </p>
+                {form.options.length > 0 ? (
+                  <div className="page-stack" style={{ gap: "0.75rem" }}>
+                    {form.options.map((option, index) => (
+                      <div key={index} className="admin-filters-grid" style={{ alignItems: "end" }}>
+                        <InputField label="Label" htmlFor={`f-option-label-${index}`}>
+                          <input
+                            id={`f-option-label-${index}`}
+                            type="text"
+                            placeholder="e.g. Paper type"
+                            value={option.label}
+                            onChange={setOptionField(index, "label")}
+                          />
+                        </InputField>
+                        <InputField label="Values" htmlFor={`f-option-values-${index}`} helperText="Comma-separated">
+                          <input
+                            id={`f-option-values-${index}`}
+                            type="text"
+                            placeholder="e.g. 70gsm, 80gsm, 90gsm"
+                            value={option.values}
+                            onChange={setOptionField(index, "values")}
+                          />
+                        </InputField>
+                        <button
+                          type="button"
+                          className="secondary-button danger-button"
+                          onClick={() => removeOption(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="action-row" style={{ marginTop: "0.5rem" }}>
+                  <button type="button" className="secondary-button" onClick={addOption}>
+                    + Add option
+                  </button>
+                </div>
+              </div>
 
               <InputField label="Audience" htmlFor="f-audience">
                 <input id="f-audience" type="text" value={form.audience} onChange={setField("audience")} />

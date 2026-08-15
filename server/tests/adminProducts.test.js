@@ -80,6 +80,31 @@ describe("POST /api/admin/products", () => {
     expect(res.body.errors).toHaveProperty("mrp");
   });
 
+  it("persists admin-defined options and normalizes them", async () => {
+    const res = await asAdmin(request(app).post("/api/admin/products")).send(
+      validProduct({
+        options: [
+          { label: " Paper type ", values: ["70gsm", " 80gsm ", "", "70gsm"] }, // trim + dedupe + drop blank
+          { label: "", values: ["ignored"] }, // blank label -> dropped
+          { label: "Size", values: [] }, // kept even with no values yet
+        ],
+      }),
+    );
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.product.options).toEqual([
+      { label: "Paper type", values: ["70gsm", "80gsm"] },
+      { label: "Size", values: [] },
+    ]);
+  });
+
+  it("rejects options that aren't a list", async () => {
+    const res = await asAdmin(request(app).post("/api/admin/products")).send(validProduct({ options: "A4, A3" }));
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.errors).toHaveProperty("options");
+  });
+
   it("blocks non-admins", async () => {
     const res = await request(app)
       .post("/api/admin/products")
@@ -151,6 +176,20 @@ describe("PUT /api/admin/products/:id", () => {
     const res = await asAdmin(request(app).put(`/api/admin/products/${body.product.id}`)).send({ price: 90 });
 
     expect(res.statusCode).toBe(400);
+  });
+
+  it("updates options and can clear them with an empty list", async () => {
+    const { body } = await seed();
+
+    const set = await asAdmin(request(app).put(`/api/admin/products/${body.product.id}`)).send({
+      options: [{ label: "Size", values: ["A4", "A3"] }],
+    });
+    expect(set.statusCode).toBe(200);
+    expect(set.body.product.options).toEqual([{ label: "Size", values: ["A4", "A3"] }]);
+
+    const cleared = await asAdmin(request(app).put(`/api/admin/products/${body.product.id}`)).send({ options: [] });
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.body.product.options).toEqual([]);
   });
 
   it("404s for an unknown product", async () => {
