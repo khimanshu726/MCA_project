@@ -215,17 +215,63 @@ const repairUnsellableSeedStock = async () => {
   return { repaired, skipped };
 };
 
+const INSTITUTIONAL_CATEGORY = "Institutional Supplies";
+
+// Insert-if-missing pass for the Institutional Supplies seed products on an
+// ALREADY-POPULATED database, where the full seed above is skipped. Scoped
+// deliberately to the new institutional category so it (a) does NOT resurrect a
+// legacy product an admin intentionally deleted, and (b) never updates an
+// existing row — a live, admin-edited catalog (prices, stock, status) is left
+// completely untouched. It only adds institutional ids that don't exist yet.
+const ensureInstitutionalProducts = async () => {
+  let inserted = 0;
+
+  for (const product of storefrontProducts) {
+    if (product.category !== INSTITUTIONAL_CATEGORY) continue;
+    const existing = await Product.findOne({ id: product.id });
+    if (existing) continue;
+
+    const minimumOrderQty = parseMinimumOrderQty(product.minimum);
+    await upsertProduct({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      images: product.images,
+      price: product.price,
+      mrp: product.price,
+      stock: seedStockFor(minimumOrderQty),
+      status: "active",
+      leadTime: product.leadTime || "",
+      minimumOrderQty,
+      badge: product.badge || "",
+      materials: product.materials || [],
+      audience: product.audience || "",
+      featured: featuredIds.has(product.id),
+      source: "data-js-seed",
+    });
+
+    inserted += 1;
+    console.log(`[seed:add] inserted new seed product ${product.id} (${product.category})`);
+  }
+
+  return { inserted };
+};
+
 // Auto-seed on server startup only when the collection is empty, so a real
 // deployment's admin-edited catalog is never overwritten by the legacy seed.
-// On a populated database the seed is skipped but the stock repair still runs,
-// since that's the one state a deployed row can be stuck in.
+// On a populated database the full seed is skipped, but two idempotent passes
+// still run: insert-if-missing for the Institutional Supplies category (so the
+// new institutional products appear without wiping or resurrecting the rest of
+// the catalog) and the stock repair.
 export const ensureProductsSeeded = async () => {
   const existingCount = await Product.countDocuments();
 
   if (existingCount > 0) {
     try {
+      const added = await ensureInstitutionalProducts();
       const repair = await repairUnsellableSeedStock();
-      return { seeded: false, ...repair };
+      return { seeded: false, ...added, ...repair };
     } catch (error) {
       // Never fatal. startServer() exits the process if this rejects, and
       // taking the whole storefront down over a stock-tidying task would be a

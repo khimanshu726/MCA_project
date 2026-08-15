@@ -37,6 +37,7 @@ const CATEGORY_OPTIONS = [
   "Stationery",
   "Clothing & Merchandise",
   "Labels & Packaging",
+  "Institutional Supplies",
 ];
 const STATUS_OPTIONS = ["active", "draft", "archived"];
 
