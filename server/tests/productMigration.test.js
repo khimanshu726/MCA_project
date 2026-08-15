@@ -64,6 +64,51 @@ afterAll(async () => {
 });
 
 describe("product seeding", () => {
+  it("inserts new seed products (e.g. Institutional Supplies) on a populated DB without touching existing rows", async () => {
+    // Simulate production: the collection is non-empty AND an admin has edited a
+    // row (custom price/stock). ensureProductsSeeded must skip the full seed but
+    // still insert seed products that don't exist yet — never mutating the admin row.
+    await Product.collection.insertOne({
+      id: "classic-card",
+      name: "Classic Visiting Card",
+      slug: "classic-card",
+      description: "edited by admin",
+      category: "Visiting Cards",
+      images: ["https://example.com/i.jpg"],
+      price: 999, // admin-edited price
+      mrp: 999,
+      stock: 3, // admin-edited stock
+      minimumOrderQty: 1,
+      status: "active",
+      source: "admin",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-02-01T00:00:00.000Z"),
+    });
+
+    const result = await ensureProductsSeeded();
+    expect(result.seeded).toBe(false); // populated DB → full seed skipped
+
+    // Institutional products from src/data.js are now present and buyable.
+    const register = await Product.findOne({ id: "attendance-register" }).lean();
+    expect(register).not.toBeNull();
+    expect(register.category).toBe("Institutional Supplies");
+    expect(register.status).toBe("active");
+    const institutional = await Product.find({ category: "Institutional Supplies" }).lean();
+    expect(institutional.length).toBeGreaterThanOrEqual(5);
+
+    // The admin-edited row is untouched.
+    const card = await Product.findOne({ id: "classic-card" }).lean();
+    expect(card.price).toBe(999);
+    expect(card.stock).toBe(3);
+    expect(card.description).toBe("edited by admin");
+
+    // Idempotent: a second run inserts nothing new and still leaves the admin row alone.
+    const before = await Product.countDocuments();
+    await ensureProductsSeeded();
+    expect(await Product.countDocuments()).toBe(before);
+    expect((await Product.findOne({ id: "classic-card" }).lean()).price).toBe(999);
+  });
+
   it("never seeds a product whose stock can't satisfy its own MOQ", async () => {
     await ensureProductsSeeded();
 
@@ -153,7 +198,7 @@ describe("product seeding", () => {
     expect((await Product.findOne({ id: "admin-made" }).lean()).stock).toBe(5);
   });
 
-  it("leaves an existing catalog untouched at boot", async () => {
+  it("leaves the existing catalog untouched at boot (adds only the new institutional category)", async () => {
     await Product.create({
       id: "admin-authored",
       name: "Admin Authored",
@@ -169,7 +214,18 @@ describe("product seeding", () => {
     const result = await ensureProductsSeeded();
 
     expect(result.seeded).toBe(false);
-    expect(await Product.countDocuments()).toBe(1);
+
+    // The admin-authored row is untouched.
+    const admin = await Product.findOne({ id: "admin-authored" }).lean();
+    expect(admin.price).toBe(10);
+    expect(admin.stock).toBe(7);
+
+    // Legacy storefront seed products are NOT resurrected on a populated DB —
+    // only the new institutional category is added.
+    expect(await Product.findOne({ id: "classic-card" }).lean()).toBeNull();
+    const institutional = await Product.find({ category: "Institutional Supplies" }).lean();
+    expect(institutional.length).toBeGreaterThanOrEqual(5);
+    expect(await Product.countDocuments()).toBe(1 + institutional.length);
   });
 });
 
