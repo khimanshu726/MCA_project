@@ -2,6 +2,7 @@ export const navigationLinks = [
   { to: "/", label: "Home" },
   { to: "/products", label: "Products" },
   { to: "/customize", label: "Customize" },
+  { to: "/institutions", label: "Institutions" },
   { to: "/cart", label: "Cart" },
 ];
 

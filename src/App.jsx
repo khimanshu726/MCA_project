@@ -6,6 +6,7 @@ import CheckoutAddressPage from "./pages/CheckoutAddressPage";
 import CheckoutReviewPage from "./pages/CheckoutReviewPage";
 import CustomizePage from "./pages/CustomizePage";
 import HomePage from "./pages/HomePage";
+import InstitutionsPage from "./pages/InstitutionsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductsPage from "./pages/ProductsPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
@@ -50,6 +51,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
+          <Route path="/institutions" element={<InstitutionsPage />} />
           <Route path="/cart" element={<CartPage />} />
           {/* Checkout now requires a signed-in customer (guest checkout is
               retired): a guest who reaches /checkout gets the auth modal over

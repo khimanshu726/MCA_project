@@ -153,6 +153,23 @@ function HomePage() {
         </div>
       </section>
 
+      {/* Institutions entry — leads to the dedicated /institutions area. */}
+      <section className="essentials-grid">
+        <article className="section-panel essentials-card">
+          <p className="eyebrow">For schools, universities &amp; colleges</p>
+          <h2>Institutional print supplies — registers, papers &amp; record books.</h2>
+          <p className="section-copy">
+            Question papers, attendance &amp; general registers, service books, and answer booklets —
+            in bulk, printed to institutional formats. Buy online or request a bulk quote.
+          </p>
+          <div className="action-row">
+            <Link className="primary-button" to="/institutions">
+              Explore institutional supplies
+            </Link>
+          </div>
+        </article>
+      </section>
+
       <section className="section-panel">
         <div className="section-heading section-heading-row">
           <div>
