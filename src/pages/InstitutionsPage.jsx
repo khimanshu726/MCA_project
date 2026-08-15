@@ -1,7 +1,124 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, ShieldCheck, ClipboardList, Clock } from "lucide-react";
+import { FileText, ShieldCheck, ClipboardList, Clock, CheckCircle2 } from "lucide-react";
 import ProductCard from "../components/ProductCard";
+import InputField from "../components/InputField";
 import { useProducts } from "../hooks/useProducts";
+import { createEnquiry } from "../api/enquiriesApi";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Public bulk-quote request form for institutions that procure via quote/PO. */
+function BulkQuoteForm() {
+  const [form, setForm] = useState({
+    institutionName: "",
+    institutionType: "school",
+    contactName: "",
+    email: "",
+    phone: "",
+    requirements: "",
+    message: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const set = (key) => (event) => {
+    setForm((current) => ({ ...current, [key]: event.target.value }));
+    setErrors((current) => ({ ...current, [key]: "" }));
+    setSubmitError("");
+  };
+
+  const validate = () => {
+    const next = {};
+    if (!form.institutionName.trim()) next.institutionName = "Institution name is required.";
+    if (!form.contactName.trim()) next.contactName = "Contact name is required.";
+    if (!EMAIL_RE.test(form.email.trim())) next.email = "Enter a valid email.";
+    if (!form.requirements.trim()) next.requirements = "Tell us the items and quantities you need.";
+    return next;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      await createEnquiry(form);
+      setDone(true);
+    } catch (error) {
+      setErrors(error?.payload?.errors || {});
+      setSubmitError(error?.message || "Couldn't send your request. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <div className="empty-state-card" role="status">
+        <span style={{ color: "var(--success)" }} aria-hidden="true">
+          <CheckCircle2 size={28} />
+        </span>
+        <h3>Request received.</h3>
+        <p className="section-copy">
+          Thanks — we&rsquo;ve got your requirements and will be in touch shortly with a quote and a
+          production plan.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form className="quote-form" onSubmit={handleSubmit} noValidate>
+      <div className="quote-form-grid">
+        <InputField label="Institution name" htmlFor="q-institution" error={errors.institutionName}>
+          <input id="q-institution" value={form.institutionName} onChange={set("institutionName")} placeholder="e.g. St. Xavier's College" />
+        </InputField>
+        <label className="input-field">
+          <span className="field-label strong-label">Institution type</span>
+          <select value={form.institutionType} onChange={set("institutionType")}>
+            <option value="school">School</option>
+            <option value="college">College</option>
+            <option value="university">University</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <InputField label="Contact name" htmlFor="q-contact" error={errors.contactName}>
+          <input id="q-contact" value={form.contactName} onChange={set("contactName")} placeholder="Your name" />
+        </InputField>
+        <InputField label="Email" htmlFor="q-email" error={errors.email}>
+          <input id="q-email" type="email" value={form.email} onChange={set("email")} placeholder="you@institution.edu" />
+        </InputField>
+        <InputField label="Phone (optional)" htmlFor="q-phone">
+          <input id="q-phone" value={form.phone} onChange={set("phone")} placeholder="Phone number" />
+        </InputField>
+      </div>
+
+      <InputField label="What do you need?" htmlFor="q-requirements" error={errors.requirements} helperText="List items and quantities — e.g. 5000 answer booklets, 20 attendance registers.">
+        <textarea id="q-requirements" rows={3} value={form.requirements} onChange={set("requirements")} placeholder="Items and quantities" />
+      </InputField>
+
+      <InputField label="Anything else? (optional)" htmlFor="q-message">
+        <textarea id="q-message" rows={2} value={form.message} onChange={set("message")} placeholder="Delivery timeline, custom formats, PO details…" />
+      </InputField>
+
+      {submitError ? (
+        <p className="field-error" role="alert">
+          {submitError}
+        </p>
+      ) : null}
+
+      <button type="submit" className="primary-button" disabled={isSubmitting}>
+        {isSubmitting ? "Sending…" : "Request a quote"}
+      </button>
+    </form>
+  );
+}
 
 const INSTITUTIONAL_CATEGORY = "Institutional Supplies";
 const CATEGORY_HREF = `/products?category=${encodeURIComponent(INSTITUTIONAL_CATEGORY)}`;
@@ -118,22 +235,17 @@ function InstitutionsPage() {
         )}
       </section>
 
-      {/* Bulk quote — the form is wired in the next increment; the anchor and
-          entry point ship now so the CTAs above are never dead. */}
-      <section id="quote" className="essentials-grid">
-        <article className="section-panel essentials-card">
+      {/* Bulk quote request */}
+      <section id="quote" className="section-panel">
+        <div className="section-heading">
           <p className="eyebrow">Bulk &amp; custom orders</p>
-          <h2>Need a quote for a large or custom order?</h2>
+          <h2>Request a quote for a large or custom order.</h2>
           <p className="section-copy">
             Tell us your institution, the items, and quantities — we&rsquo;ll prepare a quote and a
-            production plan that fits your academic calendar. Purchase-order friendly.
+            production plan that fits your academic calendar. Purchase-order friendly, no account needed.
           </p>
-          <div className="action-row">
-            <Link className="primary-button" to={CATEGORY_HREF}>
-              Browse supplies
-            </Link>
-          </div>
-        </article>
+        </div>
+        <BulkQuoteForm />
       </section>
     </main>
   );
