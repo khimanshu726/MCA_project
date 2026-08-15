@@ -147,4 +147,12 @@ describe("HomePage — popular products states", () => {
       unmount();
     }
   });
+
+  it("surfaces an entry to the institutions area", () => {
+    mockUseProducts.mockReturnValue(success([{ id: "p1", name: "Classic Visiting Card" }]));
+    renderHome();
+
+    const link = screen.getByRole("link", { name: /explore institutional supplies/i });
+    expect(link).toHaveAttribute("href", "/institutions");
+  });
 });
