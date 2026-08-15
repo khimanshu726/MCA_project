@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import InstitutionsPage from "../pages/InstitutionsPage.jsx";
 
 const mockUseProducts = vi.fn();
 vi.mock("../hooks/useProducts", () => ({ useProducts: (f) => mockUseProducts(f) }));
+const mockCreateEnquiry = vi.fn();
+vi.mock("../api/enquiriesApi", () => ({ createEnquiry: (p) => mockCreateEnquiry(p) }));
 // ProductCard drags in cart/auth context; the page's own behaviour is under test.
 vi.mock("../components/ProductCard", () => ({
   default: ({ product }) => <div data-testid="product-card">{product.name}</div>,
@@ -58,5 +60,40 @@ describe("InstitutionsPage", () => {
 
     expect(screen.getByText(/being added/i)).toBeInTheDocument();
     expect(screen.queryByTestId("product-card")).not.toBeInTheDocument();
+  });
+});
+
+describe("InstitutionsPage — bulk quote form", () => {
+  const fill = () => {
+    fireEvent.change(screen.getByLabelText(/institution name/i), { target: { value: "St. Xavier's College" } });
+    fireEvent.change(screen.getByLabelText(/contact name/i), { target: { value: "A. Fernandes" } });
+    fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "buyer@stx.edu" } });
+    fireEvent.change(screen.getByLabelText(/what do you need/i), { target: { value: "5000 answer booklets" } });
+  };
+
+  it("submits the enquiry and shows a confirmation on success", async () => {
+    mockUseProducts.mockReturnValue(success([]));
+    mockCreateEnquiry.mockResolvedValue({ id: "e1" });
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: /request a quote/i }));
+
+    await waitFor(() => expect(mockCreateEnquiry).toHaveBeenCalledTimes(1));
+    expect(mockCreateEnquiry).toHaveBeenCalledWith(
+      expect.objectContaining({ institutionName: "St. Xavier's College", email: "buyer@stx.edu", requirements: "5000 answer booklets" }),
+    );
+    expect(await screen.findByText(/request received/i)).toBeInTheDocument();
+  });
+
+  it("validates client-side and does not call the API when required fields are missing", () => {
+    mockUseProducts.mockReturnValue(success([]));
+    mockCreateEnquiry.mockClear();
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /request a quote/i }));
+
+    expect(mockCreateEnquiry).not.toHaveBeenCalled();
+    expect(screen.getByText(/institution name is required/i)).toBeInTheDocument();
   });
 });

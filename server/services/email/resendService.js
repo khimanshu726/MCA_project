@@ -11,6 +11,7 @@ import { orderShipped } from "./templates/orderShipped.js";
 import { orderDelivered } from "./templates/orderDelivered.js";
 import { welcomeEmail } from "./templates/welcomeEmail.js";
 import { adminNewOrder } from "./templates/adminNewOrder.js";
+import { enquiryReceived } from "./templates/enquiryReceived.js";
 import { passwordReset } from "./templates/passwordReset.js";
 import { emailVerification } from "./templates/emailVerification.js";
 import { loginOtp } from "./templates/loginOtp.js";
@@ -116,6 +117,11 @@ export const sendWelcomeEmail = (user) => {
 export const sendAdminOrderEmail = (order) => {
   const { subject, html, text } = adminNewOrder(order);
   return sendEmail({ to: ADMIN_TO, subject, html, text, template: "adminNewOrder" });
+};
+
+export const sendEnquiryNotification = (enquiry) => {
+  const { subject, html, text } = enquiryReceived(enquiry);
+  return sendEmail({ to: ADMIN_TO, subject, html, text, template: "enquiryReceived" });
 };
 
 // ── Account-security senders (Option B) ─────────────────────────────────────
