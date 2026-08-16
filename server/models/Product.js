@@ -8,6 +8,18 @@ const slugify = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+// An admin-defined selectable attribute — e.g. { label: "Paper type",
+// values: ["70gsm", "80gsm"] }. Purely descriptive: options record a customer's
+// spec choice on a quote and never affect price or stock. `_id: false` keeps the
+// serialized shape flat (label + values only).
+const productOptionSchema = new mongoose.Schema(
+  {
+    label: { type: String, required: true, trim: true },
+    values: { type: [String], default: [] },
+  },
+  { _id: false },
+);
+
 const productSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -32,6 +44,7 @@ const productSchema = new mongoose.Schema(
     minimumOrderQty: { type: Number, default: 1, min: 1 },
     badge: { type: String, default: "" },
     materials: { type: [String], default: [] },
+    options: { type: [productOptionSchema], default: [] },
     audience: { type: String, default: "" },
     featured: { type: Boolean, default: false },
     source: {

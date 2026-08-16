@@ -26,6 +26,25 @@ const normalizeImages = (images) => {
   return [];
 };
 
+// Options are admin-defined spec attributes ({ label, values: [] }). Normalize
+// defensively: trim labels, drop rows with a blank label, and coerce values to a
+// de-duplicated, trimmed, non-empty string array. A row whose label is set but
+// whose values are all blank is kept (an admin may fill the values in later).
+const normalizeOptions = (options) => {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  return options
+    .map((option) => {
+      const label = String(option?.label ?? "").trim();
+      const rawValues = Array.isArray(option?.values) ? option.values : [];
+      const values = [...new Set(rawValues.map((value) => String(value).trim()).filter(Boolean))];
+      return { label, values };
+    })
+    .filter((option) => option.label);
+};
+
 // `partial` (update) validates only the fields present in the payload, so an
 // edit that touches stock alone isn't rejected for "missing name". A full
 // create validates everything. Either way, a field that IS present must be
@@ -77,6 +96,10 @@ const validateProductPayload = (payload = {}, { partial = false } = {}) => {
 
   if (has("status") && !["active", "draft", "archived"].includes(payload.status)) {
     errors.status = "Status must be active, draft, or archived.";
+  }
+
+  if (has("options") && !Array.isArray(payload.options)) {
+    errors.options = "Options must be a list of { label, values }.";
   }
 
   return errors;
@@ -145,6 +168,7 @@ export const createAdminProduct = async (req, res, next) => {
     const product = await createProductRecord({
       ...payload,
       images: normalizeImages(payload.images),
+      options: normalizeOptions(payload.options),
       source: "admin",
     });
 
@@ -175,6 +199,9 @@ export const updateAdminProduct = async (req, res, next) => {
   const updates = { ...payload };
   if (payload.images !== undefined) {
     updates.images = normalizeImages(payload.images);
+  }
+  if (payload.options !== undefined) {
+    updates.options = normalizeOptions(payload.options);
   }
 
   try {

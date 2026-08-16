@@ -229,6 +229,62 @@ describe("product seeding", () => {
   });
 });
 
+describe("institutional options backfill", () => {
+  it("backfills default options onto an institutional row seeded before the field existed", async () => {
+    // The first institutional seed (before options existed) wrote question-papers
+    // with no options. Use the raw driver so no options key is present at all.
+    await Product.collection.insertOne({
+      id: "question-papers",
+      name: "Question Papers",
+      slug: "question-papers",
+      description: "Exam papers",
+      category: "Institutional Supplies",
+      images: ["https://example.com/i.jpg"],
+      price: 8,
+      mrp: 8,
+      stock: 5000,
+      minimumOrderQty: 500,
+      status: "active",
+      source: "data-js-seed",
+      createdAt: new Date("2026-08-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-01T00:00:00.000Z"),
+    });
+
+    const result = await ensureProductsSeeded();
+
+    expect(result.seeded).toBe(false);
+    expect(result.backfilled).toBeGreaterThanOrEqual(1);
+    const paper = await Product.findOne({ id: "question-papers" }).lean();
+    expect(paper.options.length).toBeGreaterThan(0);
+    expect(paper.options.map((o) => o.label)).toContain("Paper type");
+  });
+
+  it("never overwrites options an admin has already curated", async () => {
+    await Product.collection.insertOne({
+      id: "question-papers",
+      name: "Question Papers",
+      slug: "question-papers",
+      description: "Exam papers",
+      category: "Institutional Supplies",
+      images: ["https://example.com/i.jpg"],
+      price: 8,
+      mrp: 8,
+      stock: 5000,
+      minimumOrderQty: 500,
+      status: "active",
+      source: "data-js-seed",
+      options: [{ label: "Custom", values: ["only mine"] }],
+      createdAt: new Date("2026-08-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-02T00:00:00.000Z"),
+    });
+
+    await ensureProductsSeeded();
+
+    const paper = await Product.findOne({ id: "question-papers" }).lean();
+    expect(paper.options).toEqual([{ label: "Custom", values: ["only mine"] }]);
+  });
+});
+
 describe("migrateLegacyProducts re-run", () => {
   it("preserves stock — a re-run is not an inventory reset", async () => {
     await migrateLegacyProducts();

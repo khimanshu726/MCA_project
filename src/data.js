@@ -237,6 +237,10 @@ export const products = [
     materials: ["70-80 gsm", "Sealed handling", "Bulk runs"],
     minimum: "MOQ 500",
     audience: "Schools, colleges & universities",
+    options: [
+      { label: "Paper type", values: ["70 gsm", "80 gsm", "90 gsm"] },
+      { label: "Size", values: ["A4", "A3", "Legal"] },
+    ],
   },
   {
     id: "attendance-register",
@@ -288,6 +292,11 @@ export const products = [
     materials: ["Ruled pages", "Cover fields", "Optional numbering"],
     minimum: "MOQ 500",
     audience: "Schools, colleges & universities",
+    options: [
+      { label: "Paper type", values: ["70 gsm", "80 gsm"] },
+      { label: "Size", values: ["A4", "Legal"] },
+      { label: "Pages", values: ["8", "16", "24", "32"] },
+    ],
   },
 ];
 

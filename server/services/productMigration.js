@@ -69,6 +69,7 @@ const migrateStorefrontProducts = async () => {
       minimumOrderQty,
       badge: product.badge || "",
       materials: product.materials || [],
+      options: product.options || [],
       audience: product.audience || "",
       featured: featuredIds.has(product.id),
       source: "data-js-seed",
@@ -246,6 +247,7 @@ const ensureInstitutionalProducts = async () => {
       minimumOrderQty,
       badge: product.badge || "",
       materials: product.materials || [],
+      options: product.options || [],
       audience: product.audience || "",
       featured: featuredIds.has(product.id),
       source: "data-js-seed",
@@ -256,6 +258,31 @@ const ensureInstitutionalProducts = async () => {
   }
 
   return { inserted };
+};
+
+// Backfill default options onto institutional seed products that were created
+// before the options field existed (e.g. the first institutional seed).
+// Deliberately additive and non-destructive: only rows whose `options` is
+// currently empty/absent are touched, so an admin who has curated options is
+// never overwritten. Keyed off the data.js seed as the source of defaults.
+const backfillInstitutionalOptions = async () => {
+  let backfilled = 0;
+
+  for (const product of storefrontProducts) {
+    if (product.category !== INSTITUTIONAL_CATEGORY) continue;
+    if (!Array.isArray(product.options) || product.options.length === 0) continue;
+
+    const existing = await Product.findOne({ id: product.id });
+    if (!existing) continue;
+    if (Array.isArray(existing.options) && existing.options.length > 0) continue;
+
+    existing.options = product.options;
+    await existing.save();
+    backfilled += 1;
+    console.log(`[seed:options] backfilled default options onto ${product.id}`);
+  }
+
+  return { backfilled };
 };
 
 // Auto-seed on server startup only when the collection is empty, so a real
@@ -270,8 +297,9 @@ export const ensureProductsSeeded = async () => {
   if (existingCount > 0) {
     try {
       const added = await ensureInstitutionalProducts();
+      const options = await backfillInstitutionalOptions();
       const repair = await repairUnsellableSeedStock();
-      return { seeded: false, ...added, ...repair };
+      return { seeded: false, ...added, ...options, ...repair };
     } catch (error) {
       // Never fatal. startServer() exits the process if this rejects, and
       // taking the whole storefront down over a stock-tidying task would be a

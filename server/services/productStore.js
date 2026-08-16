@@ -19,6 +19,7 @@ export const EDITABLE_PRODUCT_FIELDS = [
   "minimumOrderQty",
   "badge",
   "materials",
+  "options",
   "audience",
   "featured",
 ];
@@ -128,6 +129,7 @@ export const createProductRecord = async (payload) => {
     minimumOrderQty: Number(payload.minimumOrderQty) || 1,
     badge: payload.badge || "",
     materials: payload.materials || [],
+    options: payload.options || [],
     audience: payload.audience || "",
     featured: Boolean(payload.featured),
     source: payload.source || "admin",
