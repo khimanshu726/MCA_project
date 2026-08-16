@@ -97,3 +97,60 @@ describe("InstitutionsPage — bulk quote form", () => {
     expect(screen.getByText(/institution name is required/i)).toBeInTheDocument();
   });
 });
+
+describe("InstitutionsPage — product-aware quote items", () => {
+  const withOptions = [
+    {
+      id: "answer-booklet",
+      name: "Answer Booklet",
+      minimumOrderQty: 500,
+      options: [
+        { label: "Paper type", values: ["70 gsm", "80 gsm"] },
+        { label: "Size", values: ["A4", "Legal"] },
+      ],
+    },
+  ];
+
+  it("renders a product's options as selectors when an item is added, and submits the structured item", async () => {
+    mockUseProducts.mockReturnValue(success(withOptions));
+    mockCreateEnquiry.mockClear();
+    mockCreateEnquiry.mockResolvedValue({ id: "e2" });
+    renderPage();
+
+    // Required text fields.
+    fireEvent.change(screen.getByLabelText(/institution name/i), { target: { value: "St. Xavier's College" } });
+    fireEvent.change(screen.getByLabelText(/contact name/i), { target: { value: "A. Fernandes" } });
+    fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "buyer@stx.edu" } });
+    fireEvent.change(screen.getByLabelText(/what do you need/i), { target: { value: "Answer booklets" } });
+
+    // Add a structured item and pick the product.
+    fireEvent.click(screen.getByRole("button", { name: /add item/i }));
+    fireEvent.change(screen.getByLabelText(/item 1 product/i), { target: { value: "answer-booklet" } });
+
+    // The product's admin-defined options now render as selects.
+    const paper = screen.getByLabelText(/item 1 paper type/i);
+    const size = screen.getByLabelText(/item 1 size/i);
+    expect(paper).toBeInTheDocument();
+    expect(size).toBeInTheDocument();
+
+    fireEvent.change(paper, { target: { value: "80 gsm" } });
+    fireEvent.change(size, { target: { value: "A4" } });
+    fireEvent.change(screen.getByLabelText(/item 1 quantity/i), { target: { value: "5000" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /request a quote/i }));
+
+    await waitFor(() => expect(mockCreateEnquiry).toHaveBeenCalledTimes(1));
+    const payload = mockCreateEnquiry.mock.calls[0][0];
+    expect(payload.items).toEqual([
+      {
+        productId: "answer-booklet",
+        productName: "Answer Booklet",
+        options: [
+          { label: "Paper type", value: "80 gsm" },
+          { label: "Size", value: "A4" },
+        ],
+        quantity: 5000,
+      },
+    ]);
+  });
+});
