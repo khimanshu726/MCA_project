@@ -66,4 +66,61 @@ describe("POST /api/enquiries", () => {
     const saved = await Enquiry.findOne({}).lean();
     expect(saved.institutionType).toBe("other");
   });
+
+  it("persists structured items and normalizes them (JSON array body)", async () => {
+    await request(app)
+      .post("/api/enquiries")
+      .send({
+        ...valid,
+        items: [
+          {
+            productId: "answer-booklet",
+            productName: " Answer Booklet ",
+            options: [
+              { label: " Paper type ", value: " 80 gsm " },
+              { label: "Size", value: "" }, // no value → dropped
+              { label: "", value: "orphan" }, // no label → dropped
+            ],
+            quantity: "5000",
+          },
+          { productName: "", quantity: 10 }, // blank product name → whole row dropped
+        ],
+      })
+      .expect(201);
+
+    const saved = await Enquiry.findOne({ email: "procurement@stx.edu" }).lean();
+    expect(saved.items).toHaveLength(1);
+    expect(saved.items[0]).toMatchObject({
+      productId: "answer-booklet",
+      productName: "Answer Booklet",
+      quantity: 5000,
+      options: [{ label: "Paper type", value: "80 gsm" }],
+    });
+  });
+
+  it("parses items sent as a JSON string field (multipart form path)", async () => {
+    await request(app)
+      .post("/api/enquiries")
+      .field("institutionName", valid.institutionName)
+      .field("contactName", valid.contactName)
+      .field("email", valid.email)
+      .field("requirements", valid.requirements)
+      .field(
+        "items",
+        JSON.stringify([{ productId: "question-papers", productName: "Question Papers", options: [], quantity: 500 }]),
+      )
+      .expect(201);
+
+    const saved = await Enquiry.findOne({ email: "procurement@stx.edu" }).lean();
+    expect(saved.items).toHaveLength(1);
+    expect(saved.items[0]).toMatchObject({ productName: "Question Papers", quantity: 500 });
+    expect(saved.sampleUrl).toBe(""); // no file attached
+  });
+
+  it("defaults items to an empty list when none are sent", async () => {
+    await request(app).post("/api/enquiries").send(valid).expect(201);
+    const saved = await Enquiry.findOne({}).lean();
+    expect(saved.items).toEqual([]);
+    expect(saved.sampleUrl).toBe("");
+  });
 });

@@ -8,8 +8,14 @@ import { createEnquiry } from "../api/enquiriesApi";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Sample upload mirrors the order-artwork channel: PDFs (last year's paper) plus
+// images, capped at 10MB to match the server's ARTWORK_TYPES / maxBytes.
+const SAMPLE_ACCEPT = "application/pdf,image/png,image/jpeg,image/jpg";
+const SAMPLE_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+const SAMPLE_MAX_BYTES = 10 * 1024 * 1024;
+
 /** Public bulk-quote request form for institutions that procure via quote/PO. */
-function BulkQuoteForm() {
+function BulkQuoteForm({ products = [] }) {
   const [form, setForm] = useState({
     institutionName: "",
     institutionType: "school",
@@ -19,15 +25,73 @@ function BulkQuoteForm() {
     requirements: "",
     message: "",
   });
+  // Optional structured line items — each is { productId, quantity, options },
+  // where options maps an option label to the picked value. Additive to the
+  // free-text requirements, which stays the catch-all.
+  const [items, setItems] = useState([]);
+  const [sampleFile, setSampleFile] = useState(null);
+  const [sampleError, setSampleError] = useState("");
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
+  const productById = (id) => products.find((product) => product.id === id);
+
   const set = (key) => (event) => {
     setForm((current) => ({ ...current, [key]: event.target.value }));
     setErrors((current) => ({ ...current, [key]: "" }));
     setSubmitError("");
+  };
+
+  const addItem = () => setItems((current) => [...current, { productId: "", quantity: "", options: {} }]);
+
+  const removeItem = (index) => setItems((current) => current.filter((_, i) => i !== index));
+
+  const setItemProduct = (index) => (event) => {
+    const productId = event.target.value;
+    const product = productById(productId);
+    setItems((current) =>
+      current.map((item, i) =>
+        i === index
+          ? { productId, quantity: product?.minimumOrderQty ? String(product.minimumOrderQty) : "", options: {} }
+          : item,
+      ),
+    );
+  };
+
+  const setItemQuantity = (index) => (event) => {
+    const { value } = event.target;
+    setItems((current) => current.map((item, i) => (i === index ? { ...item, quantity: value } : item)));
+  };
+
+  const setItemOption = (index, label) => (event) => {
+    const { value } = event.target;
+    setItems((current) =>
+      current.map((item, i) => (i === index ? { ...item, options: { ...item.options, [label]: value } } : item)),
+    );
+  };
+
+  const onSampleChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setSubmitError("");
+    if (!file) {
+      setSampleFile(null);
+      setSampleError("");
+      return;
+    }
+    if (!SAMPLE_TYPES.includes(file.type)) {
+      setSampleFile(null);
+      setSampleError("Sample must be a PDF, PNG, or JPG.");
+      return;
+    }
+    if (file.size > SAMPLE_MAX_BYTES) {
+      setSampleFile(null);
+      setSampleError("Sample must be 10MB or smaller.");
+      return;
+    }
+    setSampleError("");
+    setSampleFile(file);
   };
 
   const validate = () => {
@@ -39,16 +103,51 @@ function BulkQuoteForm() {
     return next;
   };
 
+  // Turn the item rows into the server's shape, dropping rows without a product
+  // and options the buyer left unpicked.
+  const buildStructuredItems = () =>
+    items
+      .filter((item) => item.productId)
+      .map((item) => {
+        const product = productById(item.productId);
+        const options = (product?.options || [])
+          .map((option) => ({ label: option.label, value: item.options[option.label] || "" }))
+          .filter((option) => option.value);
+        return {
+          productId: item.productId,
+          productName: product?.name || item.productId,
+          options,
+          quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
+        };
+      });
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+    if (sampleError) return;
 
     setIsSubmitting(true);
     setSubmitError("");
+
+    const structuredItems = buildStructuredItems();
+
+    // Only reach for multipart when there's a file to send; otherwise a plain
+    // JSON object keeps the common path simple (and unchanged for text-only
+    // submissions).
+    let payload;
+    if (sampleFile) {
+      payload = new FormData();
+      Object.entries(form).forEach(([key, value]) => payload.append(key, value));
+      payload.append("items", JSON.stringify(structuredItems));
+      payload.append("sampleFile", sampleFile);
+    } else {
+      payload = { ...form, items: structuredItems };
+    }
+
     try {
-      await createEnquiry(form);
+      await createEnquiry(payload);
       setDone(true);
     } catch (error) {
       setErrors(error?.payload?.errors || {});
@@ -102,6 +201,103 @@ function BulkQuoteForm() {
       <InputField label="What do you need?" htmlFor="q-requirements" error={errors.requirements} helperText="List items and quantities — e.g. 5000 answer booklets, 20 attendance registers.">
         <textarea id="q-requirements" rows={3} value={form.requirements} onChange={set("requirements")} placeholder="Items and quantities" />
       </InputField>
+
+      {/* Optional structured items — pick a product and its admin-defined
+          options (paper type, size). Additive to the free-text field above. */}
+      {products.length > 0 ? (
+        <div className="input-field">
+          <span className="field-label strong-label">Configure specific items (optional)</span>
+          <p className="section-copy" style={{ margin: "0 0 0.5rem" }}>
+            Choose a product and its paper type, size, and quantity so we can quote precisely.
+          </p>
+
+          {items.map((item, index) => {
+            const product = productById(item.productId);
+            return (
+              <div
+                key={index}
+                className="delivery-form-card"
+                style={{ marginBottom: "0.75rem", display: "grid", gap: "0.75rem" }}
+              >
+                <div className="quote-form-grid">
+                  <label className="input-field">
+                    <span className="field-label strong-label">Product</span>
+                    <select value={item.productId} onChange={setItemProduct(index)} aria-label={`Item ${index + 1} product`}>
+                      <option value="">Select a product…</option>
+                      {products.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="input-field">
+                    <span className="field-label strong-label">Quantity</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={item.quantity}
+                      onChange={setItemQuantity(index)}
+                      placeholder={product?.minimumOrderQty ? `MOQ ${product.minimumOrderQty}` : "Quantity"}
+                      aria-label={`Item ${index + 1} quantity`}
+                    />
+                  </label>
+                </div>
+
+                {(product?.options || []).length > 0 ? (
+                  <div className="quote-form-grid">
+                    {product.options.map((option) => (
+                      <label className="input-field" key={option.label}>
+                        <span className="field-label strong-label">{option.label}</span>
+                        <select
+                          value={item.options[option.label] || ""}
+                          onChange={setItemOption(index, option.label)}
+                          aria-label={`Item ${index + 1} ${option.label}`}
+                        >
+                          <option value="">Select {option.label.toLowerCase()}…</option>
+                          {(option.values || []).map((value) => (
+                            <option key={value} value={value}>
+                              {value}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="action-row">
+                  <button type="button" className="secondary-button danger-button" onClick={() => removeItem(index)}>
+                    Remove item
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="action-row">
+            <button type="button" className="secondary-button" onClick={addItem}>
+              + Add item
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Optional sample the institution already has (e.g. last year's paper). */}
+      <InputField
+        label="Attach a sample (optional)"
+        htmlFor="q-sample"
+        error={sampleError}
+        helperText="PDF, PNG, or JPG up to 10MB — a reference of the item you want printed."
+      >
+        <input id="q-sample" type="file" accept={SAMPLE_ACCEPT} onChange={onSampleChange} />
+      </InputField>
+      {sampleFile ? (
+        <p className="section-copy" style={{ marginTop: "-0.25rem" }}>
+          Attached: <strong>{sampleFile.name}</strong>
+        </p>
+      ) : null}
 
       <InputField label="Anything else? (optional)" htmlFor="q-message">
         <textarea id="q-message" rows={2} value={form.message} onChange={set("message")} placeholder="Delivery timeline, custom formats, PO details…" />
@@ -245,7 +441,7 @@ function InstitutionsPage() {
             production plan that fits your academic calendar. Purchase-order friendly, no account needed.
           </p>
         </div>
-        <BulkQuoteForm />
+        <BulkQuoteForm products={products} />
       </section>
     </main>
   );
