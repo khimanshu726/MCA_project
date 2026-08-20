@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import ProductCard from "../ProductCard";
+import ProductRail from "./ProductRail";
 import { useProducts } from "../../hooks/useProducts";
 
 // Cheap, category-based recommendation — no backend needed. Fed the most
@@ -28,21 +28,12 @@ const findDominantCategory = (items) => {
 
 function YouMayAlsoLike({ items, excludeIds = [] }) {
   const category = useMemo(() => findDominantCategory(items), [items]);
-  const { data } = useProducts({ category: category || undefined, limit: 8 });
-  const products = (data?.items ?? []).filter((product) => !excludeIds.includes(product.id)).slice(0, 4);
+  const { data } = useProducts({ category: category || undefined, limit: 12 });
+  const products = (data?.items ?? []).filter((product) => !excludeIds.includes(product.id)).slice(0, 10);
 
-  if (!category || products.length === 0) return null;
+  if (!category) return null;
 
-  return (
-    <section className="mt-10">
-      <h2 className="font-display text-xl text-ink-900">You may also like</h2>
-      <div className="product-grid mt-4">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
-    </section>
-  );
+  return <ProductRail title="You may also like" products={products} />;
 }
 
 export default YouMayAlsoLike;
