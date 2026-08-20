@@ -4,6 +4,7 @@ import CartItemCard from "../components/cart/CartItemCard";
 import CartSkeleton from "../components/cart/CartSkeleton";
 import EmptyCartState from "../components/cart/EmptyCartState";
 import FrequentlyBoughtTogether from "../components/cart/FrequentlyBoughtTogether";
+import MobileCheckoutBar from "../components/cart/MobileCheckoutBar";
 import OrderSummaryCard from "../components/cart/OrderSummaryCard";
 import RecentlyViewed from "../components/cart/RecentlyViewed";
 import SelectAllBar from "../components/cart/SelectAllBar";
@@ -169,13 +170,6 @@ function CartPage() {
                 ) : null}
               </>
             )}
-
-            <FrequentlyBoughtTogether
-              seedProductId={activeItems[0]?.productId}
-              excludeIds={items.map((item) => item.productId)}
-            />
-            <YouMayAlsoLike items={activeItems} excludeIds={items.map((item) => item.productId)} />
-            <RecentlyViewed excludeIds={items.map((item) => item.productId)} />
           </div>
 
           <aside className="flex flex-col gap-4">
@@ -196,7 +190,37 @@ function CartPage() {
             />
           </aside>
         </div>
+
+        {/* Recommendations live BELOW the grid so on mobile (single column) the
+            order summary + checkout come right after the items, not after a wall
+            of recommendation cards. On desktop they span full width under both
+            columns. Each rail renders nothing when it has no products. */}
+        {!isLoading && items.length > 0 ? (
+          <div className="mt-2">
+            <FrequentlyBoughtTogether
+              seedProductId={activeItems[0]?.productId}
+              excludeIds={items.map((item) => item.productId)}
+            />
+            <YouMayAlsoLike items={activeItems} excludeIds={items.map((item) => item.productId)} />
+            <RecentlyViewed excludeIds={items.map((item) => item.productId)} />
+          </div>
+        ) : null}
       </section>
+
+      {/* Keeps the last rail clear of the fixed mobile checkout bar. */}
+      {!isLoading && items.length > 0 ? <div aria-hidden="true" className="h-24 lg:hidden" /> : null}
+
+      {!isLoading && items.length > 0 ? (
+        <MobileCheckoutBar
+          total={pricing.total}
+          itemCount={purchasableCartItems.length}
+          canCheckout={purchasableCartItems.length > 0}
+          onCheckout={() => navigate("/checkout/address")}
+          disabledReason={
+            purchasableCartItems.length === 0 ? "Add at least one available product to continue." : ""
+          }
+        />
+      ) : null}
 
       <Dialog
         open={bulkDeleteOpen}
