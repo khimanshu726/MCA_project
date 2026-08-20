@@ -27,8 +27,14 @@ const parseUrl = (src) => {
  * hosts. `width` should be the image's rendered CSS width (or the largest
  * width it'll ever render at) so the browser never downloads more pixels
  * than it can show.
+ *
+ * `aspect` (e.g. "4:3") is the display box's aspect ratio. When given, Cloudinary
+ * uploads are delivered already cropped to that shape with content-aware gravity
+ * (`c_fill,g_auto,ar_…`), so an admin-uploaded photo lands framed like the
+ * pre-cropped stock images rather than at its raw aspect. Pexels seeds don't need
+ * it — they scale by width and the shell's `object-fit: cover` does the crop.
  */
-export function getOptimizedImageUrl(src, { width } = {}) {
+export function getOptimizedImageUrl(src, { width, aspect } = {}) {
   if (!src || !width) return src;
 
   const url = parseUrl(src);
@@ -61,7 +67,14 @@ export function getOptimizedImageUrl(src, { width } = {}) {
 
     const before = url.pathname.slice(0, uploadIndex + "/upload/".length);
     const after = url.pathname.slice(uploadIndex + "/upload/".length);
-    url.pathname = `${before}w_${Math.round(width)},q_auto,f_auto/${after}`;
+    // With an aspect, deliver pixels already shaped to the display box:
+    // c_fill crops to fill, g_auto picks the subject, ar_ sets the shape. Without
+    // one, fall back to a proportional width resize (the shell's object-fit still
+    // crops to shape).
+    const transform = aspect
+      ? `c_fill,g_auto,ar_${aspect},w_${Math.round(width)},q_auto,f_auto`
+      : `w_${Math.round(width)},q_auto,f_auto`;
+    url.pathname = `${before}${transform}/${after}`;
     return url.toString();
   }
 
@@ -69,13 +82,13 @@ export function getOptimizedImageUrl(src, { width } = {}) {
 }
 
 /** Builds a small set of width variants for `srcSet`, for hosts that support it. */
-export function getImageSrcSet(src, widths) {
+export function getImageSrcSet(src, widths, aspect) {
   const url = parseUrl(src);
   if (!url || !(url.hostname === PEXELS_HOST || url.hostname === CLOUDINARY_HOST)) {
     return undefined;
   }
 
-  return widths.map((width) => `${getOptimizedImageUrl(src, { width })} ${width}w`).join(", ");
+  return widths.map((width) => `${getOptimizedImageUrl(src, { width, aspect })} ${width}w`).join(", ");
 }
 
 /**

@@ -6,6 +6,19 @@ import { devWarn } from "../utils/logger";
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
 
+// Maps the fixed-ratio shell class to the aspect the image is delivered at, so a
+// Cloudinary upload is cropped to the same box the CSS shows (see
+// getOptimizedImageUrl). Anything not listed falls back to a proportional resize.
+const ASPECT_BY_CLASS = {
+  "ratio-square": "1:1",
+  "ratio-card": "5:4",
+  "ratio-product": "4:3",
+  "ratio-gallery": "4:3",
+  "ratio-feature": "4:3",
+  "ratio-banner": "5:4",
+  "ratio-portrait": "4:5",
+};
+
 /**
  * Single source of truth for every product/asset image in the app. Renders
  * a fixed-aspect-ratio shell (so layout never shifts while the image
@@ -22,7 +35,7 @@ function ResponsiveImage({
   priority = false,
   width,
 }) {
-  const resolvedSrc = getOptimizedImageUrl(src, { width });
+  const resolvedSrc = getOptimizedImageUrl(src, { width, aspect: ASPECT_BY_CLASS[aspectClassName] });
   const [imageSrc, setImageSrc] = useState(resolvedSrc || fallbackImage);
   const [isLoaded, setIsLoaded] = useState(false);
   const retryCountRef = useRef(0);

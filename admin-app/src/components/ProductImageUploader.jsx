@@ -169,6 +169,15 @@ function ProductImageUploader({ images, onChange, token, error, storageDurable =
         </div>
       ) : null}
 
+      {/* Set expectations where the admin uploads: photos are auto-cropped to a
+          4:3 frame, so a well-framed landscape shot lands looking like the rest. */}
+      {storageDurable ? (
+        <p className="field-helper">
+          Best results: a landscape ~4:3 photo, 1200×900 or larger, with the product filling the frame and little
+          background. Photos are auto-cropped to a 4:3 frame; the first image is the listing thumbnail.
+        </p>
+      ) : null}
+
       {remaining === 0 ? <p className="field-helper">Maximum {MAX_IMAGES} images reached.</p> : null}
 
       <details className="image-url-fallback">
