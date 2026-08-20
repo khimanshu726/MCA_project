@@ -57,7 +57,7 @@ export const homepageBanner = {
  *                Leave empty to use the built-in on-brand SVG divider.
  */
 export const heroMedia = {
-  videoSrc: "",
+  videoSrc: "/videos/hero.mp4",
   poster: optimizeImage(stockImages.hero, 1800, 1100),
   dividerSrc: "",
 };
