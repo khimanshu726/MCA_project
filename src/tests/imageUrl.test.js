@@ -32,6 +32,29 @@ describe("getOptimizedImageUrl", () => {
     expect(result).toBe("https://res.cloudinary.com/demo/image/upload/w_300,q_auto,f_auto/v1/sample.jpg");
   });
 
+  it("delivers Cloudinary uploads pre-cropped to the display aspect when one is given", () => {
+    // An admin upload is any aspect/size; with the display box's aspect we ask
+    // Cloudinary to fill-crop to that shape with subject-aware gravity, so it
+    // frames like the pre-cropped stock images instead of floating in the box.
+    const result = getOptimizedImageUrl("https://res.cloudinary.com/demo/image/upload/v1/sample.jpg", {
+      width: 360,
+      aspect: "4:3",
+    });
+    expect(result).toBe(
+      "https://res.cloudinary.com/demo/image/upload/c_fill,g_auto,ar_4:3,w_360,q_auto,f_auto/v1/sample.jpg",
+    );
+  });
+
+  it("ignores aspect for Pexels (its shell's object-fit does the crop) — width only", () => {
+    const result = getOptimizedImageUrl("https://images.pexels.com/photos/1/pexels-photo-1.jpeg", {
+      width: 400,
+      aspect: "4:3",
+    });
+    const url = new URL(result);
+    expect(url.searchParams.get("w")).toBe("400");
+    expect(result).not.toContain("c_fill");
+  });
+
   it("passes through unrecognized hosts unchanged", () => {
     const src = "https://example.com/product.jpg";
     expect(getOptimizedImageUrl(src, { width: 400 })).toBe(src);
