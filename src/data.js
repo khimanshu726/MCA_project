@@ -346,6 +346,51 @@ export const businessEssentials = [
   },
 ];
 
+/**
+ * Alternating "chess" feature rows on the homepage. Each row has an optional
+ * per-row `videoSrc` drop-in slot (same mechanism as `heroMedia`): set it to a
+ * file under `public/videos/` to swap the still image for a looping clip. Copy
+ * reuses the store's existing value props (studio, bulk/institutional, finishes).
+ */
+export const homeFeatures = [
+  {
+    id: "studio",
+    eyebrow: "Design studio",
+    title: "Design it your way, in minutes.",
+    description:
+      "Start from an industry template, upload your own artwork, or hand it to our team — a cleaner customization flow that gets you print-ready fast.",
+    cta: { label: "Open the studio", to: "/customize" },
+    image: optimizeImage(stockImages.businessCards, 1200, 900),
+    imageAlt: "Designing a premium business card layout in the studio",
+    videoSrc: "",
+    poster: optimizeImage(stockImages.businessCards, 1200, 900),
+  },
+  {
+    id: "institutional",
+    eyebrow: "For teams & institutions",
+    title: "Built for big runs and bulk orders.",
+    description:
+      "From short runs to campaign volumes — plus registers, papers, and record books for schools, colleges, and universities, printed to institutional formats.",
+    cta: { label: "Explore institutional supplies", to: "/institutions" },
+    image: optimizeImage(stockImages.notebook, 1200, 900),
+    imageAlt: "Stack of hardbound institutional registers and record books",
+    videoSrc: "",
+    poster: optimizeImage(stockImages.notebook, 1200, 900),
+  },
+  {
+    id: "finishes",
+    eyebrow: "Premium finishes",
+    title: "Finishes that feel launch-ready.",
+    description:
+      "Matte, soft-touch, foil, and packaging built for shelf and hand — premium print execution with consistent color and zero surprises on reorder.",
+    cta: { label: "Browse the catalog", to: "/products" },
+    image: optimizeImage(stockImages.packaging, 1200, 900),
+    imageAlt: "Premium branded packaging with foil and soft-touch finishes",
+    videoSrc: "",
+    poster: optimizeImage(stockImages.packaging, 1200, 900),
+  },
+];
+
 export const inspirationLinks = [
   {
     id: "industry-templates",
