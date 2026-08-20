@@ -2,11 +2,11 @@ import { Link } from "react-router-dom";
 import { Star, Sparkles, Truck, ShieldCheck, Palette } from "lucide-react";
 import HeroCinematic from "../components/HeroCinematic";
 import HeroDivider from "../components/HeroDivider";
+import FeatureChessSection from "../components/FeatureChessSection";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
 import {
-  businessEssentials,
   categories,
   inspirationLinks,
   trustHighlights,
@@ -122,23 +122,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Institutions entry — leads to the dedicated /institutions area. */}
-      <section className="essentials-grid">
-        <article className="section-panel essentials-card">
-          <p className="eyebrow">For schools, universities &amp; colleges</p>
-          <h2>Institutional print supplies — registers, papers &amp; record books.</h2>
-          <p className="section-copy">
-            Question papers, attendance &amp; general registers, service books, and answer booklets —
-            in bulk, printed to institutional formats. Buy online or request a bulk quote.
-          </p>
-          <div className="action-row">
-            <Link className="primary-button" to="/institutions">
-              Explore institutional supplies
-            </Link>
-          </div>
-        </article>
-      </section>
-
       <section className="section-panel">
         <div className="section-heading section-heading-row">
           <div>
@@ -185,6 +168,14 @@ function HomePage() {
         )}
       </section>
 
+      <section className="section-panel">
+        <div className="section-heading">
+          <p className="eyebrow">Everything, done well</p>
+          <h2>From first design to the final reprint.</h2>
+        </div>
+        <FeatureChessSection />
+      </section>
+
       <section className="brand-story">
         <div>
           <p className="eyebrow">Why Elite Impressions</p>
@@ -217,21 +208,6 @@ function HomePage() {
             <span>Reprint guarantee</span>
           </div>
         </div>
-      </section>
-
-      <section className="essentials-grid">
-        {businessEssentials.map((item) => (
-          <article key={item.id} className="section-panel essentials-card">
-            <p className="eyebrow">Business essentials</p>
-            <h2>{item.title}</h2>
-            <p className="section-copy">{item.description}</p>
-            <div className="action-row">
-              <Link className="primary-button" to={item.ctaTo}>
-                {item.ctaLabel}
-              </Link>
-            </div>
-          </article>
-        ))}
       </section>
 
       <section className="section-panel">
