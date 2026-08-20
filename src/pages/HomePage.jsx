@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { Star, Sparkles, Truck, ShieldCheck, Palette } from "lucide-react";
+import HeroCinematic from "../components/HeroCinematic";
+import HeroDivider from "../components/HeroDivider";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
-import ResponsiveImage from "../components/ResponsiveImage";
 import { useProducts } from "../hooks/useProducts";
 import {
   businessEssentials,
   categories,
-  homepageBanner,
   inspirationLinks,
   trustHighlights,
 } from "../data";
@@ -57,40 +57,9 @@ function HomePage() {
   const answeredButEmpty = !isLoading && hasAnswer && popularProducts.length === 0;
 
   return (
-    <main className="page-stack">
-      <section className="hero-section">
-        <div className="hero-copy">
-          <p className="eyebrow">Premium Print Shop</p>
-          <h2>Print products that feel launch-ready from the first click.</h2>
-          <p className="section-copy">
-            Business cards, brochures, packaging, invitations, and custom gifts - designed to
-            feel premium, easy to customize, and fast to reorder.
-          </p>
-          <div className="hero-feature-row">
-            <span className="meta-pill">Studio quality finishes</span>
-            <span className="meta-pill">Bulk pricing for teams</span>
-            <span className="meta-pill">Production-ready checkout</span>
-          </div>
-          <div className="action-row">
-            <Link className="primary-button" to="/products">
-              Shop all products
-            </Link>
-            <Link className="secondary-button" to="/customize">
-              Start customizing
-            </Link>
-          </div>
-        </div>
-
-        <div className="hero-banner">
-          <ResponsiveImage
-            src={homepageBanner.src}
-            alt={homepageBanner.alt}
-            className="hero-image"
-            aspectClassName="ratio-banner"
-            priority
-          />
-        </div>
-      </section>
+    <main className="page-stack home-stack">
+      <HeroCinematic />
+      <HeroDivider />
 
       <section className="trust-strip" aria-label="Store highlights">
         {trustHighlights.map((item, index) => {

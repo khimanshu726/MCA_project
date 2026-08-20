@@ -40,6 +40,28 @@ export const homepageBanner = {
   alt: "Print shop worker reviewing large-format prints at a professional printing press",
 };
 
+/**
+ * Cinematic hero media — drop-in slots.
+ *
+ * The hero ships with an on-brand animated CSS backdrop and needs none of these.
+ * Each is an optional upgrade you can add later without touching component code:
+ *
+ *  - videoSrc:   a looping hero clip. Put the file at `public/videos/hero.mp4`
+ *                and set `videoSrc: "/videos/hero.mp4"`. The <video> layer then
+ *                mounts above the animated backdrop (muted, looped, playsInline)
+ *                and is suppressed on mobile / reduced-motion, falling back to the
+ *                poster below.
+ *  - poster:     a still shown before/instead of the video (defaults to the hero
+ *                banner image).
+ *  - dividerSrc: a transparent PNG (e.g. an AI 3D shape) for the section divider.
+ *                Leave empty to use the built-in on-brand SVG divider.
+ */
+export const heroMedia = {
+  videoSrc: "/videos/hero.mp4",
+  poster: optimizeImage(stockImages.hero, 1800, 1100),
+  dividerSrc: "",
+};
+
 export const categories = [
   {
     id: "cards",

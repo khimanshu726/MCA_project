@@ -158,6 +158,10 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   background: var(--bone);
+  /* Contains the homepage's full-bleed cinematic hero without a horizontal
+     scrollbar. `clip` (not `hidden`) doesn't create a scroll container, so the
+     sticky header keeps working. */
+  overflow-x: clip;
 }
 
 .page-stack {
@@ -775,6 +779,154 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 900px) {
   .hero-section { grid-template-columns: 1fr; gap: 2rem; padding-top: 0; }
   .hero-copy h2 { font-size: clamp(2rem, 8vw, 2.75rem); }
+}
+
+/* ==========================================================================
+   Cinematic hero (homepage) — full-bleed, animated backdrop + drop-in video
+   ========================================================================== */
+.hero-cinematic {
+  position: relative;
+  left: 50%;
+  right: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  margin-top: -2.75rem; /* cancel page-stack top padding → flush under the header */
+  min-height: min(88vh, 760px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-cinematic-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 15% 8%, var(--accent-soft), transparent 55%),
+    linear-gradient(160deg, var(--bone) 0%, var(--bone-2) 55%, var(--accent-tint) 100%);
+}
+
+/* Animated gradient mesh — the on-brand default backdrop (no external media). */
+.hero-mesh {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(46px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.hero-mesh-1 {
+  width: 46vw; height: 46vw; left: -6vw; top: -12vw;
+  background: radial-gradient(circle, rgba(184, 70, 29, 0.42), transparent 68%);
+  animation: heroDrift1 22s var(--ease-in-out) infinite alternate;
+}
+.hero-mesh-2 {
+  width: 40vw; height: 40vw; right: -6vw; top: 4vw;
+  background: radial-gradient(circle, rgba(181, 138, 52, 0.34), transparent 68%);
+  animation: heroDrift2 27s var(--ease-in-out) infinite alternate;
+}
+.hero-mesh-3 {
+  width: 38vw; height: 38vw; left: 32vw; bottom: -16vw;
+  background: radial-gradient(circle, rgba(184, 70, 29, 0.26), transparent 70%);
+  animation: heroDrift3 31s var(--ease-in-out) infinite alternate;
+}
+@keyframes heroDrift1 { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(6vw, 4vw, 0) scale(1.12); } }
+@keyframes heroDrift2 { from { transform: translate3d(0,0,0) scale(1.05); } to { transform: translate3d(-5vw, 3vw, 0) scale(0.95); } }
+@keyframes heroDrift3 { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(3vw, -4vw, 0) scale(1.1); } }
+
+/* Drop-in video layer (mounts only when heroMedia.videoSrc is set). */
+.hero-video {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Scrim — a left-weighted light wash so the copy stays legible over any backdrop. */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(250, 248, 244, 0.94) 0%, rgba(250, 248, 244, 0.72) 42%, rgba(250, 248, 244, 0.26) 72%, rgba(250, 248, 244, 0) 100%),
+    linear-gradient(0deg, rgba(250, 248, 244, 0.5), transparent 42%);
+}
+
+.hero-cinematic-inner {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 5.5rem 2rem;
+}
+.hero-cinematic-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: 640px;
+}
+.hero-cinematic-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.75rem, 5.2vw, 4.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  color: var(--ink-950);
+  text-wrap: balance;
+}
+.hero-cinematic-sub { font-size: 1.08rem; color: var(--ink-600); max-width: 48ch; }
+
+/* Entrance motion reuses the fadeInUp keyframe defined later in this file. */
+.hero-cinematic-copy > * { animation: fadeInUp 0.8s var(--ease-out) both; }
+.hero-cinematic-copy > *:nth-child(1) { animation-delay: 0.05s; }
+.hero-cinematic-copy > *:nth-child(2) { animation-delay: 0.15s; }
+.hero-cinematic-copy > *:nth-child(3) { animation-delay: 0.25s; }
+.hero-cinematic-copy > *:nth-child(4) { animation-delay: 0.35s; }
+.hero-cinematic-copy > *:nth-child(5) { animation-delay: 0.45s; }
+
+/* Asset divider straddling the hero/next-section seam. Negative margins equal to
+   the page-stack gap zero out the surrounding flex spacing so the medallion sits
+   exactly on the seam without adding whitespace. */
+.hero-divider {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  height: 0;
+  margin: -3.75rem 0;
+  pointer-events: none;
+}
+.hero-divider-svg,
+.hero-divider-img {
+  width: clamp(84px, 9vw, 120px);
+  height: clamp(84px, 9vw, 120px);
+  margin-top: calc(clamp(84px, 9vw, 120px) / -2);
+  filter: drop-shadow(0 12px 26px rgba(15, 18, 22, 0.16));
+}
+.hero-divider-img { object-fit: contain; }
+
+@media (max-width: 900px) {
+  .hero-cinematic { min-height: auto; margin-top: -1.5rem; }
+  .hero-cinematic-inner { padding: 3.75rem 1.15rem; }
+  .hero-cinematic-copy { max-width: none; }
+  /* No autoplaying video on small screens — the animated gradient carries it. */
+  .hero-video { display: none; }
+  .hero-scrim {
+    background: linear-gradient(0deg, rgba(250, 248, 244, 0.9), rgba(250, 248, 244, 0.5) 55%, rgba(250, 248, 244, 0.2));
+  }
+}
+@media (max-width: 720px) {
+  .hero-divider { margin: -2.75rem 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-mesh { animation: none; }
+  .hero-cinematic-copy > * { animation: none; }
+  .hero-video { display: none; }
 }
 
 /* ==========================================================================
