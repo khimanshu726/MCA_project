@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Star, Sparkles, Truck, ShieldCheck, Palette } from "lucide-react";
+import Seo, { SITE_URL, SITE_NAME } from "../components/Seo";
 import HeroCinematic from "../components/HeroCinematic";
 import HeroDivider from "../components/HeroDivider";
 import FeatureChessSection from "../components/FeatureChessSection";
@@ -58,6 +59,20 @@ function HomePage() {
 
   return (
     <main className="page-stack home-stack">
+      <Seo
+        path="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Store",
+          name: SITE_NAME,
+          description:
+            "Premium print shop for custom business cards, brochures, banners, packaging, invitations, and institutional supplies.",
+          url: SITE_URL,
+          image:
+            "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop",
+          priceRange: "₹₹",
+        }}
+      />
       <HeroCinematic />
       <HeroDivider />
 

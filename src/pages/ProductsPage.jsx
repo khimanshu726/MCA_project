@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
+import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
 
@@ -77,6 +78,11 @@ function ProductsPage() {
 
   return (
     <main className="page-stack">
+      <Seo
+        title="Shop All Print Products"
+        description="Browse Elite Impressions' full catalog — business cards, marketing materials, banners, invitations, packaging, merchandise, and institutional supplies."
+        path="/products"
+      />
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">Product catalog</p>

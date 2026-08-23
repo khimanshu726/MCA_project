@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FileText, ShieldCheck, ClipboardList, Clock, CheckCircle2 } from "lucide-react";
+import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
 import InputField from "../components/InputField";
 import { useProducts } from "../hooks/useProducts";
@@ -342,6 +343,11 @@ function InstitutionsPage() {
 
   return (
     <main className="page-stack">
+      <Seo
+        title="Institutional Print Supplies for Schools & Colleges"
+        description="Bulk question papers, attendance & general registers, service books, and answer booklets — printed to institutional formats for schools, colleges, and universities. Buy online or request a bulk quote."
+        path="/institutions"
+      />
       {/* Intro */}
       <section className="hero-section">
         <div className="hero-copy">

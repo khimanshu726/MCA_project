@@ -32,6 +32,21 @@ const distPath = path.resolve(process.cwd(), "dist");
 const distAdminPath = path.resolve(process.cwd(), "dist-admin");
 const allowedOrigins = appConfig.allowedOrigins;
 
+// SEO: consolidate on the canonical www host in production. Apex (non-www)
+// GET/HEAD requests are 301'd to https://www.…, preserving the path, so Google
+// and users settle on one hostname and link equity isn't split across two.
+// POST/webhooks are left untouched (a 301 wouldn't preserve their method/body).
+app.use((req, res, next) => {
+  if (
+    process.env.NODE_ENV === "production" &&
+    (req.method === "GET" || req.method === "HEAD") &&
+    req.headers.host === "eliteimpressions.co.in"
+  ) {
+    return res.redirect(301, `https://www.eliteimpressions.co.in${req.originalUrl}`);
+  }
+  return next();
+});
+
 app.use(
   cors({
     origin: (origin, callback) => {
