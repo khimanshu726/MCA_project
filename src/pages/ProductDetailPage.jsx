@@ -98,7 +98,7 @@ function ProductDetailPage() {
 
         <article className="section-panel detail-panel">
           <p className="eyebrow">Product detail</p>
-          <h2>{product.name}</h2>
+          <h1>{product.name}</h1>
           <p className="detail-price">{currencyFormatter.format(product.price)}</p>
           <p className="section-copy">{product.description}</p>
           <div className="pill-row">
@@ -129,8 +129,11 @@ function ProductDetailPage() {
             <Link className="secondary-button" to="/cart">
               View cart
             </Link>
+            <Link className="ghost-button" to={`/products?category=${encodeURIComponent(product.category)}`}>
+              More {product.category}
+            </Link>
             <Link className="ghost-button" to="/products">
-              Back to products
+              All products
             </Link>
           </div>
         </article>

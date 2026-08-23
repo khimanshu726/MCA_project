@@ -28,7 +28,7 @@ describe("InstitutionsPage", () => {
     renderPage();
 
     expect(mockUseProducts).toHaveBeenCalledWith(expect.objectContaining({ category: "Institutional Supplies" }));
-    expect(screen.getByRole("heading", { level: 2, name: /academic year/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: /academic year/i })).toBeInTheDocument();
     expect(screen.getByTestId("product-card")).toHaveTextContent("Attendance Register");
   });
 

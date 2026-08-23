@@ -4,9 +4,35 @@ import Seo, { SITE_URL, SITE_NAME } from "../components/Seo";
 import HeroCinematic from "../components/HeroCinematic";
 import HeroDivider from "../components/HeroDivider";
 import FeatureChessSection from "../components/FeatureChessSection";
+import WhatWePrintSection from "../components/home/WhatWePrintSection";
+import HomeFaqSection from "../components/home/HomeFaqSection";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
+import { getConfiguredSocialLinks } from "../config/socialLinks";
 import { useProducts } from "../hooks/useProducts";
+
+const OG_IMAGE =
+  "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop";
+
+// Organization/Store schema. Store is a LocalBusiness subtype; address, phone,
+// and opening hours are intentionally omitted until real business details are
+// provided (never invented). sameAs is included only for configured socials.
+const buildStoreJsonLd = () => {
+  const sameAs = getConfiguredSocialLinks().map((profile) => profile.url);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: SITE_NAME,
+    description:
+      "Premium print shop for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies.",
+    url: SITE_URL,
+    logo: `${SITE_URL}/favicon.svg`,
+    image: OG_IMAGE,
+    email: "hello@elite-empressions.com",
+    priceRange: "₹₹",
+    ...(sameAs.length ? { sameAs } : {}),
+  };
+};
 import {
   categories,
   inspirationLinks,
@@ -60,18 +86,10 @@ function HomePage() {
   return (
     <main className="page-stack home-stack">
       <Seo
+        title="Custom Printing & Personalized Products"
+        description="Elite Impressions is a premium print shop for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies — design online, order in bulk, and reorder fast."
         path="/"
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "Store",
-          name: SITE_NAME,
-          description:
-            "Premium print shop for custom business cards, brochures, banners, packaging, invitations, and institutional supplies.",
-          url: SITE_URL,
-          image:
-            "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop",
-          priceRange: "₹₹",
-        }}
+        jsonLd={buildStoreJsonLd()}
       />
       <HeroCinematic />
       <HeroDivider />
@@ -136,6 +154,8 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      <WhatWePrintSection />
 
       <section className="section-panel">
         <div className="section-heading section-heading-row">
@@ -252,6 +272,8 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      <HomeFaqSection />
 
       <section className="section-panel">
         <div className="section-heading">

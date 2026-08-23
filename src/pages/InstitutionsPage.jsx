@@ -352,7 +352,7 @@ function InstitutionsPage() {
       <section className="hero-section">
         <div className="hero-copy">
           <p className="eyebrow">For Schools, Universities &amp; Colleges</p>
-          <h2>Institutional print supplies, sorted for the academic year.</h2>
+          <h1>Institutional print supplies, sorted for the academic year.</h1>
           <p className="section-copy">
             Question papers, attendance and general registers, service books, and answer booklets —
             printed to institutional formats, in bulk, with secure handling. Buy standard items

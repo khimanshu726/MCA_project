@@ -7,7 +7,9 @@ import AccountMenu from "./AccountMenu";
 function BrandBlock() {
   return (
     <Link to="/" className="brand-block" aria-label="Elite Impressions home">
-      <h1>Elite Impressions</h1>
+      {/* The logo is a wordmark, not the page heading — each page owns its own
+          single <h1> for SEO, so this is a styled span rather than an <h1>. */}
+      <span className="brand-name">Elite Impressions</span>
     </Link>
   );
 }
