@@ -39,8 +39,10 @@
  *   VITE_SOCIAL_FACEBOOK=https://facebook.com/your-page
  */
 
+import { BUSINESS } from "./business";
+
 const SOCIAL_PROFILES = [
-  { id: "instagram", label: "Instagram", url: import.meta.env.VITE_SOCIAL_INSTAGRAM },
+  { id: "instagram", label: "Instagram", url: import.meta.env.VITE_SOCIAL_INSTAGRAM || BUSINESS.instagram },
   { id: "youtube", label: "YouTube", url: import.meta.env.VITE_SOCIAL_YOUTUBE },
   { id: "twitter", label: "X", url: import.meta.env.VITE_SOCIAL_TWITTER },
   { id: "linkedin", label: "LinkedIn", url: import.meta.env.VITE_SOCIAL_LINKEDIN },

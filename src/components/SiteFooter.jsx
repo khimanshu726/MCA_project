@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { ExternalLink, Mail, Phone } from "lucide-react";
+import { Clock, ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 import { getConfiguredSocialLinks } from "../config/socialLinks";
+import { BUSINESS } from "../config/business";
 
 const footerLinks = [
   {
@@ -68,14 +69,24 @@ function SiteFooter() {
               ))}
             </nav>
           ) : null}
-          <div className="footer-contact-list">
+          {/* Real NAP (name/address/phone), kept in one config and mirrored in
+              the homepage LocalBusiness schema so local search sees them agree. */}
+          <address className="footer-contact-list">
             <span>
-              <Mail size={14} strokeWidth={1.6} /> hello@elite-empressions.com
+              <MapPin size={14} strokeWidth={1.6} /> {BUSINESS.addressDisplay}
             </span>
             <span>
-              <Phone size={14} strokeWidth={1.6} /> +91 98765 43210
+              <Phone size={14} strokeWidth={1.6} />{" "}
+              <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phoneDisplay}</a>
             </span>
-          </div>
+            <span>
+              <Mail size={14} strokeWidth={1.6} />{" "}
+              <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
+            </span>
+            <span>
+              <Clock size={14} strokeWidth={1.6} /> {BUSINESS.hoursDisplay}
+            </span>
+          </address>
         </div>
 
         {footerLinks.map((section) => (

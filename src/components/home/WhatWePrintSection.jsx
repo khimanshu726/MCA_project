@@ -60,9 +60,9 @@ function WhatWePrintSection() {
         <p className="eyebrow">What we print &amp; customize</p>
         <h2 id="what-we-print-heading">Custom printing for business, events, and institutions.</h2>
         <p className="section-copy">
-          Elite Impressions is a premium print shop for custom and personalized print. Design online, order in
-          bulk, and reorder in a few clicks — from everyday business cards to full wedding invitation suites and
-          institutional exam supplies.
+          Elite Impressions is a premium print shop in Purnia, Bihar for custom and personalized print. Order
+          online with pan-India shipping, local delivery in Purnia, and store pickup — from everyday business
+          cards to full wedding invitation suites and institutional exam supplies.
         </p>
       </div>
       <ul className="what-we-print-grid">

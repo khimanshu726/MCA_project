@@ -3298,6 +3298,7 @@ textarea {
   gap: 0.5rem;
   color: var(--ink-400);
   font-size: 0.85rem;
+  font-style: normal; /* it's an <address> element */
 }
 
 .footer-contact-list span {
@@ -3305,6 +3306,8 @@ textarea {
   align-items: center;
   gap: 0.5rem;
 }
+.footer-contact-list a { color: inherit; }
+.footer-contact-list a:hover { color: var(--bone); }
 
 .quantity-stepper {
   display: inline-flex;

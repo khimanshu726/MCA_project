@@ -9,27 +9,47 @@ import HomeFaqSection from "../components/home/HomeFaqSection";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
 import { getConfiguredSocialLinks } from "../config/socialLinks";
+import { BUSINESS } from "../config/business";
 import { useProducts } from "../hooks/useProducts";
 
 const OG_IMAGE =
   "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop";
 
-// Organization/Store schema. Store is a LocalBusiness subtype; address, phone,
-// and opening hours are intentionally omitted until real business details are
-// provided (never invented). sameAs is included only for configured socials.
+// LocalBusiness structured data (Store is a LocalBusiness subtype). Every value
+// is real — the NAP + hours come from the shared BUSINESS config that also feeds
+// the footer, so search engines see them agree. `geo` is omitted (no coordinates
+// provided); Google geocodes from the postal address.
 const buildStoreJsonLd = () => {
   const sameAs = getConfiguredSocialLinks().map((profile) => profile.url);
   return {
     "@context": "https://schema.org",
     "@type": "Store",
-    name: SITE_NAME,
+    name: BUSINESS.name,
     description:
-      "Premium print shop for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies.",
+      "Premium print shop in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
     url: SITE_URL,
     logo: `${SITE_URL}/favicon.svg`,
     image: OG_IMAGE,
-    email: "hello@elite-empressions.com",
+    email: BUSINESS.email,
+    telephone: BUSINESS.phone,
     priceRange: "₹₹",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: BUSINESS.address.street,
+      addressLocality: BUSINESS.address.locality,
+      addressRegion: BUSINESS.address.region,
+      postalCode: BUSINESS.address.postalCode,
+      addressCountry: BUSINESS.address.country,
+    },
+    areaServed: BUSINESS.areaServed,
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: BUSINESS.openingDays,
+        opens: BUSINESS.opens,
+        closes: BUSINESS.closes,
+      },
+    ],
     ...(sameAs.length ? { sameAs } : {}),
   };
 };
@@ -86,8 +106,8 @@ function HomePage() {
   return (
     <main className="page-stack home-stack">
       <Seo
-        title="Custom Printing & Personalized Products"
-        description="Elite Impressions is a premium print shop for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies — design online, order in bulk, and reorder fast."
+        title="Custom Printing & Personalized Products in Purnia"
+        description="Elite Impressions is a premium print shop in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Design online, order in bulk — with pan-India shipping, local delivery, and store pickup."
         path="/"
         jsonLd={buildStoreJsonLd()}
       />

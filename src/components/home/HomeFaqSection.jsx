@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { BUSINESS } from "../../config/business";
 
 /**
  * Homepage FAQ — answers grounded in the site's real capabilities only (the
@@ -71,6 +72,27 @@ const FAQS = [
     ),
     text:
       "Yes. We offer bulk pricing plus dedicated institutional supplies — question papers, attendance and general registers, service books, and answer booklets. You can buy standard items online or request a bulk quote.",
+  },
+  {
+    q: "Do you ship or deliver?",
+    a: (
+      <>
+        Yes — we offer <strong>pan-India shipping</strong>, <strong>local delivery in Purnia</strong>, and{" "}
+        <strong>store pickup</strong> at our Purnia shop.
+      </>
+    ),
+    text: "Yes — we offer pan-India shipping, local delivery in Purnia, and store pickup at our Purnia shop.",
+  },
+  {
+    q: "Where are you located?",
+    a: (
+      <>
+        {BUSINESS.addressDisplay}. We&rsquo;re open {BUSINESS.hoursDisplay}. Call{" "}
+        <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phoneDisplay}</a> or email{" "}
+        <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>.
+      </>
+    ),
+    text: `${BUSINESS.addressDisplay}. We're open ${BUSINESS.hoursDisplay}. Call ${BUSINESS.phoneDisplay} or email ${BUSINESS.email}.`,
   },
   {
     q: "How do I place an order?",
