@@ -78,15 +78,23 @@ function ProductsPage() {
 
   return (
     <main className="page-stack">
-      <Seo
-        title="Shop All Print Products"
-        description="Browse Elite Impressions' full catalog — business cards, marketing materials, banners, invitations, packaging, merchandise, and institutional supplies."
-        path="/products"
-      />
+      {category && category !== "All" ? (
+        <Seo
+          title={category}
+          description={`Shop custom ${category.toLowerCase()} at Elite Impressions — design online, order in bulk, and reorder fast.`}
+          path={`/products?category=${encodeURIComponent(category)}`}
+        />
+      ) : (
+        <Seo
+          title="Shop All Print Products"
+          description="Browse Elite Impressions' full catalog — business cards, marketing materials, banners, invitations, packaging, merchandise, and institutional supplies."
+          path="/products"
+        />
+      )}
       <section className="section-panel">
         <div className="section-heading">
           <p className="eyebrow">Product catalog</p>
-          <h2>Browse print products the way customers expect to shop them.</h2>
+          <h1>Browse print products the way customers expect to shop them.</h1>
           <p className="section-copy">
             Search by product type, narrow by category, and sort the catalog by pricing or alphabetical order.
           </p>

@@ -4,9 +4,55 @@ import Seo, { SITE_URL, SITE_NAME } from "../components/Seo";
 import HeroCinematic from "../components/HeroCinematic";
 import HeroDivider from "../components/HeroDivider";
 import FeatureChessSection from "../components/FeatureChessSection";
+import WhatWePrintSection from "../components/home/WhatWePrintSection";
+import HomeFaqSection from "../components/home/HomeFaqSection";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
+import { getConfiguredSocialLinks } from "../config/socialLinks";
+import { BUSINESS } from "../config/business";
 import { useProducts } from "../hooks/useProducts";
+
+const OG_IMAGE =
+  "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop";
+
+// LocalBusiness structured data (Store is a LocalBusiness subtype). Every value
+// is real — the NAP + hours come from the shared BUSINESS config that also feeds
+// the footer, so search engines see them agree. `geo` is omitted (no coordinates
+// provided); Google geocodes from the postal address.
+const buildStoreJsonLd = () => {
+  const sameAs = getConfiguredSocialLinks().map((profile) => profile.url);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: BUSINESS.name,
+    description:
+      "Premium print shop in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
+    url: SITE_URL,
+    logo: `${SITE_URL}/favicon.svg`,
+    image: OG_IMAGE,
+    email: BUSINESS.email,
+    telephone: BUSINESS.phone,
+    priceRange: "₹₹",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: BUSINESS.address.street,
+      addressLocality: BUSINESS.address.locality,
+      addressRegion: BUSINESS.address.region,
+      postalCode: BUSINESS.address.postalCode,
+      addressCountry: BUSINESS.address.country,
+    },
+    areaServed: BUSINESS.areaServed,
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: BUSINESS.openingDays,
+        opens: BUSINESS.opens,
+        closes: BUSINESS.closes,
+      },
+    ],
+    ...(sameAs.length ? { sameAs } : {}),
+  };
+};
 import {
   categories,
   inspirationLinks,
@@ -60,18 +106,10 @@ function HomePage() {
   return (
     <main className="page-stack home-stack">
       <Seo
+        title="Custom Printing & Personalized Products in Purnia"
+        description="Elite Impressions is a premium print shop in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Design online, order in bulk — with pan-India shipping, local delivery, and store pickup."
         path="/"
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "Store",
-          name: SITE_NAME,
-          description:
-            "Premium print shop for custom business cards, brochures, banners, packaging, invitations, and institutional supplies.",
-          url: SITE_URL,
-          image:
-            "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop",
-          priceRange: "₹₹",
-        }}
+        jsonLd={buildStoreJsonLd()}
       />
       <HeroCinematic />
       <HeroDivider />
@@ -136,6 +174,8 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      <WhatWePrintSection />
 
       <section className="section-panel">
         <div className="section-heading section-heading-row">
@@ -252,6 +292,8 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      <HomeFaqSection />
 
       <section className="section-panel">
         <div className="section-heading">
