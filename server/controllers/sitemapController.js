@@ -2,7 +2,7 @@ import { Product } from "../models/Product.js";
 
 // Canonical site origin for search. Defaults to the www host the shop wants to
 // rank; override with SITE_URL if the canonical domain ever changes.
-const SITE_URL = (process.env.SITE_URL || "https://www.eliteimpressions.co.in").replace(/\/$/, "");
+const SITE_URL = (process.env.SITE_URL || "https://eliteimpressions.co.in").replace(/\/$/, "");
 
 // Public, crawlable routes that always exist regardless of catalog contents.
 const STATIC_ROUTES = [

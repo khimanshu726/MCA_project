@@ -14,4 +14,4 @@ Disallow: /login
 Disallow: /register
 Disallow: /auth
 
-Sitemap: https://www.eliteimpressions.co.in/sitemap.xml
+Sitemap: https://eliteimpressions.co.in/sitemap.xml

@@ -10,7 +10,7 @@
  */
 export const BUSINESS = {
   name: "Elite Impressions",
-  url: "https://www.eliteimpressions.co.in",
+  url: "https://eliteimpressions.co.in",
   email: "hello@elite-empressions.com",
   phone: "+919288675153",
   phoneDisplay: "+91 92886 75153",

@@ -32,20 +32,12 @@ const distPath = path.resolve(process.cwd(), "dist");
 const distAdminPath = path.resolve(process.cwd(), "dist-admin");
 const allowedOrigins = appConfig.allowedOrigins;
 
-// SEO: consolidate on the canonical www host in production. Apex (non-www)
-// GET/HEAD requests are 301'd to https://www.…, preserving the path, so Google
-// and users settle on one hostname and link equity isn't split across two.
-// POST/webhooks are left untouched (a 301 wouldn't preserve their method/body).
-app.use((req, res, next) => {
-  if (
-    process.env.NODE_ENV === "production" &&
-    (req.method === "GET" || req.method === "HEAD") &&
-    req.headers.host === "eliteimpressions.co.in"
-  ) {
-    return res.redirect(301, `https://www.eliteimpressions.co.in${req.originalUrl}`);
-  }
-  return next();
-});
+// NOTE: host canonicalization (www vs non-www) is owned by the hosting layer.
+// Render already redirects www → the apex (eliteimpressions.co.in), so the app
+// must NOT also redirect the apex → www — the two fought each other in an
+// infinite loop that made robots.txt unfetchable and got the whole site flagged
+// "blocked by robots.txt" in Google. The canonical host is the apex; see
+// src/components/Seo.jsx (SITE_URL) and public/robots.txt.
 
 app.use(
   cors({

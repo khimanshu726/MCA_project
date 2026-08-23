@@ -41,9 +41,9 @@ describe("GET /sitemap.xml", () => {
 
     expect(res.headers["content-type"]).toMatch(/xml/);
     expect(res.text).toContain("<urlset");
-    expect(res.text).toContain("https://www.eliteimpressions.co.in/</loc>");
-    expect(res.text).toContain("https://www.eliteimpressions.co.in/products</loc>");
-    expect(res.text).toContain("https://www.eliteimpressions.co.in/institutions</loc>");
+    expect(res.text).toContain("https://eliteimpressions.co.in/</loc>");
+    expect(res.text).toContain("https://eliteimpressions.co.in/products</loc>");
+    expect(res.text).toContain("https://eliteimpressions.co.in/institutions</loc>");
   });
 
   it("includes a URL for each active product but excludes drafts", async () => {
@@ -52,7 +52,7 @@ describe("GET /sitemap.xml", () => {
 
     const res = await request(app).get("/sitemap.xml").expect(200);
 
-    expect(res.text).toContain("https://www.eliteimpressions.co.in/products/live-card</loc>");
+    expect(res.text).toContain("https://eliteimpressions.co.in/products/live-card</loc>");
     expect(res.text).not.toContain("hidden-card");
   });
 });

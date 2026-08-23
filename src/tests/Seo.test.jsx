@@ -11,7 +11,7 @@ describe("Seo", () => {
     expect(document.title).toBe("Widgets | Elite Impressions");
 
     const canonical = document.head.querySelector('link[rel="canonical"]');
-    expect(canonical?.getAttribute("href")).toBe("https://www.eliteimpressions.co.in/products/widget-1");
+    expect(canonical?.getAttribute("href")).toBe("https://eliteimpressions.co.in/products/widget-1");
 
     const desc = document.head.querySelector('meta[name="description"]');
     expect(desc?.getAttribute("content")).toBe("Buy widgets");
