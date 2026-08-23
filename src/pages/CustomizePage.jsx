@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import Seo from "../components/Seo";
 import DesignStudio from "../customizer/components/DesignStudio.jsx";
 import { getTemplateForProduct } from "../customizer/templates.js";
 import { loadDraft } from "../customizer/hooks/useAutosave.js";
@@ -91,18 +92,27 @@ function CustomizePage() {
   // guessed wrong (promo + header measure 206px), so the editor overflowed
   // into the footer.
   return (
-    <DesignStudio
-      key={`${selectedProduct.id}:${savedDesign?.id || "new"}`}
-      product={selectedProduct}
-      template={template}
-      initialDesign={initialDesign}
-      initialDesignId={savedDesign?.id || null}
-      initialDesignName={savedDesign?.name || null}
-      recoveredDraft={Boolean(draft && !savedDesign)}
-      products={items}
-      isProductListLoading={isListLoading}
-      onProductChange={handleProductChange}
-    />
+    <>
+      {/* All /customize routes share one canonical — the studio is a single tool,
+          not thousands of per-product pages to index separately. */}
+      <Seo
+        title="Design Studio — Customize Your Print"
+        description="Design your print online: start from a template, upload your own artwork, and see a live preview before you order."
+        path="/customize"
+      />
+      <DesignStudio
+        key={`${selectedProduct.id}:${savedDesign?.id || "new"}`}
+        product={selectedProduct}
+        template={template}
+        initialDesign={initialDesign}
+        initialDesignId={savedDesign?.id || null}
+        initialDesignName={savedDesign?.name || null}
+        recoveredDraft={Boolean(draft && !savedDesign)}
+        products={items}
+        isProductListLoading={isListLoading}
+        onProductChange={handleProductChange}
+      />
+    </>
   );
 }
 

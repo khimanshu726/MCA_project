@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import Seo, { SITE_URL } from "../components/Seo";
 import AddToCartButton from "../components/AddToCartButton";
 import BuyNowButton from "../components/BuyNowButton";
 import ProductGallery from "../components/ProductGallery";
@@ -57,8 +58,36 @@ function ProductDetailPage() {
     );
   }
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images,
+    category: product.category,
+    sku: product.sku || product.id,
+    brand: { "@type": "Brand", name: "Elite Impressions" },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: product.price,
+      url: `${SITE_URL}/products/${product.id}`,
+      availability: isProductOutOfStock(product)
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+    },
+  };
+
   return (
     <main className="page-stack">
+      <Seo
+        title={product.name}
+        description={product.description}
+        path={`/products/${product.id}`}
+        image={product.images?.[0]}
+        type="product"
+        jsonLd={productJsonLd}
+      />
       <section className="detail-layout">
         <ProductGallery
           images={product.images}
