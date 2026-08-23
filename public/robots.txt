@@ -1,0 +1,17 @@
+# Elite Impressions — allow search engines to crawl public pages.
+User-agent: *
+Allow: /
+
+# Keep user-specific and internal pages out of the index (no useful content
+# for searchers, saves crawl budget).
+Disallow: /admin
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /wishlist
+Disallow: /login
+Disallow: /register
+Disallow: /auth
+
+Sitemap: https://www.eliteimpressions.co.in/sitemap.xml
