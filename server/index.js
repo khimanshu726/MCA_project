@@ -15,6 +15,7 @@ import addressRoutes from "./routes/addressRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import designRoutes from "./routes/designRoutes.js";
 import devRoutes from "./routes/devRoutes.js";
+import { getSitemap } from "./controllers/sitemapController.js";
 import razorpayInstance from "./config/razorpay.js";
 import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
@@ -123,6 +124,11 @@ app.use("/api/enquiries", enquiryRoutes);
 app.use("/api/cart", authenticateCustomer, cartRoutes);
 app.use("/api/wishlist", authenticateCustomer, wishlistRoutes);
 app.use("/api/addresses", authenticateCustomer, addressRoutes);
+
+// SEO: dynamic sitemap of all public pages (static routes + every active
+// product). Registered before the SPA catch-all so it isn't shadowed by
+// index.html. robots.txt is a real static file (public/robots.txt → dist).
+app.get("/sitemap.xml", getSitemap);
 
 // Development-only email tester (POST /api/dev/test-email). Never mounted in
 // production, so it cannot be reached on the live site.
