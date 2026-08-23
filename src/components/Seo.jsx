@@ -5,7 +5,9 @@
  * inheriting the homepage's (which was telling Google the whole site was a
  * duplicate of the homepage). Optional JSON-LD structured data rides along.
  */
-export const SITE_URL = "https://www.eliteimpressions.co.in";
+// Canonical host is the apex (non-www). The hosting layer redirects www → apex,
+// so the apex is the URL that actually serves 200 and must be the canonical.
+export const SITE_URL = "https://eliteimpressions.co.in";
 export const SITE_NAME = "Elite Impressions";
 
 const DEFAULT_DESCRIPTION =
