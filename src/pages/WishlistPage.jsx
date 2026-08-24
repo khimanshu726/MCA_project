@@ -4,6 +4,7 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import EmptyState from "../components/ui/EmptyState";
+import ListSkeleton from "../components/ui/ListSkeleton";
 import PriceDisplay from "../components/ui/PriceDisplay";
 import ResponsiveImage from "../components/ResponsiveImage";
 import { useWishlist } from "../hooks/useWishlist";
@@ -91,7 +92,7 @@ function WishlistPage() {
         </div>
 
         {isLoading ? (
-          <p className="section-copy">Loading your wishlist&hellip;</p>
+          <ListSkeleton count={3} rowClassName="h-32" />
         ) : items.length === 0 ? (
           <EmptyState
             icon={Heart}
