@@ -18,6 +18,8 @@ const localBusinessJsonLd = {
   "@context": "https://schema.org",
   "@type": "Store",
   name: SITE_NAME,
+  legalName: BUSINESS.legalName,
+  alternateName: BUSINESS.legalName,
   description:
     "Premium print shop in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
   url: SITE_URL,

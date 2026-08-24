@@ -11,6 +11,10 @@ describe("resolveRouteMeta", () => {
     expect(meta.canonical).toBe(`${APEX}/`);
     const ld = meta.jsonLd[0];
     expect(ld["@type"]).toBe("Store");
+    // Links the "Bihar Press" Google Business Profile to the Elite Impressions site.
+    expect(ld.name).toBe("Elite Impressions");
+    expect(ld.legalName).toBe("Bihar Press");
+    expect(ld.alternateName).toBe("Bihar Press");
     expect(ld.telephone).toBe("+919288675153");
     expect(ld.address.addressLocality).toBe("Purnia");
     expect(ld.address.postalCode).toBe("854301");

@@ -9,7 +9,12 @@
  * shop keeps different days.
  */
 export const BUSINESS = {
+  // Online store brand (what users see everywhere on the site)…
   name: "Elite Impressions",
+  // …and the registered business / Google Business Profile name. Declaring both
+  // in the LocalBusiness schema (legalName + alternateName) links the Business
+  // Profile "Bihar Press" to this site as the SAME entity for local search.
+  legalName: "Bihar Press",
   url: "https://eliteimpressions.co.in",
   email: "hello@elite-empressions.com",
   phone: "+919288675153",
