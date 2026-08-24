@@ -16,6 +16,7 @@ import webhookRoutes from "./routes/webhookRoutes.js";
 import designRoutes from "./routes/designRoutes.js";
 import devRoutes from "./routes/devRoutes.js";
 import { getSitemap } from "./controllers/sitemapController.js";
+import { createBotPrerender } from "./middleware/botPrerender.js";
 import razorpayInstance from "./config/razorpay.js";
 import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
@@ -145,7 +146,15 @@ if (process.env.NODE_ENV !== "production") {
 
 if (process.env.NODE_ENV === "production") {
   app.use("/admin", express.static(distAdminPath));
-  app.use(express.static(distPath));
+  // index:false so a bare "/" is NOT auto-served index.html here — it must fall
+  // through to the bot-prerender (bots) / catch-all (users) below. Without this,
+  // express.static answered "/" itself and the homepage never got prerendered.
+  app.use(express.static(distPath, { index: false }));
+
+  // For crawlers/social bots, inject the route's real head metadata into the SPA
+  // shell (assets already served by express.static above). Real users fall
+  // through to the plain shell below and hydrate normally.
+  app.use(createBotPrerender(distPath));
 
   app.get(/^\/admin(?:\/.*)?$/, (_req, res) => {
     res.sendFile(path.join(distAdminPath, "index.html"));
