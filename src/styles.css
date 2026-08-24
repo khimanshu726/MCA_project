@@ -1132,10 +1132,13 @@ a { color: inherit; text-decoration: none; }
   position: relative;
 }
 
-.image-card:hover, .product-card:hover {
+.image-card:hover, .product-card:hover, .service-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: rgba(23,24,27,0.16);
+}
+@media (prefers-reduced-motion: reduce) {
+  .image-card:hover, .product-card:hover, .service-card:hover { transform: none; }
 }
 
 .image-card-link { cursor: pointer; }
