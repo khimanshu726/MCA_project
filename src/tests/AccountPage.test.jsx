@@ -14,11 +14,13 @@ const mockUseUserAuth = vi.fn();
 const mockUseOrders = vi.fn();
 const mockUseAddresses = vi.fn();
 const mockUseWishlist = vi.fn();
+const mockUseDesigns = vi.fn();
 
 vi.mock("../context/UserAuthContext", () => ({ useUserAuth: () => mockUseUserAuth() }));
 vi.mock("../hooks/useOrders", () => ({ useOrders: () => mockUseOrders() }));
 vi.mock("../hooks/useAddresses", () => ({ useAddresses: () => mockUseAddresses() }));
 vi.mock("../hooks/useWishlist", () => ({ useWishlist: () => mockUseWishlist() }));
+vi.mock("../hooks/useDesigns", () => ({ useDesigns: () => mockUseDesigns() }));
 vi.mock("../components/EmailVerificationBanner", () => ({ default: () => null }));
 
 const renderPage = () =>
@@ -39,6 +41,7 @@ describe("AccountPage", () => {
     mockUseOrders.mockReturnValue({ orders: [] });
     mockUseAddresses.mockReturnValue({ addresses: [] });
     mockUseWishlist.mockReturnValue({ items: [] });
+    mockUseDesigns.mockReturnValue({ designs: [] });
   });
 
   it("links to the saved address book", () => {
@@ -53,16 +56,24 @@ describe("AccountPage", () => {
     expect(screen.getByText("Wishlist").closest("a")).toHaveAttribute("href", "/wishlist");
   });
 
+  it("links to the saved designs", () => {
+    renderPage();
+
+    expect(screen.getByText("My Designs").closest("a")).toHaveAttribute("href", "/account/designs");
+  });
+
   it("shows what the account actually holds, so it's visible without clicking through", () => {
     mockUseOrders.mockReturnValue({ orders: [{ id: "o1" }, { id: "o2" }] });
     mockUseAddresses.mockReturnValue({ addresses: [{ _id: "a1" }, { _id: "a2" }, { _id: "a3" }] });
     mockUseWishlist.mockReturnValue({ items: [{ productId: "p1" }] });
+    mockUseDesigns.mockReturnValue({ designs: [{ id: "d1" }, { id: "d2" }, { id: "d3" }, { id: "d4" }] });
 
     renderPage();
 
     expect(screen.getByText("Total orders").closest(".summary-line")).toHaveTextContent("2");
     expect(screen.getByText("Saved addresses").closest(".summary-line")).toHaveTextContent("3");
     expect(screen.getByText("Saved items").closest(".summary-line")).toHaveTextContent("1");
+    expect(screen.getByText("Saved designs").closest(".summary-line")).toHaveTextContent("4");
   });
 
   it("shows zero counts rather than hiding an empty section", () => {
@@ -70,5 +81,6 @@ describe("AccountPage", () => {
 
     expect(screen.getByText("Saved addresses").closest(".summary-line")).toHaveTextContent("0");
     expect(screen.getByText("Saved items").closest(".summary-line")).toHaveTextContent("0");
+    expect(screen.getByText("Saved designs").closest(".summary-line")).toHaveTextContent("0");
   });
 });

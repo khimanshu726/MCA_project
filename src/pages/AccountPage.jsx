@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { Heart, MapPin, PackageSearch } from "lucide-react";
+import { Heart, MapPin, PackageSearch, Palette } from "lucide-react";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useOrders } from "../hooks/useOrders";
 import { useAddresses } from "../hooks/useAddresses";
 import { useWishlist } from "../hooks/useWishlist";
+import { useDesigns } from "../hooks/useDesigns";
 
 const formatDate = (isoString) =>
   new Date(isoString).toLocaleDateString("en-IN", {
@@ -25,6 +26,7 @@ function AccountPage() {
   const { orders } = useOrders();
   const { addresses } = useAddresses();
   const { items: wishlistItems } = useWishlist();
+  const { designs } = useDesigns();
 
   const accountName = user?.displayName || authUser?.displayName || user?.email || user?.mobile || "Customer";
   const contactLabel = user?.email || authUser?.email || user?.mobile || "Customer";
@@ -75,7 +77,7 @@ function AccountPage() {
             </div>
           </div>
 
-          <Link to="/account/orders" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+          <Link to="/account/orders" className="summary-card summary-card-link">
             <p className="eyebrow">Order History</p>
             <div className="account-detail-list">
               <div className="summary-line">
@@ -85,15 +87,13 @@ function AccountPage() {
                 <strong>{orders.length}</strong>
               </div>
             </div>
-            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
-              View, track, cancel, or return your orders &rarr;
-            </p>
+            <p className="field-helper">View, track, cancel, or return your orders &rarr;</p>
           </Link>
 
           {/* The address book and wishlist were both server-backed and
               per-customer already; neither was reachable from here, so a
               customer had no way to see what the account actually held. */}
-          <Link to="/account/addresses" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+          <Link to="/account/addresses" className="summary-card summary-card-link">
             <p className="eyebrow">Saved Addresses</p>
             <div className="account-detail-list">
               <div className="summary-line">
@@ -103,12 +103,10 @@ function AccountPage() {
                 <strong>{addresses.length}</strong>
               </div>
             </div>
-            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
-              Add, edit, or set a default for checkout &rarr;
-            </p>
+            <p className="field-helper">Add, edit, or set a default for checkout &rarr;</p>
           </Link>
 
-          <Link to="/wishlist" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+          <Link to="/wishlist" className="summary-card summary-card-link">
             <p className="eyebrow">Wishlist</p>
             <div className="account-detail-list">
               <div className="summary-line">
@@ -118,16 +116,20 @@ function AccountPage() {
                 <strong>{wishlistItems.length}</strong>
               </div>
             </div>
-            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
-              Products you saved for later &rarr;
-            </p>
+            <p className="field-helper">Products you saved for later &rarr;</p>
           </Link>
 
-          <Link to="/account/designs" className="summary-card" style={{ display: "block", textDecoration: "none" }}>
+          <Link to="/account/designs" className="summary-card summary-card-link">
             <p className="eyebrow">My Designs</p>
-            <p className="field-helper" style={{ marginTop: "0.75rem" }}>
-              Saved customizations — reopen, duplicate, or reorder them &rarr;
-            </p>
+            <div className="account-detail-list">
+              <div className="summary-line">
+                <span className="summary-line-label">
+                  <Palette size={16} aria-hidden="true" /> Saved designs
+                </span>
+                <strong>{designs.length}</strong>
+              </div>
+            </div>
+            <p className="field-helper">Saved customizations — reopen, duplicate, or reorder them &rarr;</p>
           </Link>
         </div>
       </section>
