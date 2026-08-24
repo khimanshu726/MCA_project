@@ -28,7 +28,7 @@ const buildStoreJsonLd = () => {
     legalName: BUSINESS.legalName,
     alternateName: BUSINESS.legalName,
     description:
-      "Premium print shop in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
+      "Printing press in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
     url: SITE_URL,
     logo: `${SITE_URL}/favicon.svg`,
     image: OG_IMAGE,
@@ -108,8 +108,8 @@ function HomePage() {
   return (
     <main className="page-stack home-stack">
       <Seo
-        title="Custom Printing & Personalized Products in Purnia"
-        description="Elite Impressions is a premium print shop in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Design online, order in bulk — with pan-India shipping, local delivery, and store pickup."
+        title="Printing Press in Purnia, Bihar"
+        description="Bihar Press (Elite Impressions) is a printing press in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Order online with pan-India shipping, local delivery in Purnia, and store pickup."
         path="/"
         jsonLd={buildStoreJsonLd()}
       />

@@ -7,7 +7,7 @@ const TEMPLATE = `<!doctype html><html><head><title>Elite Impressions | Premium 
 describe("resolveRouteMeta", () => {
   it("home: LocalBusiness schema with real NAP + apex canonical", () => {
     const meta = resolveRouteMeta("/", null, null);
-    expect(meta.title).toMatch(/Custom Printing & Personalized Products in Purnia/);
+    expect(meta.title).toMatch(/Printing Press in Purnia/);
     expect(meta.canonical).toBe(`${APEX}/`);
     const ld = meta.jsonLd[0];
     expect(ld["@type"]).toBe("Store");
@@ -64,8 +64,7 @@ describe("injectMeta", () => {
     const html = injectMeta(TEMPLATE, meta);
 
     expect((html.match(/<title>/g) || []).length).toBe(1);
-    // Title is HTML-escaped in the output (& -> &amp;), which is correct.
-    expect(html).toMatch(/<title>[^<]*Custom Printing[^<]*Purnia[^<]*<\/title>/);
+    expect(html).toMatch(/<title>[^<]*Printing Press in Purnia[^<]*<\/title>/);
     expect((html.match(/rel="canonical"/g) || []).length).toBe(1);
     expect(html).toContain(`<link rel="canonical" href="${APEX}/" />`);
     expect(html).toContain('property="og:title"');
