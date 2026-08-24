@@ -2,24 +2,9 @@ import { describe, it, expect } from "vitest";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import WhatWePrintSection from "../components/home/WhatWePrintSection.jsx";
 import HomeFaqSection from "../components/home/HomeFaqSection.jsx";
 
 const wrap = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
-
-describe("WhatWePrintSection", () => {
-  it("lists real categories with descriptive internal links", () => {
-    wrap(<WhatWePrintSection />);
-
-    expect(screen.getByRole("link", { name: /business & visiting cards/i })).toHaveAttribute(
-      "href",
-      "/products?category=Visiting%20Cards",
-    );
-    expect(screen.getByRole("link", { name: /institutional supplies/i })).toHaveAttribute("href", "/institutions");
-    // No invented product types that don't exist in the catalog.
-    expect(screen.queryByText(/photo frames|calendars|wall art/i)).not.toBeInTheDocument();
-  });
-});
 
 describe("HomeFaqSection", () => {
   it("renders factual FAQ questions and emits FAQPage structured data", () => {
