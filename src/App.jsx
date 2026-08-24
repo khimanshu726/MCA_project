@@ -1,10 +1,14 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import AccountPage from "./pages/AccountPage";
 import CartPage from "./pages/CartPage";
 import CheckoutAddressPage from "./pages/CheckoutAddressPage";
 import CheckoutReviewPage from "./pages/CheckoutReviewPage";
-import CustomizePage from "./pages/CustomizePage";
+// The design studio is the heaviest part of the bundle (canvas engine, Radix,
+// Tailwind layer). Lazy-loaded so it isn't shipped to everyone on first paint —
+// only visitors who open /customize download it.
+const CustomizePage = lazy(() => import("./pages/CustomizePage"));
 import HomePage from "./pages/HomePage";
 import InstitutionsPage from "./pages/InstitutionsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -29,6 +33,15 @@ function CheckoutLayout() {
     <CheckoutProvider>
       <Outlet />
     </CheckoutProvider>
+  );
+}
+
+// Full-viewport fallback while the lazily-loaded studio chunk downloads.
+function StudioLoading() {
+  return (
+    <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center" }}>
+      <p className="section-copy">Loading the design studio&hellip;</p>
+    </div>
   );
 }
 
@@ -125,8 +138,22 @@ function App() {
             instead of the storefront's promo strip + header + footer, the same
             way the auth screens do. Two stacked headers is what made it read as
             an editor bolted into an ecommerce page. */}
-        <Route path="/customize" element={<CustomizePage />} />
-        <Route path="/customize/:productId" element={<CustomizePage />} />
+        <Route
+          path="/customize"
+          element={
+            <Suspense fallback={<StudioLoading />}>
+              <CustomizePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/customize/:productId"
+          element={
+            <Suspense fallback={<StudioLoading />}>
+              <CustomizePage />
+            </Suspense>
+          }
+        />
         <Route path="/login" element={<UserLoginPage />} />
         <Route path="/register" element={<Navigate to="/login" replace />} />
         {/* Branded landing for Firebase verification / password-reset links
