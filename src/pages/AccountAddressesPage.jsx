@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import AddressForm from "../components/AddressForm";
 import AddressList from "../components/AddressList";
 import Button from "../components/ui/Button";
+import ListSkeleton from "../components/ui/ListSkeleton";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useAddressManager } from "../hooks/useAddressManager";
 
@@ -66,9 +67,7 @@ function AccountAddressesPage() {
 
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
           {manager.isLoading ? (
-            <div className="rounded-2xl border border-ink-100 bg-white p-5 text-sm text-ink-500">
-              Loading your addresses…
-            </div>
+            <ListSkeleton count={2} rowClassName="h-28" />
           ) : (
             <AddressList
               addresses={manager.savedAddresses}

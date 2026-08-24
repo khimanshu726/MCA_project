@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Copy, Palette, Pencil, Trash2 } from "lucide-react";
+import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
+import EmptyState from "../components/ui/EmptyState";
 import Toast from "../components/ui/Toast";
 import { useDesigns } from "../hooks/useDesigns";
 import { useToast } from "../hooks/useToast";
@@ -70,21 +72,28 @@ function MyDesignsPage() {
         </div>
 
         {isLoading ? (
-          <p className="section-copy">Loading your designs&hellip;</p>
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <li key={index} className="overflow-hidden rounded-2xl border border-ink-100 bg-white">
+                <div className="aspect-[4/3] w-full animate-pulse bg-ink-100 motion-reduce:animate-none" />
+                <div className="flex flex-col gap-2 p-4">
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-ink-100 motion-reduce:animate-none" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-ink-100 motion-reduce:animate-none" />
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : designs.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-ink-100 bg-white px-6 py-12 text-center">
-            <Palette size={28} className="text-brand-500" aria-hidden="true" />
-            <p className="text-sm font-medium text-ink-900">No saved designs yet</p>
-            <p className="max-w-sm text-sm text-ink-500">
-              Customize any product and save the design — it will appear here for quick reordering and edits.
-            </p>
-            <Link
-              to="/customize"
-              className="mt-1 rounded-full bg-brand-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
-            >
-              Start customizing
-            </Link>
-          </div>
+          <EmptyState
+            icon={Palette}
+            title="No saved designs yet"
+            description="Customize any product and save the design — it'll appear here for quick reordering and edits."
+            action={
+              <Button as={Link} to="/customize">
+                Start customizing
+              </Button>
+            }
+          />
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {designs.map((design) => (
