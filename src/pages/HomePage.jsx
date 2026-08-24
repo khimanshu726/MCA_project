@@ -20,11 +20,13 @@ const OG_IMAGE =
 // the footer, so search engines see them agree. `geo` is omitted (no coordinates
 // provided); Google geocodes from the postal address.
 const buildStoreJsonLd = () => {
-  const sameAs = getConfiguredSocialLinks().map((profile) => profile.url);
+  const sameAs = [...getConfiguredSocialLinks().map((profile) => profile.url), BUSINESS.googleMapsUrl].filter(Boolean);
   return {
     "@context": "https://schema.org",
     "@type": "Store",
     name: BUSINESS.name,
+    legalName: BUSINESS.legalName,
+    alternateName: BUSINESS.legalName,
     description:
       "Premium print shop in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
     url: SITE_URL,

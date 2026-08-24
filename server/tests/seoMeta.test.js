@@ -11,9 +11,16 @@ describe("resolveRouteMeta", () => {
     expect(meta.canonical).toBe(`${APEX}/`);
     const ld = meta.jsonLd[0];
     expect(ld["@type"]).toBe("Store");
+    // Links the "Bihar Press" Google Business Profile to the Elite Impressions site.
+    expect(ld.name).toBe("Elite Impressions");
+    expect(ld.legalName).toBe("Bihar Press");
+    expect(ld.alternateName).toBe("Bihar Press");
     expect(ld.telephone).toBe("+919288675153");
     expect(ld.address.addressLocality).toBe("Purnia");
     expect(ld.address.postalCode).toBe("854301");
+    // Binds the site entity to the Google Business Profile + Instagram.
+    expect(ld.sameAs).toContain("https://maps.google.com/?cid=6410261252108927573");
+    expect(ld.sameAs.some((u) => /instagram/.test(u))).toBe(true);
   });
 
   it("products with a category: category-aware title + self canonical", () => {

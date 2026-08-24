@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, ExternalLink, Mail, MapPin, Phone } from "lucide-react";
+import { Clock, ExternalLink, Mail, MapPin, Phone, Star } from "lucide-react";
 import { getConfiguredSocialLinks } from "../config/socialLinks";
 import { BUSINESS } from "../config/business";
 
@@ -87,6 +87,16 @@ function SiteFooter() {
               <Clock size={14} strokeWidth={1.6} /> {BUSINESS.hoursDisplay}
             </span>
           </address>
+
+          <a
+            className="footer-review-link"
+            href={BUSINESS.googleReviewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Star size={14} strokeWidth={1.8} aria-hidden="true" />
+            <span>Review us on Google</span>
+          </a>
         </div>
 
         {footerLinks.map((section) => (
