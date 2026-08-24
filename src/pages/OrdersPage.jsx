@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
 import { Package } from "lucide-react";
 import Badge from "../components/ui/Badge";
+import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
+import ListSkeleton from "../components/ui/ListSkeleton";
 import { currencyFormatter } from "../components/ui/PriceDisplay";
 import { useOrders } from "../hooks/useOrders";
 
@@ -56,14 +59,18 @@ function OrdersPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-ink-500">Loading your orders...</p>
+          <ListSkeleton count={3} rowClassName="h-[76px]" />
         ) : orders.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-ink-200 bg-ink-50 p-8 text-center">
-            <p className="text-sm text-ink-500">You haven&rsquo;t placed any orders yet.</p>
-            <Link to="/products" className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline">
-              Browse products
-            </Link>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="No orders yet"
+            description="When you place an order, it'll show up here so you can track it, download an invoice, or reorder."
+            action={
+              <Button as={Link} to="/products">
+                Browse products
+              </Button>
+            }
+          />
         ) : (
           <div className="flex flex-col gap-3">
             {orders.map((order) => (
