@@ -21,7 +21,7 @@ const localBusinessJsonLd = {
   legalName: BUSINESS.legalName,
   alternateName: BUSINESS.legalName,
   description:
-    "Premium print shop in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
+    "Printing press in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
   url: SITE_URL,
   logo: `${SITE_URL}/favicon.svg`,
   image: DEFAULT_IMAGE,
@@ -90,9 +90,9 @@ export function resolveRouteMeta(pathname, category, product) {
   if (pathname === "/" || pathname === "") {
     return {
       ...base,
-      title: withBrand("Custom Printing & Personalized Products in Purnia"),
+      title: withBrand("Printing Press in Purnia, Bihar"),
       description:
-        "Elite Impressions is a premium print shop in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Design online, order in bulk — with pan-India shipping, local delivery, and store pickup.",
+        "Bihar Press (Elite Impressions) is a printing press in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Order online with pan-India shipping, local delivery in Purnia, and store pickup.",
       canonical: `${SITE_URL}/`,
       jsonLd: [localBusinessJsonLd],
     };
