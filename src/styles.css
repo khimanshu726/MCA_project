@@ -1037,6 +1037,19 @@ a { color: inherit; text-decoration: none; }
 .faq-answer a { color: var(--accent); border-bottom: 1px solid transparent; }
 .faq-answer a:hover { border-bottom-color: var(--accent); }
 
+/* Real Google reviews CTA (replaced invented testimonials) */
+.reviews-panel { display: flex; justify-content: center; text-align: center; padding: 0.5rem 0; }
+.reviews-copy {
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.reviews-copy .action-row { justify-content: center; margin-top: 0.9rem; }
+.reviews-copy .primary-button,
+.reviews-copy .secondary-button { display: inline-flex; align-items: center; gap: 0.5rem; }
+
 /* ==========================================================================
    Trust strip
    ========================================================================== */

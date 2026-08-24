@@ -63,30 +63,6 @@ import {
 
 const trustIcons = [Sparkles, Truck, ShieldCheck, Palette];
 
-const testimonials = [
-  {
-    quote:
-      "The finishing was flawless. Our cards arrived faster than expected and clients keep asking where we got them.",
-    name: "Ananya Sharma",
-    title: "Founder, Studio Marlow",
-    initials: "AS",
-  },
-  {
-    quote:
-      "Elite Impressions is our go-to for launch collateral. Consistent color, premium paper stocks, zero surprises.",
-    name: "Rohan Patel",
-    title: "Head of Brand, Firelane",
-    initials: "RP",
-  },
-  {
-    quote:
-      "The customization flow is genuinely fun. We put together a full merch drop in under an hour.",
-    name: "Priya Menon",
-    title: "Creative Director, Lumo",
-    initials: "PM",
-  },
-];
-
 function HomePage() {
   const { data, isLoading, refetch, isFetching } = useProducts({ featured: true, limit: 4 });
   const popularProducts = data?.items ?? [];
@@ -267,31 +243,37 @@ function HomePage() {
         </div>
       </section>
 
+      {/* Real reviews only. The invented testimonials that used to sit here were
+          replaced with a link to genuine Google reviews for Bihar Press — honest
+          social proof that also drives the review flywheel. */}
       <section className="section-panel">
-        <div className="section-heading">
-          <p className="eyebrow">Customer feedback</p>
-          <h2>Trusted by studios, founders, and growing teams.</h2>
-        </div>
-        <div className="testimonials-grid">
-          {testimonials.map((testimonial) => (
-            <article key={testimonial.name} className="testimonial-card">
-              <div className="testimonial-rating" aria-label="5 star rating">
-                {[0, 1, 2, 3, 4].map((index) => (
-                  <Star key={index} size={14} fill="currentColor" strokeWidth={0} />
-                ))}
-              </div>
-              <p className="testimonial-quote">{testimonial.quote}</p>
-              <div className="testimonial-author">
-                <span className="testimonial-avatar" aria-hidden="true">
-                  {testimonial.initials}
-                </span>
-                <div>
-                  <strong>{testimonial.name}</strong>
-                  <span>{testimonial.title}</span>
-                </div>
-              </div>
-            </article>
-          ))}
+        <div className="reviews-panel">
+          <div className="reviews-copy">
+            <p className="eyebrow">Reviews</p>
+            <h2>See what our customers say on Google.</h2>
+            <p className="section-copy">
+              Bihar Press is a real print shop in Purnia serving customers locally and across India. Read genuine
+              reviews on Google — and leave one after your next order.
+            </p>
+            <div className="action-row">
+              <a
+                className="primary-button"
+                href={BUSINESS.googleReviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Star size={16} strokeWidth={1.8} aria-hidden="true" /> Review us on Google
+              </a>
+              <a
+                className="secondary-button"
+                href={BUSINESS.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Read our Google reviews
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
