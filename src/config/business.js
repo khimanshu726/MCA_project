@@ -33,4 +33,9 @@ export const BUSINESS = {
   closes: "18:00",
   hoursDisplay: "Mon–Sat, 10 AM – 6 PM",
   instagram: "https://instagram.com/_elite_impressions_",
+  // Google Business Profile ("Bihar Press", Purnia). The maps link binds the
+  // site's LocalBusiness entity to the profile (schema sameAs); the review link
+  // powers the "Review us on Google" call to action.
+  googleMapsUrl: "https://maps.google.com/?cid=6410261252108927573",
+  googleReviewUrl: "https://g.page/r/CVVCZ1Gl0vVYEBM/review",
 };

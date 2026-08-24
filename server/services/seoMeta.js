@@ -40,7 +40,7 @@ const localBusinessJsonLd = {
   openingHoursSpecification: [
     { "@type": "OpeningHoursSpecification", dayOfWeek: BUSINESS.openingDays, opens: BUSINESS.opens, closes: BUSINESS.closes },
   ],
-  sameAs: [BUSINESS.instagram],
+  sameAs: [BUSINESS.instagram, BUSINESS.googleMapsUrl].filter(Boolean),
 };
 
 const productJsonLd = (product) => ({
