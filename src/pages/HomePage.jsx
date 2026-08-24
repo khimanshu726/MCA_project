@@ -4,7 +4,6 @@ import Seo, { SITE_URL, SITE_NAME } from "../components/Seo";
 import HeroCinematic from "../components/HeroCinematic";
 import HeroDivider from "../components/HeroDivider";
 import FeatureChessSection from "../components/FeatureChessSection";
-import WhatWePrintSection from "../components/home/WhatWePrintSection";
 import HomeFaqSection from "../components/home/HomeFaqSection";
 import ImageCard from "../components/ImageCard";
 import ProductCard from "../components/ProductCard";
@@ -55,11 +54,7 @@ const buildStoreJsonLd = () => {
     ...(sameAs.length ? { sameAs } : {}),
   };
 };
-import {
-  categories,
-  inspirationLinks,
-  trustHighlights,
-} from "../data";
+import { categories, trustHighlights } from "../data";
 
 const trustIcons = [Sparkles, Truck, ShieldCheck, Palette];
 
@@ -120,13 +115,18 @@ function HomePage() {
         })}
       </section>
 
+      {/* Category browsing + the "what we print" intro, merged into one section
+          (they previously duplicated the same categories). Keeps the visual grid
+          and the SEO-targeted "printing press in Purnia" copy. */}
       <section className="section-panel">
         <div className="section-heading">
-          <p className="eyebrow">Shop by category</p>
-          <h2>Browse the print products customers discover first.</h2>
+          <p className="eyebrow">What we print &amp; customize</p>
+          <h2>A printing press in Purnia for business, events, and institutions.</h2>
           <p className="section-copy">
-            Explore stationery, marketing materials, packaging, merchandise, event print, and
-            custom gifting from one organized catalog.
+            Elite Impressions is the online store of <strong>Bihar Press</strong>, a printing press in Purnia,
+            Bihar. Order custom and personalized print online with pan-India shipping, local delivery in Purnia,
+            and store pickup — from everyday business cards to full wedding invitation suites and institutional
+            exam supplies.
           </p>
         </div>
         <div className="category-grid">
@@ -152,8 +152,6 @@ function HomePage() {
           ))}
         </div>
       </section>
-
-      <WhatWePrintSection />
 
       <section className="section-panel">
         <div className="section-heading section-heading-row">
@@ -278,24 +276,6 @@ function HomePage() {
       </section>
 
       <HomeFaqSection />
-
-      <section className="section-panel">
-        <div className="section-heading">
-          <p className="eyebrow">Ideas and services</p>
-          <h2>More than products - a practical starting point.</h2>
-        </div>
-        <div className="service-grid">
-          {inspirationLinks.map((item) => (
-            <article key={item.id} className="service-card">
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-              <Link className="mini-link" to={item.to}>
-                Open
-              </Link>
-            </article>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }
