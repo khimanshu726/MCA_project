@@ -6,11 +6,17 @@ import AddToCartButton from "../components/AddToCartButton";
 import BuyNowButton from "../components/BuyNowButton";
 import ProductGallery from "../components/ProductGallery";
 import ProductRail from "../components/cart/ProductRail";
+import QuantitySelector from "../components/ui/QuantitySelector";
 import WishlistButton from "../components/ui/WishlistButton";
 import { useProduct } from "../hooks/useProduct";
 import { useProducts } from "../hooks/useProducts";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
-import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
+import {
+  getDefaultOrderQty,
+  getMinimumOrderQty,
+  isProductLowStock,
+  isProductOutOfStock,
+} from "../utils/productAvailability";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -50,6 +56,7 @@ function ProductDetailPage() {
   const { data: product, isLoading, isError } = useProduct(productId);
   const { data: relatedData } = useProducts({ category: product?.category, limit: 12 });
   const [activeImage, setActiveImage] = useState(null);
+  const [quantity, setQuantity] = useState(1);
   const { recordView } = useRecentlyViewed();
 
   useEffect(() => {
@@ -57,6 +64,15 @@ function ProductDetailPage() {
       setActiveImage(product.images[0]);
     }
   }, [product]);
+
+  // Reset the chosen quantity to the product's default (its MOQ) whenever the
+  // product changes — e.g. navigating between items via the related rail.
+  useEffect(() => {
+    if (product) {
+      setQuantity(getDefaultOrderQty(product));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   useEffect(() => {
     if (product?.id) {
@@ -86,6 +102,12 @@ function ProductDetailPage() {
   const outOfStock = isProductOutOfStock(product);
   const lowStock = isProductLowStock(product);
   const hasDiscount = product.mrp > product.price;
+  // Quantity bounds mirror the cart's rules: floor at the product's MOQ, ceiling
+  // at what's actually in stock. Only offer the stepper when there's a real range
+  // to choose from — a fixed-MOQ product just uses that quantity.
+  const minQty = getMinimumOrderQty(product);
+  const maxQty = Math.max(minQty, Number(product.stock) || minQty);
+  const showStepper = !outOfStock && maxQty > minQty;
   const related = (relatedData?.items ?? []).filter((entry) => entry.id !== product.id).slice(0, 8);
 
   const productJsonLd = {
@@ -163,12 +185,33 @@ function ProductDetailPage() {
             </div>
           ) : null}
 
-          {/* The two purchase actions get their own equal-width row so neither
-              reads as secondary to the other, and so they stack cleanly on a
-              phone instead of wrapping mid-row with the navigation links. */}
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <AddToCartButton product={product} variant="secondary" size="lg" className="w-full" />
-            <BuyNowButton product={product} size="lg" className="w-full" />
+          {/* Quantity + the two purchase actions form one group. The stepper
+              feeds both buttons, so it sits directly above them; they get their
+              own equal-width row so neither reads as secondary to the other and
+              they stack cleanly on a phone. */}
+          <div className="detail-buy">
+            {showStepper ? (
+              <div className="detail-qty-row">
+                <span className="detail-qty-label">Quantity</span>
+                <QuantitySelector
+                  value={quantity}
+                  onChange={setQuantity}
+                  min={minQty}
+                  max={maxQty}
+                  ariaLabel={`Quantity of ${product.name}`}
+                />
+              </div>
+            ) : null}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <AddToCartButton
+                product={product}
+                quantity={quantity}
+                variant="secondary"
+                size="lg"
+                className="w-full"
+              />
+              <BuyNowButton product={product} quantity={quantity} size="lg" className="w-full" />
+            </div>
           </div>
 
           <div className="action-row detail-secondary-actions">
