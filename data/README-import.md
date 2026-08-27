@@ -30,6 +30,41 @@ Keys starting with `_` (e.g. `_variants`, `_flag`) are **provenance/notes only**
 and are ignored by the importer. Top-level `flags` lists items that need a human
 decision before go-live.
 
+## Collecting the images (manual, compliant — `npm run prepare:frame-images`)
+
+Automated extraction from Seller Central's Image Manager is **not** done here:
+Amazon's ToS prohibit automated access outside the official APIs, and automating
+an authenticated Seller Central session risks the seller account. So you save your
+own images through the normal browser UI, and a **local** finalizer prepares them.
+
+1. In **Seller Central → Manage images → Image Manager**, search an ASIN, then
+   right-click → **Save image as** each slot (MAIN, PT01…) into a folder named
+   with that ASIN, under `frame-images-raw/`:
+
+   ```
+   frame-images-raw/
+     B0DNY13XGX/   photo_MAIN.jpg   pt01.jpg   pt02.jpg  …   (one folder per ASIN)
+     B0DND1MC6D/   MAIN.jpg  …                                (Ram Lala Pink — its own folder)
+   ```
+   Put `MAIN` in the primary image's filename; other files can keep any name.
+   No other renaming needed. For Ram Lala, use each colour's **own** ASIN folder.
+
+2. Run the finalizer (local only — touches nothing online):
+
+   ```bash
+   npm run prepare:frame-images                 # reads ./frame-images-raw
+   npm run prepare:frame-images -- --in=… --out=…
+   ```
+
+   It validates each file (magic-byte JPG/PNG/WEBP check), copies (never renames
+   originals) into `elite-impressions-photo-frame-images/` as `ASIN_MAIN.ext`,
+   `ASIN_01.ext`, …, preserving MAIN → PT01 → PT02 order, writes `manifest.csv`
+   (`filename,asin,sku,product,amazon_slot,source_url,status`), and zips the
+   folder. A product with no file marked MAIN is flagged `MAIN_IMAGE_UNCERTAIN`;
+   invalid/unmatched files are reported, never guessed onto a product.
+
+3. Feed the resulting folder/zip to the matcher below (`import:images`).
+
 ## Images — matching workflow (`npm run import:images`)
 
 The Active Listings Report's `image-url` column was blank, so every product ships
