@@ -39,6 +39,10 @@ const productSchema = new mongoose.Schema(
     mrp: { type: Number, required: true, min: 0 },
     stock: { type: Number, required: true, min: 0, default: 0 },
     sku: { type: String, default: "" },
+    // The Amazon ASIN this product was imported from, kept so the row can be
+    // traced back to (and re-synced with) its Seller-Central listing. Optional
+    // — products created in the admin without an Amazon origin simply omit it.
+    asin: { type: String, default: "" },
     status: { type: String, enum: ["active", "draft", "archived"], default: "draft" },
     leadTime: { type: String, default: "" },
     minimumOrderQty: { type: Number, default: 1, min: 1 },
