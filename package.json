@@ -14,6 +14,7 @@
     "migrate:products": "node server/scripts/migrateProducts.js",
     "import:products": "node server/scripts/importProducts.js",
     "import:images": "node server/scripts/importImages.js",
+    "fetch:amazon-images": "node server/scripts/fetchAmazonImages.js",
     "prepare:frame-images": "node server/scripts/prepareFrameImages.js",
     "repair:stock": "node server/scripts/repairStock.js",
     "test": "vitest run",
