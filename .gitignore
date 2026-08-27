@@ -30,3 +30,9 @@ __pycache__/
 dist-admin/
 
 .claude/settings.local.json
+
+# Local Photo Frame image collection (downloaded originals + finalizer output —
+# never commit product image binaries; they go to Cloudinary via the importer).
+frame-images-raw/
+elite-impressions-photo-frame-images/
+elite-impressions-photo-frame-images.zip
