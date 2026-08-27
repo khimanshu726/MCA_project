@@ -38,6 +38,7 @@ const CATEGORY_OPTIONS = [
   "Clothing & Merchandise",
   "Labels & Packaging",
   "Institutional Supplies",
+  "Photo Frames",
 ];
 const STATUS_OPTIONS = ["active", "draft", "archived"];
 
