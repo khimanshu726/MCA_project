@@ -13,6 +13,7 @@
     "dev:platform": "concurrently \"npm run server:dev\" \"npm run dev\" \"npm run dev:admin\"",
     "migrate:products": "node server/scripts/migrateProducts.js",
     "import:products": "node server/scripts/importProducts.js",
+    "import:images": "node server/scripts/importImages.js",
     "repair:stock": "node server/scripts/repairStock.js",
     "test": "vitest run",
     "test:ui": "vitest --ui",

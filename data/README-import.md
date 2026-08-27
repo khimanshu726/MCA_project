@@ -30,18 +30,64 @@ Keys starting with `_` (e.g. `_variants`, `_flag`) are **provenance/notes only**
 and are ignored by the importer. Top-level `flags` lists items that need a human
 decision before go-live.
 
-## Images (pending)
+## Images — matching workflow (`npm run import:images`)
 
 The Active Listings Report's `image-url` column was blank, so every product ships
-with `images: []`. **The importer skips any product whose `images` is empty** —
-this is expected, not an error, and it keeps the model's "at least one image"
-rule satisfied. To add images:
+with `images: []`. **The product importer skips any product whose `images` is
+empty** — expected, not an error, and it keeps the model's "at least one image"
+rule satisfied.
 
-1. Add the image URLs to each product's `images` array in the JSON (upload the
-   photos to Cloudinary first, or via the Admin panel's uploader, so the site
-   owns them and `ResponsiveImage` can optimise them). Do **not** hot-link
-   Amazon URLs.
-2. Re-run the importer.
+There is no ToS-compliant way to pull the full image sets from Amazon by ASIN
+(scraping is disallowed; SP-API/PA-API need credentials not set up here), so
+images are supplied as files and matched by **ASIN or SKU — never by product
+name** (`server/scripts/imageMatching.js`).
+
+**File naming.** Put the photos in a folder (default `data/frame-images/`), with
+each file's **ASIN or SKU in its filename or a subfolder name**, e.g.:
+
+```
+data/frame-images/
+  B0DNXWGQYR_main.jpg      # ASIN → Buddha frame (main image first)
+  B0DNXWGQYR_2.jpg
+  AN-ES38-9WTF-detail.jpg  # SKU also works
+  B0DND1MC6D_1.jpg         # Ram Lala PINK variant ASIN → ram-lala-a3-frame
+  Ramlala_Red_1.jpg        # Ram Lala RED variant SKU → ram-lala-a3-frame
+```
+
+A file with `main` (or ending `-1`/`_1`/`01`) becomes the product's first image.
+A file whose name matches no ASIN/SKU is **reported as unmatched, never guessed
+onto a product**. Ram Lala's three colour ASINs/SKUs all resolve to the one
+`ram-lala-a3-frame` product; the images pool into its gallery and each variant's
+own URLs are recorded under `_variants[].images`.
+
+**Arbitrary filenames?** If your files aren't named with an ASIN/SKU (e.g.
+Amazon-generated names), supply a mapping CSV instead of renaming them:
+
+```csv
+filename,asin,sku
+IMG_2098.jpg,B0DNXWGQYR,AN-ES38-9WTF
+IMG_2099.jpg,B0DND1MC6D,Ramlala_Pink
+```
+
+**Run it:**
+
+```bash
+npm run import:images -- --report                       # report table: who has images, who's missing
+npm run import:images -- --dry-run --dir=data/frame-images   # match + report, upload/write nothing
+npm run import:images -- --dir=data/frame-images --map=data/image-map.csv   # upload + write URLs
+```
+
+Match priority: **ASIN → SKU → mapping CSV**; anything else is reported as
+`unmatched` (never guessed). A filename containing `MAIN` becomes the primary
+image; a product with images but no `MAIN` is flagged for review. Identical files
+(same content hash) are uploaded once. Needs Cloudinary configured
+(`CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET`); it aborts without writing if not,
+so nothing lands in non-durable storage. Products stay `draft`. Then re-run the
+product importer to push them to the DB.
+
+Ram Lala's three colours each keep their own image set under `_variants[].images`
+(pooled into the product gallery for now; the per-colour gallery swap on the
+detail page is a small follow-up added when the images exist).
 
 ## Running the importer
 
