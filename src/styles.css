@@ -134,7 +134,13 @@ h4 { font-size: 1rem; font-weight: 600; font-family: var(--font-sans); letter-sp
 
 p { margin: 0; color: var(--ink-600); }
 
-a { color: inherit; text-decoration: none; }
+a { text-decoration: none; }
+/* Links inherit the surrounding text colour by default — except the Tailwind
+   Button component (.ui-button), whose variant sets its own colour. Because this
+   reset is unlayered it would otherwise beat Tailwind's layered `text-*`
+   utilities, leaving a primary Button rendered as a link with dark text on its
+   dark fill. Excluding .ui-button lets the variant colour apply. */
+a:not(.ui-button) { color: inherit; }
 
 .eyebrow {
   font-family: var(--font-mono);
