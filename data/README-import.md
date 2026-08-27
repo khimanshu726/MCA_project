@@ -30,6 +30,37 @@ Keys starting with `_` (e.g. `_variants`, `_flag`) are **provenance/notes only**
 and are ignored by the importer. Top-level `flags` lists items that need a human
 decision before go-live.
 
+## Fetching images via SP-API (official, automated — `npm run fetch:amazon-images`)
+
+The hands-off route: Amazon's **Selling Partner API** (Catalog Items,
+`getCatalogItem`, `includedData=images`) returns your listing images by ASIN. No
+scraping, no browser automation. Since 2023, SP-API needs **LWA credentials only**
+(no AWS SigV4 signing).
+
+**One-time setup (in your own Seller Central — I never see the secrets):**
+1. Seller Central → **Apps & Services → Develop Apps** → create a **private/self**
+   app with access to the **Catalog Items API** (the "Product Listing" role).
+2. Note the app's **LWA client ID** and **client secret**.
+3. **Authorize** the app for your own seller account and generate a **refresh token**.
+4. Put these in the **server `.env`** (never frontend, never committed):
+   ```env
+   SPAPI_CLIENT_ID=amzn1.application-oa2-client.…
+   SPAPI_CLIENT_SECRET=…
+   SPAPI_REFRESH_TOKEN=Atzr|…
+   # Optional (defaults are amazon.in): SPAPI_MARKETPLACE_ID=A21TJRUUN4KGV
+   # SPAPI_ENDPOINT=https://sellingpartnerapi-eu.amazon.com
+   ```
+
+**Run it:**
+```bash
+npm run fetch:amazon-images
+```
+It authenticates via LWA, calls `getCatalogItem` for every ASIN in the dataset
+(each Ram Lala colour separately), picks the **highest-resolution** image per
+variant, and downloads them into `frame-images-raw/<ASIN>/<ASIN>_MAIN.jpg`,
+`_01.jpg`, … — exactly the layout the finalizer/importer expect. Then run
+`prepare:frame-images` (optional: validate + manifest + zip) and `import:images`.
+
 ## Collecting the images (manual, compliant — `npm run prepare:frame-images`)
 
 Automated extraction from Seller Central's Image Manager is **not** done here:
