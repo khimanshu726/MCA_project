@@ -569,40 +569,41 @@ a { color: inherit; text-decoration: none; }
   padding: 0 2rem 0.85rem;
   display: flex;
   align-items: center;
-  gap: 1.75rem;
+  gap: 2rem;
   justify-content: space-between;
   border-top: 1px solid var(--stroke);
   padding-top: 0.85rem;
 }
 
+/* The two nav groups are separate entities, so each sits in its own tinted pill:
+   a soft warm bone for the primary destinations, a soft terracotta for the
+   category shortcuts. space-between keeps a clear gap between them. */
 .site-nav {
   display: flex;
   gap: 0.25rem;
   flex-wrap: wrap;
+  background: var(--bone-3);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-full);
+  padding: 0.3rem 0.4rem;
 }
 .site-nav .nav-link {
-  padding: 0.5rem 0.9rem;
-  border-radius: var(--r-sm);
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--r-full);
   color: var(--ink-700);
   font-size: 0.9rem;
   font-weight: 500;
   position: relative;
-  transition: color 0.25s var(--ease-out);
+  transition: color 0.25s var(--ease-out), background 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
 }
 .site-nav .nav-link:hover { color: var(--ink-950); }
+/* Active reads as a raised "selected segment" chip inside the bone pill, rather
+   than the old underline that hung below the row (which the pill would clip). */
 .site-nav .nav-link.active {
   color: var(--ink-950);
-  background: transparent;
-}
-.site-nav .nav-link.active::after {
-  content: "";
-  position: absolute;
-  left: 0.9rem;
-  right: 0.9rem;
-  bottom: -0.85rem;
-  height: 2px;
-  background: var(--ink-950);
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
 }
 
 .category-nav {
@@ -610,6 +611,10 @@ a { color: inherit; text-decoration: none; }
   gap: 0.15rem;
   flex-wrap: wrap;
   align-items: center;
+  background: var(--accent-tint);
+  border: 1px solid rgba(184, 70, 29, 0.12);
+  border-radius: var(--r-full);
+  padding: 0.3rem 0.45rem;
 }
 .category-link {
   font-size: 0.82rem;
@@ -619,7 +624,8 @@ a { color: inherit; text-decoration: none; }
   transition: color 0.25s var(--ease-out), background 0.25s var(--ease-out);
   font-weight: 500;
 }
-.category-link:hover { color: var(--ink-950); background: var(--ink-100); }
+/* Warm chip hover to suit the terracotta pill (a cool grey would clash). */
+.category-link:hover { color: var(--ink-950); background: rgba(255, 255, 255, 0.7); }
 
 @media (max-width: 900px) {
   .header-main-row { grid-template-columns: auto auto; gap: 1rem; padding: 0.85rem 1.15rem; }
@@ -627,7 +633,9 @@ a { color: inherit; text-decoration: none; }
   .header-nav-row { padding: 0.35rem 1.15rem 0.7rem; overflow-x: auto; gap: 0.75rem; scrollbar-width: none; }
   .header-nav-row::-webkit-scrollbar { display: none; }
   .category-nav { display: none; }
-  .site-nav { flex-wrap: nowrap; }
+  /* Only the primary nav shows on mobile, as a scrollable strip — drop the pill
+     so it doesn't read as a stray tinted band. */
+  .site-nav { flex-wrap: nowrap; background: transparent; border: 0; padding: 0; }
   .site-nav .nav-link { white-space: nowrap; }
   .account-actions { gap: 0.15rem; }
   .utility-link { padding: 0.4rem 0.6rem; font-size: 0.78rem; }
