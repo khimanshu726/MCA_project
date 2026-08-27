@@ -1,9 +1,10 @@
+// The primary nav is deliberately just the top-level destinations. Cart lives in
+// the top-right actions (so it isn't duplicated here), and the Institutions
+// catalog is reachable via the category shortcuts row.
 export const navigationLinks = [
   { to: "/", label: "Home" },
   { to: "/products", label: "Products" },
   { to: "/customize", label: "Customize" },
-  { to: "/institutions", label: "Institutions" },
-  { to: "/cart", label: "Cart" },
 ];
 
 export const promoMessage = "Buy more, save more on business cards, flyers, packaging, and event print essentials.";
