@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { Product } from "../models/Product.js";
+import { escapeRegExp } from "../utils/escapeRegExp.js";
 
 // The only fields an admin edit may write. `id`, `slug`, `source`, and the
 // timestamps are deliberately absent: id/slug are identity, source records how
@@ -74,10 +75,14 @@ export const listProducts = async ({
   }
 
   if (q) {
+    // Escape the user input so it matches literally — an unescaped regex here is
+    // a ReDoS vector (e.g. q="(a+)+$" hangs the event loop). Cap the length too,
+    // so a giant literal can't produce a pathologically long pattern.
+    const safe = escapeRegExp(String(q).slice(0, 100));
     filter.$or = [
-      { name: new RegExp(q, "i") },
-      { description: new RegExp(q, "i") },
-      { category: new RegExp(q, "i") },
+      { name: new RegExp(safe, "i") },
+      { description: new RegExp(safe, "i") },
+      { category: new RegExp(safe, "i") },
     ];
   }
 

@@ -1,5 +1,7 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import authRoutes from "./routes/authRoutes.js";
@@ -29,6 +31,41 @@ import { authenticateCustomer } from "./middleware/authenticateCustomer.js";
 
 const app = express();
 configurePassport();
+
+// Behind Render's proxy: trust the first hop so req.ip / rate-limit keying use
+// the real client address (X-Forwarded-For) rather than the proxy's.
+app.set("trust proxy", 1);
+
+// Security headers. CSP is deliberately NOT set here yet: a mis-scoped policy
+// would break Razorpay/Firebase checkout on the live site, so it's rolled out
+// separately (Report-Only → enforce). COOP allows popups so Firebase/OAuth popup
+// flows keep working; COEP stays off (it breaks third-party embeds like Razorpay).
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  }),
+);
+
+// A lenient catch-all API limiter — stops abusive bursts/scraping without
+// throttling real browsing. Auth/OTP keep their own tighter limiters. Skipped in
+// tests (shared 127.0.0.1 would 429 unrelated assertions) and never applied to
+// the Razorpay webhook (its retries must get through) or the health probe.
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) =>
+    process.env.NODE_ENV === "test" ||
+    Boolean(process.env.VITEST) ||
+    req.path === "/health" ||
+    req.path.startsWith("/webhooks/"),
+  message: { message: "Too many requests. Please slow down and try again shortly." },
+});
+
 const distPath = path.resolve(process.cwd(), "dist");
 const distAdminPath = path.resolve(process.cwd(), "dist-admin");
 const allowedOrigins = appConfig.allowedOrigins;
@@ -77,6 +114,7 @@ app.use("/api/designs", authenticateCustomer, express.json({ limit: "4mb" }), de
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+app.use("/api", apiLimiter);
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 /**
