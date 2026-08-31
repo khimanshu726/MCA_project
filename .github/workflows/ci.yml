@@ -1,0 +1,41 @@
+name: CI
+
+# Runs the build + full test suite on every PR and on pushes to master, so
+# regressions are caught before merge rather than after deploy.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # mongodb-memory-server downloads a mongod binary the first time it runs;
+      # cache it so CI is faster and less network-flaky.
+      - name: Cache mongodb-memory-server binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (web + admin)
+        run: npm run build
+
+      # --no-file-parallelism runs test files sequentially. A couple of suites
+      # share a mongodb-memory-server instance and race under parallelism
+      # (intermittent E11000 dup-key in sitemap/adminSeeding); serial execution
+      # makes CI deterministic without changing the tests.
+      - name: Test
+        run: npx vitest run --no-file-parallelism
