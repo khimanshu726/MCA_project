@@ -12,6 +12,7 @@ import {
   updateAdminOrder,
   updateAdminProduct,
 } from "../controllers/adminController.js";
+import { getAdminReviews, patchAdminReview } from "../controllers/reviewController.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 import { uploadProductImages } from "../middleware/productImageUpload.js";
@@ -34,5 +35,8 @@ router.post("/products", createAdminProduct);
 router.post("/products/images", requireDurableStorage, uploadProductImages, postAdminProductImages);
 router.put("/products/:id", updateAdminProduct);
 router.delete("/products/:id", deleteAdminProduct);
+// Review moderation: list (optionally ?status=pending) and approve/reject.
+router.get("/reviews", getAdminReviews);
+router.patch("/reviews/:reviewId", patchAdminReview);
 
 export default router;
