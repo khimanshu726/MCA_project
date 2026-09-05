@@ -37,7 +37,7 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
     >
       <button
         type="button"
-        className="flex size-9 items-center justify-center rounded-l-xl text-ink-600 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex size-11 items-center justify-center rounded-l-xl text-ink-600 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
         onClick={() => commit(value - 1)}
         disabled={isDisabled || value <= min}
         aria-label="Decrease quantity"
@@ -47,7 +47,7 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
       <input
         type="text"
         inputMode="numeric"
-        className="h-9 w-11 border-x border-ink-200 bg-transparent text-center text-sm font-semibold text-ink-900 focus:outline-none"
+        className="h-11 w-12 border-x border-ink-200 bg-transparent text-center text-sm font-semibold text-ink-900 focus:outline-none"
         value={draft}
         disabled={isDisabled}
         onChange={(event) => setDraft(event.target.value.replace(/[^0-9]/g, ""))}
@@ -58,7 +58,7 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
       />
       <button
         type="button"
-        className="flex size-9 items-center justify-center rounded-r-xl text-ink-600 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex size-11 items-center justify-center rounded-r-xl text-ink-600 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
         onClick={() => commit(value + 1)}
         disabled={isDisabled || value >= max}
         aria-label="Increase quantity"
