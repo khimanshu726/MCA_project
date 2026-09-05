@@ -148,7 +148,26 @@ function ProductsPage() {
         </div>
 
         {isLoading ? (
-          <p className="section-copy">Loading products&hellip;</p>
+          // Card-shaped skeletons that mirror the real .product-card (4/3 media +
+          // content), so the grid doesn't jump when products arrive — the catalog
+          // is the busiest page and previously showed a bare "Loading…" line.
+          <div className="product-grid" aria-hidden="true">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <article key={index} className="product-card">
+                <div className="product-card-media">
+                  <div className="image-shell ratio-product">
+                    <div className="image-skeleton" />
+                  </div>
+                </div>
+                <div className="card-content">
+                  <span className="skeleton-bar" style={{ width: "38%", height: "0.7rem" }} />
+                  <span className="skeleton-bar" style={{ width: "82%", height: "1.15rem" }} />
+                  <span className="skeleton-bar" style={{ width: "100%" }} />
+                  <span className="skeleton-bar" style={{ width: "46%", height: "1.25rem" }} />
+                </div>
+              </article>
+            ))}
+          </div>
         ) : isError ? (
           <div className="empty-state-card">
             <p className="eyebrow">Something went wrong</p>
