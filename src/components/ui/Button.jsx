@@ -4,13 +4,15 @@ import { forwardRef } from "react";
 // every CTA reads as one family: editorial ink pill primary, terracotta stays an
 // accent (links/highlights), not the button fill.
 const VARIANT_CLASSES = {
+  // text-white! (important) so the label wins over the unlayered `a { color:
+  // inherit }` reset when this Button is rendered as a link on a dark fill.
   primary:
-    "bg-ink-950 text-white shadow-sm hover:bg-ink-800 hover:-translate-y-px hover:shadow-md disabled:hover:translate-y-0 disabled:hover:shadow-sm focus-visible:outline-ink-900",
+    "bg-ink-950 text-white! shadow-sm hover:bg-ink-800 hover:-translate-y-px hover:shadow-md disabled:hover:translate-y-0 disabled:hover:shadow-sm focus-visible:outline-ink-900",
   secondary:
     "bg-white text-ink-900 border border-ink-200 hover:border-ink-900 hover:-translate-y-px disabled:hover:translate-y-0 focus-visible:outline-ink-900",
   ghost: "bg-transparent text-ink-800 hover:bg-ink-100 focus-visible:outline-ink-400",
   danger:
-    "bg-danger-500 text-white hover:bg-danger-600 hover:-translate-y-px disabled:hover:translate-y-0 focus-visible:outline-danger-500",
+    "bg-danger-500 text-white! hover:bg-danger-600 hover:-translate-y-px disabled:hover:translate-y-0 focus-visible:outline-danger-500",
   text: "bg-transparent text-ink-600 hover:text-brand-600 underline-offset-4 hover:underline px-0 h-auto",
 };
 
