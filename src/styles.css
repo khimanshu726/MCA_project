@@ -1715,7 +1715,10 @@ a { color: inherit; text-decoration: none; }
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite linear;
 }
-@media (prefers-reduced-motion: reduce) { .skeleton-bar { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar,
+  .image-skeleton { animation: none; }
+}
 
 /* ==========================================================================
    Customize page
