@@ -55,6 +55,7 @@ export function useMobileMenu() {
   }, [location.pathname]);
 
   const toggle = () => setMobileOpen((current) => !current);
+  const close = () => setMobileOpen(false);
 
-  return { mobileOpen, toggle };
+  return { mobileOpen, toggle, close };
 }

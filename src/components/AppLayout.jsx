@@ -13,7 +13,7 @@ function AppLayout() {
   const { isAuthenticated, signOut } = useUserAuth();
   const isScrolled = useScrolled();
   const { searchTerm, setSearchTerm, submit: handleSearchSubmit } = useHeaderSearch();
-  const { mobileOpen, toggle: toggleMobileMenu } = useMobileMenu();
+  const { mobileOpen, toggle: toggleMobileMenu, close: closeMobileMenu } = useMobileMenu();
 
   // useCartMerge() now lives at the router root (App.jsx) so it also covers
   // the routes rendered outside this layout.
@@ -33,6 +33,7 @@ function AppLayout() {
         onSignOut={signOut}
         mobileOpen={mobileOpen}
         onToggleMobile={toggleMobileMenu}
+        onCloseMobile={closeMobileMenu}
       />
 
       <Outlet />

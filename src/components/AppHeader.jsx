@@ -42,8 +42,9 @@ function AccountActions({ cartCount, wishlistCount, mobileOpen, onToggleMobile }
         type="button"
         className="nav-link nav-button utility-link show-mobile"
         onClick={onToggleMobile}
-        aria-label="Toggle menu"
+        aria-label={mobileOpen ? "Close category menu" : "Open category menu"}
         aria-expanded={mobileOpen}
+        aria-controls="mobile-category-menu"
       >
         {mobileOpen ? <X size={18} strokeWidth={1.8} /> : <Menu size={18} strokeWidth={1.8} />}
       </button>
@@ -68,14 +69,17 @@ function PrimaryNav() {
   );
 }
 
-function CategoryNav() {
+function CategoryNav({ onCloseMobile }) {
   return (
-    <nav className="category-nav" aria-label="Category shortcuts">
+    <nav id="mobile-category-menu" className="category-nav" aria-label="Category shortcuts">
       {categoryMenu.map((item) => (
         <Link
           key={item.label}
           className="category-link"
           to={`/products?category=${encodeURIComponent(item.category)}`}
+          // Close the mobile menu on selection. Same-page category changes only
+          // alter the query string, so the route-change auto-close wouldn't fire.
+          onClick={onCloseMobile}
         >
           {item.label}
         </Link>
@@ -93,6 +97,7 @@ function AppHeader({
   wishlistCount,
   mobileOpen,
   onToggleMobile,
+  onCloseMobile,
 }) {
   return (
     <header className={`site-header ${isScrolled ? "is-scrolled" : ""}`}>
@@ -115,7 +120,7 @@ function AppHeader({
 
       <div className={`header-nav-row ${mobileOpen ? "is-open" : ""}`}>
         <PrimaryNav />
-        <CategoryNav />
+        <CategoryNav onCloseMobile={onCloseMobile} />
       </div>
     </header>
   );
