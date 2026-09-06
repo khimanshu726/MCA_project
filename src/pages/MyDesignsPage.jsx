@@ -134,11 +134,11 @@ function MyDesignsPage() {
                     {design.productName || design.productId} · Updated {formatDate(design.updatedAt)}
                   </p>
 
-                  <div className="mt-auto flex items-center gap-1.5 pt-2">
+                  <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
                     <button
                       type="button"
                       onClick={() => navigate(`/customize/${design.productId}?design=${design.id}`)}
-                      className="rounded-full bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-600"
+                      className="inline-flex min-h-11 items-center rounded-full bg-brand-500 px-4 text-xs font-semibold text-white transition hover:bg-brand-600"
                     >
                       Continue editing
                     </button>
@@ -150,27 +150,27 @@ function MyDesignsPage() {
                         setRenamingId(design.id);
                         setDraftName(design.name);
                       }}
-                      className="flex size-7 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition hover:border-brand-300 hover:text-brand-600"
+                      className="flex size-11 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition hover:border-brand-300 hover:text-brand-600"
                     >
-                      <Pencil size={13} aria-hidden="true" />
+                      <Pencil size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
                       title="Duplicate"
                       aria-label={`Duplicate ${design.name}`}
                       onClick={() => handleDuplicate(design)}
-                      className="flex size-7 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition hover:border-brand-300 hover:text-brand-600"
+                      className="flex size-11 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition hover:border-brand-300 hover:text-brand-600"
                     >
-                      <Copy size={13} aria-hidden="true" />
+                      <Copy size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
                       title="Delete"
                       aria-label={`Delete ${design.name}`}
                       onClick={() => setPendingDelete(design)}
-                      className="flex size-7 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition hover:border-danger-500 hover:text-danger-600"
+                      className="flex size-11 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition hover:border-danger-500 hover:text-danger-600"
                     >
-                      <Trash2 size={13} aria-hidden="true" />
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
