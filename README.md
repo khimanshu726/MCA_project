@@ -31,7 +31,7 @@ npm run dev:full
 
 Open the local URLs:
 
-- `http://localhost:5173`
+- `http://localhost:3000`
 - `http://localhost:4000/api/health`
 
 ## Run Storefront + Admin + Backend
@@ -42,7 +42,7 @@ npm run dev:platform
 
 Local URLs:
 
-- Storefront: `http://localhost:5173`
+- Storefront: `http://localhost:3000`
 - Admin app: `http://localhost:5174/admin/login`
 - Backend API: `http://localhost:4000/api/health`
 
