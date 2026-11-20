@@ -12,7 +12,7 @@ React + Vite storefront for a print shop with:
 - Express order API with uploads and order management
 - separate admin application for order management
 - RBAC-secured backend for admin and customer roles
-- Admin authentication with email/password, mobile OTP, and Google OAuth
+- Admin authentication with email/password and a one-time code emailed to the admin (Resend)
 
 ## Tech Stack
 
@@ -50,7 +50,7 @@ Local URLs:
 
 1. Copy `.env.example` to `.env`
 2. Update the admin defaults and JWT secret
-3. Optional: set Google OAuth credentials
+3. Set `RESEND_API_KEY` and `EMAIL_FROM` so admin sign-in codes and order emails are delivered (locally the sign-in code is also shown on the login page)
 
 Local defaults created automatically on first server start:
 
@@ -63,18 +63,8 @@ Customer registration happens through Firebase Authentication with Google, phone
 
 For mobile OTP login in local development, the mock OTP is returned in the API response and shown in the login helper text.
 
-Google OAuth requires:
-
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_CALLBACK_URL`
-- `AUTH_SUCCESS_REDIRECT`
-- `AUTH_FAILURE_REDIRECT`
-
 For local separate-admin development, set:
 
-- `AUTH_SUCCESS_REDIRECT=http://localhost:5174/admin/auth/callback`
-- `AUTH_FAILURE_REDIRECT=http://localhost:5174/admin/login`
 - `ADMIN_APP_ORIGIN=http://localhost:5174`
 
 ## Admin API Surface
@@ -148,14 +138,7 @@ This project can be deployed as a single full-stack service on Render with a fre
    - `NODE_ENV=production`
    - `JWT_SECRET=<strong-random-secret>`
    - `CLIENT_ORIGIN=https://<your-render-app>.onrender.com`
-   - `ADMIN_APP_ORIGIN=https://<your-render-app>.onrender.com`r`n   - `AUTH_SUCCESS_REDIRECT=https://<your-render-app>.onrender.com/admin/auth/callback`
-   - `AUTH_FAILURE_REDIRECT=https://<your-render-app>.onrender.com/admin/login`
-
-Optional for Google login:
-
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_CALLBACK_URL=https://<your-render-app>.onrender.com/api/auth/google/callback`
+   - `ADMIN_APP_ORIGIN=https://<your-render-app>.onrender.com`
 
 In production, the Express server serves the storefront from `/`, the admin app from `/admin`, and the API from the same domain.
 
