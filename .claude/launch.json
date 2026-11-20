@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "server:dev"],
+      "port": 4000
+    },
+    {
       "name": "storefront",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
