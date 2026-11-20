@@ -8,7 +8,7 @@
     "dev:admin": "vite --config vite.admin.config.js",
     "server": "node server/index.js",
     "start": "node server/index.js",
-    "server:dev": "node --watch server/index.js",
+    "server:dev": "node --watch-path=./server --watch-path=./src server/index.js",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "dev:platform": "concurrently \"npm run server:dev\" \"npm run dev\" \"npm run dev:admin\"",
     "migrate:products": "node server/scripts/migrateProducts.js",
