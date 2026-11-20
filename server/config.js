@@ -73,17 +73,6 @@ export const appConfig = {
   // Admin credentials are resolved at call time by the helpers above; see
   // services/userStore.js. `adminPasswordHash` deliberately isn't a field here
   // any more — an import-time hash of a default is what made this untestable.
-  googleClientId: process.env.GOOGLE_CLIENT_ID || "",
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-  googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || "http://localhost:4000/api/auth/google/callback",
-  authSuccessRedirect: process.env.AUTH_SUCCESS_REDIRECT || "http://localhost:5174/admin/auth/callback",
-  authFailureRedirect: process.env.AUTH_FAILURE_REDIRECT || "http://localhost:5174/admin/login",
-  smtpHost: process.env.SMTP_HOST || "",
-  smtpPort: Number(process.env.SMTP_PORT || 587),
-  smtpSecure: process.env.SMTP_SECURE === "true",
-  smtpUser: process.env.SMTP_USER || "",
-  smtpPass: process.env.SMTP_PASS || "",
-  smtpFrom: process.env.SMTP_FROM || "orders@elite-empressions.local",
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || "admin@elite-empressions.local",
 
   // Resend transactional email. resendApiKey empty => email disabled (the

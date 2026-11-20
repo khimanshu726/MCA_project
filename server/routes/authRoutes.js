@@ -1,14 +1,11 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { appConfig } from "../config.js";
 import { authenticateCustomer } from "../middleware/authenticateCustomer.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
-import passport, { configurePassport, isGoogleAuthConfigured } from "../auth/passport.js";
 import {
   getCurrentCustomerUser,
   getCurrentAuthUser,
-  handleGoogleCallback,
   loginCustomer,
   loginUser,
   logoutCustomer,
@@ -64,16 +61,6 @@ const passwordResetLimiter = rateLimit({
   },
 });
 
-const redirectWhenGoogleUnavailable = (_req, res) =>
-  res.redirect(`${appConfig.authFailureRedirect}?error=google_not_configured`);
-
-const logGoogleRoute = (req, _res, next) => {
-  console.log(`[AUTH] Google route hit: ${req.originalUrl}`);
-  next();
-};
-
-configurePassport();
-
 router.post("/login", authLimiter, loginUser);
 router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", authLimiter, verifyOtp);
@@ -94,25 +81,5 @@ router.post("/customer/logout", authenticateCustomer, logoutCustomer);
 // verification (re)send is authenticated (it's the caller's own address).
 router.post("/customer/password-reset", passwordResetLimiter, requestPasswordReset);
 router.post("/customer/verify-email/send", authenticateCustomer, authLimiter, requestEmailVerification);
-
-router.get(
-  "/google",
-  logGoogleRoute,
-  isGoogleAuthConfigured()
-    ? passport.authenticate("google", { scope: ["profile", "email"], session: false })
-    : redirectWhenGoogleUnavailable,
-);
-
-router.get(
-  "/google/callback",
-  logGoogleRoute,
-  isGoogleAuthConfigured()
-    ? passport.authenticate("google", {
-        session: false,
-        failureRedirect: `${appConfig.authFailureRedirect}?error=google_auth_failed`,
-      })
-    : redirectWhenGoogleUnavailable,
-  handleGoogleCallback,
-);
 
 export default router;

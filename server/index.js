@@ -22,7 +22,6 @@ import { createBotPrerender } from "./middleware/botPrerender.js";
 import razorpayInstance from "./config/razorpay.js";
 import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
-import passport, { configurePassport } from "./auth/passport.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
 import { ensureCouponsSeeded } from "./services/couponSeed.js";
@@ -30,7 +29,6 @@ import { connectDB } from "./config/db.js";
 import { authenticateCustomer } from "./middleware/authenticateCustomer.js";
 
 const app = express();
-configurePassport();
 
 // Behind Render's proxy: trust the first hop so req.ip / rate-limit keying use
 // the real client address (X-Forwarded-For) rather than the proxy's.
@@ -113,7 +111,6 @@ app.use("/api/designs", authenticateCustomer, express.json({ limit: "4mb" }), de
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(passport.initialize());
 app.use("/api", apiLimiter);
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 

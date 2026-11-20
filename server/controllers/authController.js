@@ -507,12 +507,3 @@ export const requestEmailVerification = async (req, res) => {
 
   return res.json({ provider: "resend", message: "Verification email sent. Check your inbox." });
 };
-
-export const handleGoogleCallback = async (req, res) => {
-  if (!req.user) {
-    return res.redirect(`${appConfig.authFailureRedirect}?error=google_auth_failed`);
-  }
-
-  const token = issueAuthToken(req.user);
-  return res.redirect(`${appConfig.authSuccessRedirect}?token=${encodeURIComponent(token)}`);
-};
