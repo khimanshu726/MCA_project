@@ -46,6 +46,11 @@ const orderSchema = new mongoose.Schema(
     // the payment-captured webhook and the client verify call — which both run
     // the same capture path — can never send two confirmations for one order.
     confirmationEmailSentAt: { type: Date, default: null },
+    // When the shop's new-order alert was sent. Claimed separately from the
+    // customer confirmation so a bad customer address (bounce, typo, rejected
+    // domain) can never stop the shop from hearing about the order, and so a
+    // retry of the customer email can never send the shop a duplicate alert.
+    adminNotifiedAt: { type: Date, default: null },
     archived: { type: Boolean, default: false },
     lineItems: { type: Array, default: [] },
     razorpayOrderId: { type: String },

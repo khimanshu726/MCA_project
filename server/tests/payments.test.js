@@ -345,14 +345,14 @@ describe("Payment reservation lifecycle", () => {
       lineItems: [{ productId: "pay-product", name: "Pay Product", quantity: 2, unitPrice: 79, totalPrice: 158 }],
     });
 
-    const res = await request(app).post(`/api/orders/customer/${order.orderId}/cancel-payment`);
+    const res = await request(app).post(`/api/orders/customer/${order.id}/cancel-payment`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.order.orderStatus).toBe("PaymentFailed");
     expect((await Product.findOne({ id: "pay-product" })).stock).toBe(5);
 
     // Second call must not restore stock twice.
-    const again = await request(app).post(`/api/orders/customer/${order.orderId}/cancel-payment`);
+    const again = await request(app).post(`/api/orders/customer/${order.id}/cancel-payment`);
     expect(again.statusCode).toBe(409);
     expect((await Product.findOne({ id: "pay-product" })).stock).toBe(5);
   });
@@ -360,7 +360,7 @@ describe("Payment reservation lifecycle", () => {
   it("rejects cancel-payment on an order that is already confirmed", async () => {
     const order = await seedPendingOrder({ orderStatus: "Placed", paymentStatus: "Paid" });
 
-    const res = await request(app).post(`/api/orders/customer/${order.orderId}/cancel-payment`);
+    const res = await request(app).post(`/api/orders/customer/${order.id}/cancel-payment`);
     expect(res.statusCode).toBe(409);
   });
 

@@ -328,20 +328,34 @@ export const getCustomerOrders = async (req, res, next) => {
   }
 };
 
+// Ownership rule shared by the customer-facing lookup and self-service actions.
+//
+// Signed in: the order must belong to the caller's account, and any of its
+// identifiers works (the short order number is what the UI links with).
+//
+// Not signed in: only an order with no account attached, and only by its
+// internal `id` — a random UUID (122 bits), which is what makes the link a
+// usable capability. The short order number (EE-YYYYMMDD-XXXX) is printed on
+// receipts and emails and has a small random part, so it is guessable and
+// must never unlock an order on its own. Neither is the Razorpay order id,
+// which is shown to the payer and travels through the gateway.
+const findOwnedOrder = async (req) => {
+  const order = await getOrderById(req.params.id);
+  if (!order) return null;
+
+  if (req.customer) {
+    return order.customerId === req.customer.id ? order : null;
+  }
+
+  return !order.customerId && order.id === req.params.id ? order : null;
+};
+
 // Ownership-checked single-order lookup for the customer-facing order-success
-// / order-detail pages. Guest orders (no customerId) are reachable only by an
-// unauthenticated caller — the order id itself is the capability, same as
-// most guest-checkout confirmation links; an authenticated caller can only
-// see orders tied to their own account.
+// / order-detail pages. See findOwnedOrder for who may see which order.
 export const getCustomerOrder = async (req, res, next) => {
   try {
-    const order = await getOrderById(req.params.id);
+    const order = await findOwnedOrder(req);
     if (!order) {
-      return res.status(404).json({ message: "Order not found." });
-    }
-
-    const isOwner = req.customer ? order.customerId === req.customer.id : !order.customerId;
-    if (!isOwner) {
       return res.status(404).json({ message: "Order not found." });
     }
 
@@ -353,13 +367,6 @@ export const getCustomerOrder = async (req, res, next) => {
 
 const CANCELLABLE_STATUSES = ["Placed", "Confirmed"];
 const RETURNABLE_STATUSES = ["Delivered"];
-
-const findOwnedOrder = async (req) => {
-  const order = await getOrderById(req.params.id);
-  if (!order) return null;
-  const isOwner = req.customer ? order.customerId === req.customer.id : !order.customerId;
-  return isOwner ? order : null;
-};
 
 export const cancelCustomerOrder = async (req, res, next) => {
   try {
