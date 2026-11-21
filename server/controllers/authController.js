@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { appConfig } from "../config.js";
 import {
-  detectLoginType,
   issueAuthToken,
   mapUserForClient,
   normalizeEmail,

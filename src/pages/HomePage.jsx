@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Star, Sparkles, Truck, ShieldCheck, Palette } from "lucide-react";
-import Seo, { SITE_URL, SITE_NAME } from "../components/Seo";
+import Seo, { SITE_URL } from "../components/Seo";
 import HeroCinematic from "../components/HeroCinematic";
 import HeroDivider from "../components/HeroDivider";
 import FeatureChessSection from "../components/FeatureChessSection";

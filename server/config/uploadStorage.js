@@ -1,7 +1,6 @@
 import multer from "multer";
 import path from "node:path";
 import { unlink } from "node:fs/promises";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinary from "./cloudinary.js";
 
 /**
@@ -105,21 +104,67 @@ const cloudinaryFormatFor = (mimetype) =>
     "image/webp": "webp",
   })[mimetype] || "png";
 
+/**
+ * A multer storage engine that streams each upload straight to Cloudinary.
+ *
+ * This replaces the `multer-storage-cloudinary` package, which only supports
+ * the Cloudinary SDK v1 — and SDK v1 has a known argument-injection
+ * vulnerability (GHSA-g4mf-96x5-5m2c, fixed in v2.7.0). The engine is small and
+ * fills in the same fields that package did, which is all the rest of the
+ * server reads: `path` is the public URL (see createUploadedFileUrl) and
+ * `filename` is the Cloudinary public id.
+ */
+export const createCloudinaryStorage = (getParams) => ({
+  _handleFile(req, file, callback) {
+    let settled = false;
+    const done = (error, info) => {
+      if (settled) return;
+      settled = true;
+      callback(error, info);
+    };
+
+    Promise.resolve()
+      .then(() => getParams(req, file))
+      .then((params) => {
+        const upload = cloudinary.uploader.upload_stream(params, (error, result) => {
+          if (error) {
+            done(error);
+            return;
+          }
+          done(null, { path: result.secure_url, filename: result.public_id, size: result.bytes });
+        });
+        file.stream.on("error", done);
+        file.stream.pipe(upload);
+      })
+      .catch(done);
+  },
+
+  // Called by multer when a later step of the same request fails (e.g. a second
+  // file is rejected), so an orphaned upload doesn't stay in Cloudinary.
+  _removeFile(_req, file, callback) {
+    if (!file.filename) {
+      callback(null);
+      return;
+    }
+    cloudinary.uploader
+      .destroy(file.filename)
+      .then(() => callback(null))
+      .catch(callback);
+  },
+});
+
 /** Builds a multer instance for one upload purpose. */
 export const createUploader = ({ folder, diskPrefix, allowedTypes, typeLabel, maxBytes = 10 * 1024 * 1024 }) => {
   const fileFilter = buildFileFilter(allowedTypes, typeLabel);
 
   if (isCloudinaryConfigured()) {
-    const storage = new CloudinaryStorage({
-      cloudinary,
-      params: async (_req, file) => {
-        const baseName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
-        return {
-          folder: `elite-empressions/${folder}`,
-          format: cloudinaryFormatFor(file.mimetype),
-          public_id: `${Date.now()}_${baseName}`,
-        };
-      },
+    const storage = createCloudinaryStorage((_req, file) => {
+      const baseName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+      return {
+        folder: `elite-empressions/${folder}`,
+        format: cloudinaryFormatFor(file.mimetype),
+        public_id: `${Date.now()}_${baseName}`,
+      };
     });
 
     return multer({ storage, limits: { fileSize: maxBytes }, fileFilter });

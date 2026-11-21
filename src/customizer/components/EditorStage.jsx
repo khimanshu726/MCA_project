@@ -213,7 +213,7 @@ function EditorStage({
         );
       }
     },
-    [actions, screenToMm, scale, template, ui.zoom],
+    [actions, screenToMm, scale, setSnapGuidesIfChanged, template, ui.zoom],
   );
 
   const handlePointerUp = useCallback(

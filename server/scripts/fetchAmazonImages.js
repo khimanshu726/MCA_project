@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { config } from "dotenv";
 import { pathToFileURL } from "node:url";
-import { buildIdentifierIndex, readDataset } from "./imageMatching.js";
+import { readDataset } from "./imageMatching.js";
 import { selectBestImages } from "./spapiCatalog.js";
 
 config();
@@ -83,7 +83,6 @@ const run = async () => {
 
   const creds = requireEnv();
   const dataset = readDataset();
-  const index = buildIdentifierIndex(dataset.products);
   // Every ASIN, deduped — includes Ram Lala's three colour ASINs, each fetched
   // and stored under its own folder so the colours never merge.
   const asins = [

@@ -5,6 +5,10 @@ import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useProducts";
 
+// Stable fallback so memoised values depending on the list don't recompute
+// on every render while the query is still loading.
+const EMPTY_LIST = [];
+
 const categoryOptionsFromItems = (items) => ["All", ...new Set(items.map((product) => product.category))];
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -31,7 +35,7 @@ function ProductsPage() {
   useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
 
   const { data, isLoading, isError, refetch } = useProducts({ category, q: query, limit: 100 });
-  const items = data?.items ?? [];
+  const items = data?.items ?? EMPTY_LIST;
 
   // Fetched independently of the active category filter so the chip row
   // doesn't collapse to a single option once a category is selected.

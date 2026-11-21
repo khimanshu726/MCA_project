@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import React from "react";
 import { act, render } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import ScrollToTop from "../components/ScrollToTop.jsx";

@@ -1,4 +1,4 @@
-import { BRAND, STOREFRONT_URL, button, escapeHtml, renderLayout } from "./layout.js";
+import { BRAND, STOREFRONT_URL, button, renderLayout } from "./layout.js";
 
 /** Welcome email sent once when a customer first registers. */
 export const welcomeEmail = (user) => {
