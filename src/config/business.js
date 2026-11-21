@@ -15,6 +15,10 @@ export const BUSINESS = {
   // in the LocalBusiness schema (legalName + alternateName) links the Business
   // Profile "Bihar Press" to this site as the SAME entity for local search.
   legalName: "Bihar Press",
+  // As registered for GST (Form GST REG-25). A GST tax invoice must show the
+  // supplier's legal name; the trade name is shown alongside it.
+  gstLegalName: "Har Kishore Mishra",
+  gstTradeName: "Bihar Press",
   url: "https://eliteimpressions.co.in",
   // The inbox the shop actually reads. The previous address used a domain
   // (elite-empressions.com) that does not exist, so customer mail never arrived.

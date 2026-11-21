@@ -13,6 +13,7 @@ import {
   updateAdminProduct,
 } from "../controllers/adminController.js";
 import { getAdminReviews, patchAdminReview } from "../controllers/reviewController.js";
+import { createHsnCode, deleteHsnCode, listHsnCodes, updateHsnCode } from "../controllers/hsnController.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 import { uploadProductImages } from "../middleware/productImageUpload.js";
@@ -38,5 +39,10 @@ router.delete("/products/:id", deleteAdminProduct);
 // Review moderation: list (optionally ?status=pending) and approve/reject.
 router.get("/reviews", getAdminReviews);
 router.patch("/reviews/:reviewId", patchAdminReview);
+// HSN/SAC codes and their GST rates (see models/HsnCode.js).
+router.get("/hsn-codes", listHsnCodes);
+router.post("/hsn-codes", createHsnCode);
+router.put("/hsn-codes/:id", updateHsnCode);
+router.delete("/hsn-codes/:id", deleteHsnCode);
 
 export default router;

@@ -58,6 +58,9 @@ const productSchema = new mongoose.Schema(
     leadTime: { type: String, default: "" },
     minimumOrderQty: { type: Number, default: 1, min: 1 },
     priceTiers: { type: [priceTierSchema], default: [] },
+    // HSN/SAC code (HsnCode.code). The GST rate is always read from that row,
+    // never stored here. Empty until the owner assigns one.
+    hsnCode: { type: String, default: "", trim: true },
     badge: { type: String, default: "" },
     materials: { type: [String], default: [] },
     options: { type: [productOptionSchema], default: [] },

@@ -8,6 +8,7 @@ import {
 } from "../services/productStore.js";
 import { mapUserForClient } from "../utils/authHelpers.js";
 import { createUploadedFileUrl } from "../utils/orderHelpers.js";
+import { HsnCode } from "../models/HsnCode.js";
 
 const hasProductValidationErrors = (errors) => Object.values(errors).some(Boolean);
 
@@ -111,6 +112,17 @@ const validateProductPayload = (payload = {}, { partial = false } = {}) => {
   return errors;
 };
 
+// A product's HSN code must be a row in the HSN table (or empty).
+const validateHsnReference = async (payload, errors) => {
+  if (typeof payload.hsnCode === "string" && payload.hsnCode.trim() !== "") {
+    const exists = await HsnCode.exists({ code: payload.hsnCode.trim() });
+    if (!exists) {
+      errors.hsnCode = "Pick an HSN code from the HSN & GST rates list.";
+    }
+  }
+  return errors;
+};
+
 // Mongoose ValidationErrors (e.g. the price ≤ mrp rule, which only fires on
 // save) should read to the admin as a 400 with per-field messages, not a 500.
 const mapMongooseValidationError = (error) => {
@@ -161,7 +173,7 @@ export const getAdminProducts = async (req, res, next) => {
 
 export const createAdminProduct = async (req, res, next) => {
   const payload = req.body || {};
-  const errors = validateProductPayload(payload);
+  const errors = await validateHsnReference(payload, validateProductPayload(payload));
 
   if (hasProductValidationErrors(errors)) {
     return res.status(400).json({
@@ -193,7 +205,7 @@ export const createAdminProduct = async (req, res, next) => {
 
 export const updateAdminProduct = async (req, res, next) => {
   const payload = req.body || {};
-  const errors = validateProductPayload(payload, { partial: true });
+  const errors = await validateHsnReference(payload, validateProductPayload(payload, { partial: true }));
 
   if (hasProductValidationErrors(errors)) {
     return res.status(400).json({
