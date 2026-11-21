@@ -19,6 +19,49 @@ export function useScrolled(threshold = 8) {
 }
 
 /**
+ * True while the visitor is scrolling DOWN past `offset` px, false as soon as
+ * they scroll up (or are back near the top). Drives the phone header's
+ * hide-on-scroll: on a 375px screen the full header is ~180px, so keeping it
+ * pinned the whole time covered about a third of the page. Small movements
+ * under `tolerance` px are ignored so the header doesn't flicker on jitter.
+ */
+export function useHideOnScroll({ offset = 160, tolerance = 8 } = {}) {
+  const [isHidden, setIsHidden] = useState(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY;
+      if (y <= offset) {
+        setIsHidden(false);
+      } else if (y - lastY > tolerance) {
+        setIsHidden(true);
+      } else if (lastY - y > tolerance) {
+        setIsHidden(false);
+      } else {
+        return; // within tolerance: keep lastY so slow scrolls still add up
+      }
+      lastY = y;
+    };
+
+    const handleScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [offset, tolerance]);
+
+  return isHidden;
+}
+
+/**
  * Reads/writes the `?q=` search parameter and exposes a submit helper that
  * routes to `/products?q=…`.
  */

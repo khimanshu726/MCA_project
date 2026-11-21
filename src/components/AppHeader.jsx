@@ -90,6 +90,7 @@ function CategoryNav({ onCloseMobile }) {
 
 function AppHeader({
   isScrolled,
+  isHidden = false,
   searchTerm,
   onSearchTermChange,
   onSearchSubmit,
@@ -100,7 +101,7 @@ function AppHeader({
   onCloseMobile,
 }) {
   return (
-    <header className={`site-header ${isScrolled ? "is-scrolled" : ""}`}>
+    <header className={`site-header ${isScrolled ? "is-scrolled" : ""} ${isHidden ? "is-hidden" : ""}`}>
       <div className="header-main-row">
         <BrandBlock />
 

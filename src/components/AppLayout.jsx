@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useWishlist } from "../hooks/useWishlist";
 import { useUserAuth } from "../context/UserAuthContext";
-import { useHeaderSearch, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
+import { useHeaderSearch, useHideOnScroll, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
 import AppHeader from "./AppHeader";
 import PromoStrip from "./PromoStrip";
 import SiteFooter from "./SiteFooter";
@@ -12,6 +12,7 @@ function AppLayout() {
   const { items: wishlistItems } = useWishlist();
   const { isAuthenticated, signOut } = useUserAuth();
   const isScrolled = useScrolled();
+  const hideOnScroll = useHideOnScroll();
   const { searchTerm, setSearchTerm, submit: handleSearchSubmit } = useHeaderSearch();
   const { mobileOpen, toggle: toggleMobileMenu, close: closeMobileMenu } = useMobileMenu();
 
@@ -24,6 +25,8 @@ function AppLayout() {
 
       <AppHeader
         isScrolled={isScrolled}
+        // Phones only (see .site-header.is-hidden): never while the menu is open.
+        isHidden={hideOnScroll && !mobileOpen}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onSearchSubmit={handleSearchSubmit}
