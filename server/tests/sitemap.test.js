@@ -21,10 +21,14 @@ afterAll(async () => {
   await mongoServer.stop();
 });
 
+// Each product needs its own name: the slug is derived from the name and has a
+// unique index. With a shared name, two seeds collided on slug "test-product"
+// whenever MongoDB had finished building that index (it builds in the
+// background after connect), which made this test fail intermittently in CI.
 const seedProduct = (overrides = {}) =>
   Product.create({
     id: overrides.id || "prod-1",
-    name: "Test Product",
+    name: `Test Product ${overrides.id || "prod-1"}`,
     description: "desc",
     category: "Visiting Cards",
     images: ["https://example.com/i.jpg"],
