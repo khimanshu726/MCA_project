@@ -15,7 +15,17 @@ function CartItemCard({
   isAuthenticated,
   isQuantityPending = false,
 }) {
-  const { product, quantity, isOutOfStock, isLowStock, isPriceChanged, isMissing, savedForLater, priceAtAdd } = item;
+  const {
+    product,
+    quantity,
+    isOutOfStock,
+    isLowStock,
+    isPriceChanged,
+    isMissing,
+    isAvailabilityUnknown = false,
+    savedForLater,
+    priceAtAdd,
+  } = item;
 
   if (isMissing) {
     return (
@@ -72,7 +82,9 @@ function CartItemCard({
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {product.leadTime ? <Badge tone="neutral">{product.leadTime}</Badge> : null}
           {product.minimumOrderQty ? <Badge tone="neutral">MOQ {product.minimumOrderQty}</Badge> : null}
-          {isOutOfStock ? (
+          {/* Live product not loaded (server waking or unreachable): the line
+              shows its saved details, but stock isn't known, so claim nothing. */}
+          {isAvailabilityUnknown ? null : isOutOfStock ? (
             <Badge tone="danger">
               <AlertTriangle size={12} /> Out of stock
             </Badge>

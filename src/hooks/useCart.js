@@ -6,41 +6,66 @@ import { useProducts } from "./useProducts";
 import { computeClientCartPricing } from "../utils/pricing";
 import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
 
-const buildGuestItems = (guestCartItems, liveProductsById) =>
+// The cart line's own snapshot, saved when it was added. Used when there is no
+// live product to show (yet, or any more).
+const snapshotProduct = (item, { stock }) => ({
+  id: item.id,
+  name: item.name,
+  price: item.price,
+  mrp: item.price,
+  discountPercent: 0,
+  images: item.images,
+  category: item.category,
+  description: item.description,
+  stock,
+  leadTime: "",
+  // Not saved with the cart line; left empty so no made-up "MOQ 1" badge shows.
+  minimumOrderQty: null,
+});
+
+// `hasFreshCatalog` = the live products for exactly these cart ids have loaded.
+// Only then does "not in the response" mean "removed from the catalog". Before
+// that — first load, a refetch after the ids changed (React Query keeps the
+// previous result as placeholder data), or the API being unreachable — an
+// absent product is simply not known yet, so the line shows its saved details
+// instead of "This product is no longer available" and a ₹0 total.
+const buildGuestItems = (guestCartItems, liveProductsById, hasFreshCatalog) =>
   guestCartItems.map((item) => {
     const liveProduct = liveProductsById.get(item.id);
-    const isMissing = !liveProduct;
+
+    if (!liveProduct) {
+      const isMissing = hasFreshCatalog;
+      return {
+        productId: item.id,
+        quantity: item.quantity,
+        savedForLater: false,
+        priceAtAdd: item.price,
+        product: snapshotProduct(item, { stock: isMissing ? 0 : item.quantity }),
+        isMissing,
+        isAvailabilityUnknown: !isMissing,
+        isOutOfStock: isMissing,
+        isLowStock: false,
+        isPriceChanged: false,
+        lineTotal: isMissing ? 0 : item.price * item.quantity,
+      };
+    }
+
     // Same module the server uses (cartController.js), so guest and server
     // carts can never disagree about what's buyable.
-    const isOutOfStock = isMissing || isProductOutOfStock(liveProduct);
-    const isLowStock = !isMissing && isProductLowStock(liveProduct);
-    const isPriceChanged = !isMissing && Number(liveProduct.price) !== Number(item.price);
-
-    const product = liveProduct || {
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      mrp: item.price,
-      discountPercent: 0,
-      images: item.images,
-      category: item.category,
-      description: item.description,
-      stock: 0,
-      leadTime: "",
-      minimumOrderQty: 1,
-    };
+    const isOutOfStock = isProductOutOfStock(liveProduct);
 
     return {
       productId: item.id,
       quantity: item.quantity,
       savedForLater: false,
       priceAtAdd: item.price,
-      product,
-      isMissing,
+      product: liveProduct,
+      isMissing: false,
+      isAvailabilityUnknown: false,
       isOutOfStock,
-      isLowStock,
-      isPriceChanged,
-      lineTotal: isMissing ? 0 : product.price * item.quantity,
+      isLowStock: isProductLowStock(liveProduct),
+      isPriceChanged: Number(liveProduct.price) !== Number(item.price),
+      lineTotal: liveProduct.price * item.quantity,
     };
   });
 
@@ -58,7 +83,11 @@ export function useCart() {
 
   const guestProductIds = useMemo(() => guest.cartItems.map((item) => item.id), [guest.cartItems]);
 
-  const { data: liveGuestProductsData } = useProducts({
+  const {
+    data: liveGuestProductsData,
+    isPlaceholderData: isGuestCatalogPlaceholder,
+    isError: isGuestCatalogError,
+  } = useProducts({
     ids: !isAuthenticated ? guestProductIds : [],
   });
 
@@ -68,9 +97,17 @@ export function useCart() {
     return map;
   }, [liveGuestProductsData]);
 
+  const hasFreshGuestCatalog = Boolean(liveGuestProductsData) && !isGuestCatalogPlaceholder;
+
+  // Nothing to show yet for a non-empty guest cart: let the page render its
+  // skeleton rather than lines and totals that are about to change. Stops
+  // waiting if the request fails, so the cart never spins forever.
+  const isGuestCartLoading =
+    !isAuthenticated && guest.cartItems.length > 0 && !liveGuestProductsData && !isGuestCatalogError;
+
   const guestItems = useMemo(
-    () => buildGuestItems(guest.cartItems, liveProductsById),
-    [guest.cartItems, liveProductsById],
+    () => buildGuestItems(guest.cartItems, liveProductsById, hasFreshGuestCatalog),
+    [guest.cartItems, liveProductsById, hasFreshGuestCatalog],
   );
 
   const guestPricing = useMemo(
@@ -94,10 +131,9 @@ export function useCart() {
   // "0 items / ₹0" in the summary — and the badge is what customers see first.
   //
   // Excludes only lines we have positive evidence are unbuyable, i.e. the live
-  // product loaded and its stock can't meet its MOQ. `isMissing` deliberately
-  // still counts: for guests it means "the products query hasn't resolved
-  // yet" just as often as "deleted from the catalog", and filtering on it
-  // would flash the badge to 0 on every page load with a full cart.
+  // product loaded and its stock can't meet its MOQ. A line whose product was
+  // removed from the catalog (`isMissing`) still counts, so the badge matches
+  // the line the customer will find in the cart and can remove.
   const cartCount = useMemo(
     () =>
       items.reduce(
@@ -200,7 +236,7 @@ export function useCart() {
     cartCount,
     pricing,
     couponError: isAuthenticated ? server.cart?.couponError ?? null : null,
-    isLoading: isAuthenticated ? server.isLoading : false,
+    isLoading: isAuthenticated ? server.isLoading : isGuestCartLoading,
     isApplyingCoupon: isAuthenticated ? server.isApplyingCoupon : false,
     pendingQuantityProductId: isAuthenticated ? server.pendingQuantityProductId : null,
     isAuthenticated,
