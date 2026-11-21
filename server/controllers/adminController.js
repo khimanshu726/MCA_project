@@ -102,6 +102,12 @@ const validateProductPayload = (payload = {}, { partial = false } = {}) => {
     errors.options = "Options must be a list of { label, values }.";
   }
 
+  // Shape only here; the rules that depend on the product's own price and
+  // minimum order run in the model's pre('validate') hook on every save.
+  if (has("priceTiers") && !Array.isArray(payload.priceTiers)) {
+    errors.priceTiers = "Bulk pricing must be a list of quantity and price rows.";
+  }
+
   return errors;
 };
 

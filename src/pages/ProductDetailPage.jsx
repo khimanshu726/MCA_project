@@ -8,6 +8,7 @@ import ProductGallery from "../components/ProductGallery";
 import ProductRail from "../components/cart/ProductRail";
 import QuantitySelector from "../components/ui/QuantitySelector";
 import WishlistButton from "../components/ui/WishlistButton";
+import BulkPricingTable from "../components/BulkPricingTable";
 import { useProduct } from "../hooks/useProduct";
 import { useProducts } from "../hooks/useProducts";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
@@ -17,6 +18,7 @@ import {
   isProductLowStock,
   isProductOutOfStock,
 } from "../utils/productAvailability";
+import { getUnitPrice } from "../utils/tierPricing";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -104,7 +106,11 @@ function ProductDetailPage() {
 
   const outOfStock = isProductOutOfStock(product);
   const lowStock = isProductLowStock(product);
-  const hasDiscount = product.mrp > product.price;
+  // Volume pricing: the price shown follows the quantity selected below.
+  const unitPrice = getUnitPrice(product, quantity);
+  const isBulkPrice = unitPrice < Number(product.price);
+  const hasDiscount = product.mrp > unitPrice;
+  const discountPercent = hasDiscount ? Math.round(((product.mrp - unitPrice) / product.mrp) * 100) : 0;
   // Quantity bounds mirror the cart's rules: floor at the product's MOQ, ceiling
   // at what's actually in stock. Only offer the stepper when there's a real range
   // to choose from — a fixed-MOQ product just uses that quantity.
@@ -157,15 +163,16 @@ function ProductDetailPage() {
 
           {/* Price with MRP + discount so the value reads at a glance. */}
           <div className="detail-price-block">
-            <strong className="detail-price">{fmt(product.price)}</strong>
+            <strong className="detail-price">{fmt(unitPrice)}</strong>
+            {isBulkPrice ? <span className="detail-discount">Bulk price</span> : null}
             {hasDiscount ? (
               <>
                 <span className="detail-mrp">{fmt(product.mrp)}</span>
-                <span className="detail-discount">{product.discountPercent}% off</span>
+                <span className="detail-discount">{discountPercent}% off</span>
               </>
             ) : null}
           </div>
-          {hasDiscount ? <p className="detail-savings">You save {fmt(product.mrp - product.price)}</p> : null}
+          {hasDiscount ? <p className="detail-savings">You save {fmt(product.mrp - unitPrice)} per unit</p> : null}
 
           {/* Availability + lead time, stated together rather than hidden in a pill. */}
           <p className={`detail-availability ${outOfStock ? "is-out" : lowStock ? "is-low" : "is-in"}`}>
@@ -174,6 +181,8 @@ function ProductDetailPage() {
             {product.leadTime ? ` · ${product.leadTime}` : ""}
             {product.minimumOrderQty ? ` · MOQ ${product.minimumOrderQty}` : ""}
           </p>
+
+          {showStepper ? <BulkPricingTable product={product} quantity={quantity} /> : null}
 
           <p className="section-copy">{product.description}</p>
 

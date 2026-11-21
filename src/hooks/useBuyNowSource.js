@@ -4,6 +4,7 @@ import { useUserAuth } from "../context/UserAuthContext";
 import { computeClientCartPricing } from "../utils/pricing";
 import { previewCheckoutPricing } from "../lib/api";
 import { getMinimumOrderQty, isProductOutOfStock, isProductLowStock } from "../utils/productAvailability";
+import { getUnitPrice } from "../utils/tierPricing";
 import { clearBuyNowSession, loadBuyNowSession, updateBuyNowQuantity } from "../utils/buyNowSession";
 
 /**
@@ -67,7 +68,8 @@ export function useBuyNowSource() {
         isOutOfStock,
         isLowStock,
         isPriceChanged: priceChanged,
-        lineTotal: product.price * quantity,
+        unitPrice: getUnitPrice(product, quantity),
+        lineTotal: getUnitPrice(product, quantity) * quantity,
         // Carried through so the review step can attach the studio artwork
         // and the order line can record what was personalized.
         customization: session?.customization ?? null,
@@ -80,7 +82,9 @@ export function useBuyNowSource() {
       items.map((item) => ({
         id: item.productId,
         name: item.product?.name,
-        price: item.product?.price,
+        // The unit price for this quantity (volume pricing), which is what the
+        // checkout review shows and the server charges.
+        price: item.unitPrice ?? item.product?.price,
         category: item.product?.category,
         description: item.product?.description,
         images: item.product?.images,
@@ -96,7 +100,7 @@ export function useBuyNowSource() {
   const pricing = useMemo(() => {
     const purchasable = items.filter((item) => !item.isMissing && !item.isOutOfStock);
     return computeClientCartPricing(
-      purchasable.map((item) => ({ price: item.product.price, mrp: item.product.mrp, quantity: item.quantity })),
+      purchasable.map((item) => ({ price: item.unitPrice ?? item.product.price, mrp: item.product.mrp, quantity: item.quantity })),
       coupon,
     );
   }, [items, coupon]);

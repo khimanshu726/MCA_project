@@ -4,6 +4,7 @@ import OptionField from "./OptionField.jsx";
 import ResponsiveImage from "../../../components/ResponsiveImage.jsx";
 import QuantitySelector from "../../../components/ui/QuantitySelector.jsx";
 import { currencyFormatter } from "../../../components/ui/PriceDisplay.jsx";
+import { getUnitPrice } from "../../../utils/tierPricing";
 
 /**
  * Inspector content when nothing is selected: what am I printing, on what,
@@ -21,7 +22,8 @@ import { currencyFormatter } from "../../../components/ui/PriceDisplay.jsx";
  */
 function ProductContext({ product, template, design, quantity, onQuantityChange, actions, onOpenProductPicker }) {
   const minQty = product.minimumOrderQty || 1;
-  const lineTotal = product.price * quantity;
+  const unitPrice = getUnitPrice(product, quantity);
+  const lineTotal = unitPrice * quantity;
   const sideLabels = template.sides.map((side) => side.label).join(" + ");
 
   return (
@@ -88,7 +90,7 @@ function ProductContext({ product, template, design, quantity, onQuantityChange,
       <PropertyCard title="Estimate">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-xs text-ink-400 tabular-nums">
-            {currencyFormatter.format(product.price)} × {quantity}
+            {currencyFormatter.format(unitPrice)} × {quantity}
           </span>
           <span className="text-base font-semibold tabular-nums text-ink-900">
             {currencyFormatter.format(lineTotal)}

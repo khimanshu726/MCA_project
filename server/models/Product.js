@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { validatePriceTiers } from "../../src/utils/tierPricing.js";
 
 const slugify = (value) =>
   value
@@ -16,6 +17,16 @@ const productOptionSchema = new mongoose.Schema(
   {
     label: { type: String, required: true, trim: true },
     values: { type: [String], default: [] },
+  },
+  { _id: false },
+);
+
+// Volume pricing: from `minQty` units up, each unit costs `price` (see
+// src/utils/tierPricing.js). Empty means the base price applies at any quantity.
+const priceTierSchema = new mongoose.Schema(
+  {
+    minQty: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true, min: 0 },
   },
   { _id: false },
 );
@@ -46,6 +57,7 @@ const productSchema = new mongoose.Schema(
     status: { type: String, enum: ["active", "draft", "archived"], default: "draft" },
     leadTime: { type: String, default: "" },
     minimumOrderQty: { type: Number, default: 1, min: 1 },
+    priceTiers: { type: [priceTierSchema], default: [] },
     badge: { type: String, default: "" },
     materials: { type: [String], default: [] },
     options: { type: [productOptionSchema], default: [] },
@@ -70,6 +82,18 @@ productSchema.pre("validate", function assignSlugAndValidatePrice() {
 
   if (typeof this.price === "number" && typeof this.mrp === "number" && this.price > this.mrp) {
     this.invalidate("price", "Price cannot be greater than MRP.");
+  }
+
+  // Checked against the product's own price and minimum order on every save,
+  // so a later edit to just the base price can't leave a tier priced above it.
+  const { tiers, errors } = validatePriceTiers(
+    (this.priceTiers || []).map((tier) => ({ minQty: tier.minQty, price: tier.price })),
+    { price: this.price, minimumOrderQty: this.minimumOrderQty },
+  );
+  if (errors.length > 0) {
+    this.invalidate("priceTiers", errors.join(" "));
+  } else if (tiers.length > 0) {
+    this.priceTiers = tiers; // store sorted by quantity
   }
 });
 

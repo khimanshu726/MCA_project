@@ -14,6 +14,8 @@ import {
 // Shared with the browser so the two sides cannot disagree about whether a
 // product is buyable — they used to, and the cart priced the difference at 0.
 import { isProductLowStock, isProductOutOfStock } from "../../src/utils/productAvailability.js";
+// Volume pricing, shared with the browser for the same reason.
+import { getUnitPrice } from "../../src/utils/tierPricing.js";
 
 const round2 = (value) => Math.round(value * 100) / 100;
 
@@ -29,7 +31,9 @@ const resolveCartView = async (cart) => {
     const isMissing = !product || product.status !== "active";
     const isOutOfStock = isMissing || isProductOutOfStock(product);
     const isLowStock = !isMissing && isProductLowStock(product);
+    // Compares BASE prices: crossing a volume tier is not a price change.
     const isPriceChanged = !isMissing && Number(product.price) !== Number(item.priceAtAdd);
+    const unitPrice = isMissing ? 0 : getUnitPrice(product, item.quantity);
 
     return {
       productId: item.productId,
@@ -37,6 +41,7 @@ const resolveCartView = async (cart) => {
       savedForLater: item.savedForLater,
       addedAt: item.addedAt,
       priceAtAdd: item.priceAtAdd,
+      unitPrice,
       product: isMissing
         ? null
         : {
@@ -50,12 +55,13 @@ const resolveCartView = async (cart) => {
             stock: product.stock,
             leadTime: product.leadTime,
             minimumOrderQty: product.minimumOrderQty,
+            priceTiers: product.priceTiers || [],
           },
       isMissing,
       isOutOfStock,
       isLowStock,
       isPriceChanged,
-      lineTotal: isMissing ? 0 : round2(product.price * item.quantity),
+      lineTotal: isMissing ? 0 : round2(unitPrice * item.quantity),
     };
   });
 
@@ -63,7 +69,7 @@ const resolveCartView = async (cart) => {
     (item) => !item.savedForLater && !item.isMissing && !item.isOutOfStock,
   );
   const pricingItems = eligibleForPricing.map((item) => ({
-    price: item.product.price,
+    price: item.unitPrice,
     mrp: item.product.mrp,
     quantity: item.quantity,
   }));
@@ -203,7 +209,7 @@ export const applyCoupon = async (req, res, next) => {
     const subtotal = activeItems.reduce((sum, item) => {
       const product = productsById.get(item.productId);
       if (!product || product.status !== "active" || product.stock <= 0) return sum;
-      return sum + product.price * item.quantity;
+      return sum + getUnitPrice(product, item.quantity) * item.quantity;
     }, 0);
 
     const coupon = await findCouponByCode(code);
