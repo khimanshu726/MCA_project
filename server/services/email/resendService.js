@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 import { appConfig } from "../../config.js";
 import {
+  claimAdminOrderAlert,
   claimOrderConfirmationEmail,
+  releaseAdminOrderAlertClaim,
   releaseOrderConfirmationEmailClaim,
 } from "../orderStore.js";
 import { orderConfirmation } from "./templates/orderConfirmation.js";
@@ -144,19 +146,54 @@ export const sendLoginOtpEmail = (email, code) => {
 // ── Orchestrators with idempotency ─────────────────────────────────────────
 
 /**
- * Sends the customer confirmation + admin alert for a confirmed order, exactly
- * once. recordPaymentCaptured runs from both the payment.captured webhook and
- * the client verify call, so the send is claimed atomically via the order's
- * confirmationEmailSentAt flag — only one caller dispatches. If email is
- * disabled it no-ops without claiming (a later run can still deliver); if the
- * customer send fails it releases the claim so a retry can re-deliver.
+ * Sends the shop's new-order alert exactly once per order (claimed via
+ * adminNotifiedAt). Released on failure so a later run can retry. Never
+ * throws: the alert must not be able to break order placement or the
+ * customer's confirmation.
+ */
+const notifyAdminOfOrderOnce = async (order) => {
+  try {
+    const claimed = await claimAdminOrderAlert(order.orderId);
+    if (!claimed) {
+      return { sent: false, reason: "already-sent" };
+    }
+
+    const result = await sendAdminOrderEmail(claimed);
+    if (!result.sent) {
+      await releaseAdminOrderAlertClaim(order.orderId).catch(() => {});
+    }
+    return result;
+  } catch (error) {
+    console.error(`[email] admin order alert failed for ${order.orderId}:`, error?.message || error);
+    return { sent: false, reason: "error" };
+  }
+};
+
+/**
+ * Sends the customer confirmation + admin alert for a confirmed order, each
+ * exactly once. recordPaymentCaptured runs from both the payment.captured
+ * webhook and the client verify call, so each send is claimed atomically on its
+ * own flag (confirmationEmailSentAt / adminNotifiedAt) — only one caller
+ * dispatches either. If email is disabled it no-ops without claiming (a later
+ * run can still deliver); if the customer send fails it releases that claim so
+ * a retry can re-deliver.
+ *
+ * The admin alert does NOT depend on the customer email succeeding. It used to
+ * be sent only after a successful customer send, so an order whose customer
+ * address bounced or was rejected never reached the shop at all.
  */
 export const notifyOrderConfirmed = async (order) => {
-  if (!order?.orderId || !order.email) {
+  if (!order?.orderId) {
     return { delivered: false, reason: "missing-recipient" };
   }
   if (!resendClient) {
     return { delivered: false, reason: "email-disabled" };
+  }
+
+  if (!order.email) {
+    // Nobody to confirm to, but the shop still needs to know about the order.
+    await notifyAdminOfOrderOnce(order);
+    return { delivered: false, reason: "missing-recipient" };
   }
 
   const claimed = await claimOrderConfirmationEmail(order.orderId);
@@ -168,10 +205,9 @@ export const notifyOrderConfirmed = async (order) => {
   if (!result.sent) {
     // Re-open the claim so a webhook retry / verify re-run can try again.
     await releaseOrderConfirmationEmailClaim(order.orderId).catch(() => {});
-    return { delivered: false, reason: "send-failed", error: result.error };
   }
-  // Admin alert is secondary — its failure doesn't cost the customer's receipt
-  // and doesn't re-open the claim.
-  await sendAdminOrderEmail(claimed);
-  return { delivered: true };
+
+  await notifyAdminOfOrderOnce(claimed);
+
+  return result.sent ? { delivered: true } : { delivered: false, reason: "send-failed", error: result.error };
 };

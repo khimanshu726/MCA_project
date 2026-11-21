@@ -157,16 +157,17 @@ describe("notifyOrderConfirmed", () => {
     expect(sendMock).toHaveBeenCalledTimes(2); // one confirmation + one admin
   });
 
-  it("no-ops without an email address rather than claiming the send", async () => {
+  it("without a customer email, skips the confirmation but still alerts the shop", async () => {
     const data = makeOrderData({ email: "" });
     await Order.create(data);
 
     const result = await notifyOrderConfirmed(data);
 
     expect(result).toEqual({ delivered: false, reason: "missing-recipient" });
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(sendMock.mock.calls.map(([mail]) => mail.to)).toEqual(["shop@test.local"]);
     const persisted = await Order.findOne({ orderId: data.orderId });
     expect(persisted.confirmationEmailSentAt).toBeNull();
+    expect(persisted.adminNotifiedAt).toBeInstanceOf(Date);
   });
 
   it("releases the claim when the customer send fails, so a retry can try again", async () => {
@@ -182,6 +183,36 @@ describe("notifyOrderConfirmed", () => {
 
     const retry = await notifyOrderConfirmed(data);
     expect(retry.delivered).toBe(true);
+  });
+
+  it("alerts the shop even when the customer email is rejected, and never twice", async () => {
+    const data = makeOrderData();
+    await Order.create(data);
+    // The customer send goes first; reject it the way Resend rejects a bad domain.
+    sendMock.mockResolvedValueOnce({ data: null, error: { message: "Invalid `to` field" } });
+
+    await notifyOrderConfirmed(data);
+
+    const shopSends = () => sendMock.mock.calls.filter(([mail]) => mail.to === "shop@test.local");
+    expect(shopSends()).toHaveLength(1);
+    expect((await Order.findOne({ orderId: data.orderId })).adminNotifiedAt).toBeInstanceOf(Date);
+
+    // A retry re-sends the customer confirmation but must not re-alert the shop.
+    await notifyOrderConfirmed(data);
+    expect(customerSends()).toHaveLength(2);
+    expect(shopSends()).toHaveLength(1);
+  });
+
+  it("re-opens the shop alert when it fails, so a later run can deliver it", async () => {
+    const data = makeOrderData();
+    await Order.create(data);
+    sendMock
+      .mockResolvedValueOnce({ data: { id: "customer_ok" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: "Resend down" } });
+
+    await notifyOrderConfirmed(data);
+
+    expect((await Order.findOne({ orderId: data.orderId })).adminNotifiedAt).toBeNull();
   });
 });
 

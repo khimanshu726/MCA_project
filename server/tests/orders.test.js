@@ -238,9 +238,42 @@ describe("GET /api/orders/customer/:id — ownership-checked single-order lookup
     await seedProduct({ id: "guest-lookup", stock: 10 });
     const placed = await placeOrder([{ productId: "guest-lookup", quantity: 1 }]);
 
-    const res = await request(app).get(`/api/orders/customer/${placed.body.order.orderId}`);
+    const res = await request(app).get(`/api/orders/customer/${placed.body.order.id}`);
     expect(res.statusCode).toBe(200);
     expect(res.body.order.orderId).toBe(placed.body.order.orderId);
+  });
+
+  // The short order number (EE-YYYYMMDD-XXXXXXXX) is printed on receipts and
+  // emails, so it is not a secret. Unauthenticated access must need the random
+  // internal id, or anyone could walk the number space and read guest names,
+  // phones, emails and addresses — and cancel the orders.
+  it("refuses a guest order to an unauthenticated caller who only has the short order number", async () => {
+    await seedProduct({ id: "guest-lookup-short", stock: 10 });
+    const placed = await placeOrder([{ productId: "guest-lookup-short", quantity: 1 }]);
+    const { orderId } = placed.body.order;
+
+    const lookup = await request(app).get(`/api/orders/customer/${orderId}`);
+    expect(lookup.statusCode).toBe(404);
+    expect(lookup.body.order).toBeUndefined();
+
+    const cancel = await request(app).post(`/api/orders/customer/${orderId}/cancel`);
+    expect(cancel.statusCode).toBe(404);
+    expect((await Order.findOne({ orderId })).orderStatus).toBe("Placed");
+  });
+
+  it("refuses a guest order to an unauthenticated caller who only has the Razorpay order id", async () => {
+    await seedProduct({ id: "guest-lookup-rzp", stock: 10 });
+    const placed = await placeOrder([{ productId: "guest-lookup-rzp", quantity: 1 }]);
+    await Order.findOneAndUpdate({ orderId: placed.body.order.orderId }, { razorpayOrderId: "order_GUESSME123" });
+
+    const res = await request(app).get("/api/orders/customer/order_GUESSME123");
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("issues order numbers with an 8-character random suffix", async () => {
+    await seedProduct({ id: "order-number-format", stock: 10 });
+    const placed = await placeOrder([{ productId: "order-number-format", quantity: 1 }]);
+    expect(placed.body.order.orderId).toMatch(/^EE-\d{8}-[0-9A-F]{8}$/);
   });
 
   it("404s a guest order for an authenticated caller", async () => {
@@ -307,7 +340,7 @@ describe("POST /api/orders/customer/:id/cancel", () => {
     const placed = await placeOrder([{ productId: "cancel-1", quantity: 2 }]);
     expect((await Product.findOne({ id: "cancel-1" })).stock).toBe(3);
 
-    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/cancel`);
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.id}/cancel`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.order.orderStatus).toBe("Cancelled");
@@ -322,7 +355,7 @@ describe("POST /api/orders/customer/:id/cancel", () => {
     // of scope here) — set the precondition directly against the model.
     await Order.findOneAndUpdate({ orderId: placed.body.order.orderId }, { orderStatus: "Delivered" });
 
-    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/cancel`);
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.id}/cancel`);
     expect(res.statusCode).toBe(409);
   });
 
@@ -342,7 +375,7 @@ describe("POST /api/orders/customer/:id/return", () => {
     await seedProduct({ id: "return-1", stock: 5 });
     const placed = await placeOrder([{ productId: "return-1", quantity: 1 }]);
 
-    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/return`);
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.id}/return`);
     expect(res.statusCode).toBe(409);
   });
 
@@ -361,7 +394,7 @@ describe("POST /api/orders/customer/:id/return", () => {
       },
     );
 
-    const res = await request(app).post(`/api/orders/customer/${placed.body.order.orderId}/return`);
+    const res = await request(app).post(`/api/orders/customer/${placed.body.order.id}/return`);
     expect(res.statusCode).toBe(200);
     expect(res.body.order.orderStatus).toBe("Returned");
     expect(res.body.order.statusHistory.map((entry) => entry.status)).toEqual(["Placed", "Delivered", "Returned"]);

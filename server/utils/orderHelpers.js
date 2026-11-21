@@ -109,9 +109,15 @@ export const validateOrderPayload = ({
 
 export const hasErrors = (errors) => Object.values(errors).some(Boolean);
 
+// The human-facing order number (EE-YYYYMMDD-XXXXXXXX). It is printed on
+// receipts and emails, so it is NOT a secret and never grants access on its own
+// (see findOwnedOrder in orderController). The suffix used to be 2 random bytes
+// — 65,536 values a day — which also made a duplicate-key failure on the unique
+// orderId index likely within a few hundred orders on one day. 4 bytes keeps it
+// short enough to read out over the phone while making collisions negligible.
 export const createOrderId = () => {
   const dateSegment = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const suffix = crypto.randomBytes(2).toString("hex").toUpperCase();
+  const suffix = crypto.randomBytes(4).toString("hex").toUpperCase();
   return `EE-${dateSegment}-${suffix}`;
 };
 

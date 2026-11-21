@@ -110,6 +110,27 @@ export const releaseOrderConfirmationEmailClaim = async (id) => {
   );
 };
 
+/**
+ * Same atomic claim as claimOrderConfirmationEmail, for the shop's new-order
+ * alert. Kept on its own flag (adminNotifiedAt) so the two sends succeed or
+ * fail independently.
+ */
+export const claimAdminOrderAlert = async (id) => {
+  const claimed = await Order.findOneAndUpdate(
+    { $and: [{ $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] }, { adminNotifiedAt: null }] },
+    { $set: { adminNotifiedAt: new Date() } },
+    { new: true }
+  );
+  return claimed ? claimed.toObject() : null;
+};
+
+export const releaseAdminOrderAlertClaim = async (id) => {
+  await Order.updateOne(
+    { $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] },
+    { $set: { adminNotifiedAt: null } }
+  );
+};
+
 export const deleteOrderRecord = async (id) => {
   const result = await Order.findOneAndDelete({ $or: [{ id }, { orderId: id }, { razorpayOrderId: id }] });
   return !!result;
