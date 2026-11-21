@@ -1,3 +1,5 @@
+import { FACEBOOK_LOGIN_ENABLED } from "../config/authProviders";
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="auth-provider-logo" aria-hidden="true">
@@ -38,7 +40,7 @@ function AuthProviderButtons({
   onFacebook,
   googleLabel = "Continue with Google",
   facebookLabel = "Continue with Facebook",
-  showFacebook = true,
+  showFacebook = FACEBOOK_LOGIN_ENABLED,
   iconOnly = false,
 }) {
   return (
