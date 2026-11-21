@@ -86,6 +86,11 @@ function AdminAuthProvider({ children }) {
       refreshProfile,
       signOut,
     }),
+    // The action functions are recreated each render but only read
+    // `session.token` (and state setters), so recomputing when the session
+    // changes keeps them current. Listing them would rebuild the context —
+    // and re-render every consumer — on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [session.admin, session.token],
   );
 

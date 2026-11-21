@@ -7,6 +7,10 @@ import { buildSearchDocument, searchDocuments, getHighlightSegments } from "../u
 import { getOptimizedImageUrl } from "../utils/imageUrl";
 import { POPULAR_SEARCHES, EMPTY_STATE_SUGGESTIONS } from "../config/searchSuggestions";
 
+// Stable fallback so memoised values depending on the list don't recompute
+// on every render while the query is still loading.
+const EMPTY_LIST = [];
+
 const DEBOUNCE_MS = 250;
 const MAX_SUGGESTIONS = 6;
 const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
@@ -26,7 +30,7 @@ function SearchAutocomplete({ searchTerm, onSearchTermChange }) {
   // instant. Building the search documents is memoised so it never re-runs per
   // keystroke.
   const { data } = useProducts({ limit: 500 });
-  const products = data?.items ?? [];
+  const products = data?.items ?? EMPTY_LIST;
   const documents = useMemo(() => products.map(buildSearchDocument), [products]);
 
   const [isOpen, setIsOpen] = useState(false);

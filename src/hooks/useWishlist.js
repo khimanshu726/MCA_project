@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserAuth } from "../context/UserAuthContext";
 import { addWishlistItem, clearWishlistRemote, getWishlist, removeWishlistItem } from "../api/wishlistApi";
 
+// Stable fallback so memoised values depending on the list don't recompute
+// on every render while the query is still loading.
+const EMPTY_LIST = [];
+
 const WISHLIST_QUERY_KEY = ["wishlist"];
 
 // Wishlist is authenticated-only (no guest/localStorage tier, unlike the
@@ -71,7 +75,7 @@ export function useWishlist() {
     onSettled: invalidate,
   });
 
-  const items = wishlistQuery.data?.items ?? [];
+  const items = wishlistQuery.data?.items ?? EMPTY_LIST;
   const wishlistIds = useMemo(() => new Set(items.map((item) => item.productId)), [items]);
 
   return {
