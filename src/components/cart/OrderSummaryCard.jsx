@@ -155,7 +155,7 @@ function OrderSummaryCard({
       {!canCheckout && checkoutDisabledReason ? (
         <p className="mt-2 text-center text-xs text-ink-400">{checkoutDisabledReason}</p>
       ) : null}
-      <Link to="/products" className="mt-3 block text-center text-sm font-medium text-ink-600 hover:text-brand-600">
+      <Link to="/products" className="mt-1 flex min-h-11 items-center justify-center text-sm font-medium text-ink-600 hover:text-brand-600">
         Continue shopping
       </Link>
 

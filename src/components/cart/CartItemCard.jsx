@@ -56,7 +56,7 @@ function CartItemCard({
       }`}
     >
       {!savedForLater ? (
-        <label className="flex items-start pt-1 sm:pt-0">
+        <label className="cart-select-hit flex items-start pt-1 sm:pt-0">
           <span className="sr-only">Select {product.name}</span>
           <input
             type="checkbox"

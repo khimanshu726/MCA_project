@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, ShoppingBag, Undo2, Zap } from "lucide-react";
+import { Check, ChevronLeft, Cloud, Eye, Loader2, Redo2, Save, ShoppingBag, Undo2, Zap } from "lucide-react";
 
 /**
  * The studio's only header. Three fixed zones that never wrap — an app bar
@@ -21,14 +21,17 @@ const IconButton = ({ label, shortcut, onClick, disabled, children }) => (
     title={shortcut ? `${label} (${shortcut})` : label}
     onClick={onClick}
     disabled={disabled}
-    className="flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30"
+    className="flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30 max-lg:size-11"
   >
     {children}
   </button>
 );
 
 /** Groups are separated by a hairline so related actions read as a set. */
-const Divider = () => <span className="mx-1.5 h-5 w-px shrink-0 bg-ink-100" aria-hidden="true" />;
+// Phones (<640px) drop the dividers, brand mark and project name: with every
+// control at a 44px tap size the bar has no room for them, and a 19px-wide
+// name field was unusable anyway. Larger screens keep them.
+const Divider = () => <span className="mx-1.5 h-5 w-px shrink-0 bg-ink-100 max-sm:hidden" aria-hidden="true" />;
 
 function ProjectName({ value, onChange }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -82,7 +85,7 @@ function ProjectName({ value, onChange }) {
       type="button"
       onClick={() => setIsEditing(true)}
       title="Rename project"
-      className="max-w-44 truncate rounded-lg px-2 py-1 text-sm font-medium text-ink-900 transition-colors hover:bg-ink-100"
+      className="max-w-44 truncate rounded-lg px-2 py-1 text-sm font-medium text-ink-900 transition-colors hover:bg-ink-100 max-sm:hidden"
     >
       {value}
     </button>
@@ -114,14 +117,14 @@ function StudioAppBar({
       <button
         type="button"
         onClick={onBack}
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900"
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 max-lg:size-11"
         aria-label="Back to product"
         title="Back to product"
       >
         <ChevronLeft size={17} aria-hidden="true" />
       </button>
 
-      <span className="ml-1 mr-2 flex shrink-0 items-center gap-2" aria-hidden="true">
+      <span className="ml-1 mr-2 flex shrink-0 items-center gap-2 max-sm:hidden" aria-hidden="true">
         <span className="size-6 shrink-0 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 shadow-panel" />
         <span className="hidden font-display text-sm text-ink-900 xl:inline">Elite Impressions</span>
       </span>
@@ -187,15 +190,22 @@ function StudioAppBar({
           type="button"
           onClick={onSave}
           disabled={isPersisting}
-          className="flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-ink-500 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:opacity-50"
+          aria-label="Save"
+          className="flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-ink-500 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:opacity-50 max-lg:h-11 max-sm:min-w-11 max-sm:justify-center"
         >
-          {isPersisting ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : null}
-          Save
+          {isPersisting ? (
+            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <Save size={14} className="sm:hidden" aria-hidden="true" />
+          )}
+          <span className="max-sm:hidden">Save</span>
         </button>
         <button
           type="button"
           onClick={onPreview}
-          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-medium text-ink-800 transition-colors duration-150 hover:bg-ink-200"
+          // The text label is hidden on phones, leaving an icon: name it.
+          aria-label="Preview"
+          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-medium text-ink-800 transition-colors duration-150 hover:bg-ink-200 max-lg:h-11 max-lg:min-w-11 max-lg:justify-center"
         >
           <Eye size={14} aria-hidden="true" />
           <span className="hidden sm:inline">Preview</span>
@@ -204,7 +214,9 @@ function StudioAppBar({
           type="button"
           onClick={onAddToCart}
           disabled={isExporting}
-          className="ml-2 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-semibold text-ink-800 transition-colors duration-150 hover:bg-ink-200 disabled:opacity-60"
+          // The text label is hidden on phones, leaving an icon: name it.
+          aria-label={isExporting ? "Preparing your design" : "Add to cart"}
+          className="ml-2 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-semibold text-ink-800 transition-colors duration-150 hover:bg-ink-200 disabled:opacity-60 max-lg:h-11 max-lg:min-w-11 max-lg:justify-center"
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
@@ -217,7 +229,7 @@ function StudioAppBar({
           type="button"
           onClick={onBuyNow}
           disabled={isExporting}
-          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
+          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs max-lg:h-11 max-sm:px-3 font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />

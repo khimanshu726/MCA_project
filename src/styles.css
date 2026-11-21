@@ -3969,3 +3969,30 @@ textarea {
   .mobile-buy-bar { transition: none; }
 }
 
+/* ==========================================================================
+   Phones: tap targets (mobile review, step 3)
+   ========================================================================== */
+
+/* 44px is the comfortable minimum for a fingertip. Where a control is
+   visually smaller on purpose (icons, checkboxes), the extra is an invisible
+   hit area around it rather than a bigger icon. */
+@media (max-width: 900px) {
+  /* Product-card heart: 34px circle, 44px to tap. */
+  .wishlist-toggle { position: relative; }
+  .wishlist-toggle-overlay { position: absolute; }
+  .wishlist-toggle::after { content: ""; position: absolute; inset: -5px; }
+
+  /* "View details" / "Add to cart" on product cards were 34px tall. */
+  .mini-link.mini-button,
+  .product-card .mini-link { min-height: 44px; }
+
+  /* Cart item checkbox: 16px box, 44px to tap (the label toggles it). */
+  .cart-select-hit { padding: 14px; margin: -14px; }
+
+  /* Login: "Show" password toggle was 28px tall, the round sign-in arrow
+     34px. The toggle keeps its position (it sits left of the arrow when both
+     show); the arrow gets an invisible 44px hit area. */
+  .auth-password-toggle { min-height: 44px; min-width: 44px; }
+  .auth-password-submit::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; }
+}
+

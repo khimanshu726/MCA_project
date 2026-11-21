@@ -23,7 +23,7 @@ const Toggle = ({ label, active, onClick, children }) => (
     aria-label={label}
     aria-pressed={active}
     onClick={onClick}
-    className={`group relative flex size-7 items-center justify-center rounded-lg transition-colors duration-150 ${
+    className={`group relative flex size-7 items-center justify-center rounded-lg transition-colors duration-150 max-lg:size-11 ${
       active ? "bg-ink-100 text-ink-900" : "text-ink-500 hover:bg-ink-50 hover:text-ink-800"
     }`}
   >
@@ -92,7 +92,7 @@ function StudioViewControls({
         type="button"
         aria-label="Zoom out"
         onClick={zoomOut}
-        className="group relative flex size-7 items-center justify-center rounded-lg text-ink-500 transition-colors duration-150 hover:bg-ink-50 hover:text-ink-800"
+        className="group relative flex size-7 items-center justify-center rounded-lg text-ink-500 transition-colors duration-150 hover:bg-ink-50 hover:text-ink-800 max-lg:size-11"
       >
         <Minus size={14} aria-hidden="true" />
         <StudioTooltip label="Zoom out" side="top" />
@@ -104,7 +104,7 @@ function StudioViewControls({
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((open) => !open)}
-          className="min-w-14 rounded-lg px-2 py-1 text-center font-mono text-xs font-semibold tabular-nums text-ink-700 transition-colors duration-150 hover:bg-ink-50"
+          className="min-w-14 rounded-lg px-2 py-1 text-center font-mono max-lg:min-h-11 text-xs font-semibold tabular-nums text-ink-700 transition-colors duration-150 hover:bg-ink-50"
         >
           {label}
         </button>
@@ -142,7 +142,7 @@ function StudioViewControls({
         type="button"
         aria-label="Zoom in"
         onClick={zoomIn}
-        className="group relative flex size-7 items-center justify-center rounded-lg text-ink-500 transition-colors duration-150 hover:bg-ink-50 hover:text-ink-800"
+        className="group relative flex size-7 items-center justify-center rounded-lg text-ink-500 transition-colors duration-150 hover:bg-ink-50 hover:text-ink-800 max-lg:size-11"
       >
         <Plus size={14} aria-hidden="true" />
         <StudioTooltip label="Zoom in" side="top" />
