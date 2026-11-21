@@ -16,7 +16,9 @@ export const BUSINESS = {
   // Profile "Bihar Press" to this site as the SAME entity for local search.
   legalName: "Bihar Press",
   url: "https://eliteimpressions.co.in",
-  email: "hello@elite-empressions.com",
+  // The inbox the shop actually reads. The previous address used a domain
+  // (elite-empressions.com) that does not exist, so customer mail never arrived.
+  email: "eliteimpressions8@gmail.com",
   phone: "+919288675153",
   phoneDisplay: "+91 92886 75153",
   address: {

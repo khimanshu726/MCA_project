@@ -145,6 +145,22 @@ export function resolveRouteMeta(pathname, category, product) {
   };
 }
 
+/**
+ * Metadata for a URL the storefront doesn't have (served with a 404 status).
+ * Matches the client's "Page not found" screen and keeps it out of the index.
+ */
+export function notFoundRouteMeta(pathname) {
+  return {
+    image: DEFAULT_IMAGE,
+    type: "website",
+    jsonLd: [],
+    title: withBrand("Page not found"),
+    description: "The page you were looking for doesn't exist.",
+    canonical: `${SITE_URL}${pathname}`,
+    noindex: true,
+  };
+}
+
 const escapeHtml = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -160,7 +176,7 @@ export function injectMeta(template, meta) {
   const tags = [
     `<meta name="description" content="${escapeHtml(meta.description)}" />`,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`,
-    `<meta name="robots" content="index, follow" />`,
+    `<meta name="robots" content="${meta.noindex ? "noindex, follow" : "index, follow"}" />`,
     `<meta property="og:type" content="${escapeHtml(meta.type)}" />`,
     `<meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />`,
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,

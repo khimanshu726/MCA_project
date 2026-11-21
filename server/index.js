@@ -19,6 +19,7 @@ import designRoutes from "./routes/designRoutes.js";
 import devRoutes from "./routes/devRoutes.js";
 import { getSitemap } from "./controllers/sitemapController.js";
 import { createBotPrerender } from "./middleware/botPrerender.js";
+import { createStorefrontStatus } from "./middleware/storefrontStatus.js";
 import razorpayInstance from "./config/razorpay.js";
 import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
@@ -186,6 +187,11 @@ if (process.env.NODE_ENV === "production") {
   // express.static answered "/" itself and the homepage never got prerendered.
   app.use(express.static(distPath, { index: false }));
 
+  // Classify the page URL once: a real storefront page (200) or not (404). Both
+  // HTML responders below use the result, so unknown URLs and deleted products
+  // stop answering 200 with the home page's metadata (a "soft 404").
+  app.use(createStorefrontStatus());
+
   // For crawlers/social bots, inject the route's real head metadata into the SPA
   // shell (assets already served by express.static above). Real users fall
   // through to the plain shell below and hydrate normally.
@@ -196,7 +202,8 @@ if (process.env.NODE_ENV === "production") {
   });
 
   app.get(/^(?!\/api\/|\/uploads\/|\/admin(?:\/|$)).*/, (req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
+    // The app still loads on a 404 — it renders its own "Page not found" screen.
+    res.status(res.locals.storefrontStatus ?? 200).sendFile(path.join(distPath, "index.html"));
   });
 }
 

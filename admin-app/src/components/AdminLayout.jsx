@@ -10,7 +10,7 @@ function AdminLayout() {
       <header className="site-header admin-header">
         <div className="brand-block">
           {/* The panel manages the catalog as well as orders now. */}
-          <h1>Elite Empressions</h1>
+          <h1>Elite Impressions</h1>
           <p className="brand-copy">Signed in as {admin?.email || admin?.mobile || "Admin"}.</p>
         </div>
 

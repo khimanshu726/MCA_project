@@ -88,6 +88,9 @@ function ProductDetailPage() {
   if (isError || !product) {
     return (
       <main className="page-stack">
+        {/* Without this the page kept the generic site title and was indexable.
+            The server answers unknown product URLs with a 404 status as well. */}
+        <Seo title="Product not found" path={`/products/${productId}`} noindex />
         <section className="empty-state-card">
           <p className="eyebrow">Product not found</p>
           <h3>This product may have been removed or is no longer available.</h3>
