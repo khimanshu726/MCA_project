@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getProductById } from "../services/productStore.js";
-import { injectMeta, resolveRouteMeta } from "../services/seoMeta.js";
+import { injectMeta, notFoundRouteMeta, resolveRouteMeta } from "../services/seoMeta.js";
 
 /**
  * Server-side prerender for crawlers. The storefront is a client-rendered SPA, so
@@ -50,13 +50,17 @@ export const createBotPrerender = (distPath) => async (req, res, next) => {
   if (!template) return next();
 
   try {
-    let product = null;
+    // storefrontStatus (mounted before this) has already classified the URL and
+    // looked up the product; fall back to a lookup when used on its own.
+    const status = res.locals.storefrontStatus ?? 200;
+    let product = res.locals.storefrontProduct ?? null;
     const productMatch = req.path.match(/^\/products\/([^/]+)$/);
-    if (productMatch) {
+    if (status === 200 && productMatch && !product) {
       product = await getProductById(decodeURIComponent(productMatch[1]));
     }
 
-    const meta = resolveRouteMeta(req.path, req.query.category || null, product);
+    const meta = status === 404 ? notFoundRouteMeta(req.path) : resolveRouteMeta(req.path, req.query.category || null, product);
+    res.status(status);
     res.set("Content-Type", "text/html; charset=utf-8");
     res.set("Cache-Control", "public, max-age=300");
     return res.send(injectMeta(template, meta));

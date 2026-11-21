@@ -23,6 +23,7 @@ import UserLoginPage from "./pages/UserLoginPage";
 
 import AuthActionPage from "./pages/AuthActionPage";
 import WishlistPage from "./pages/WishlistPage";
+import NotFoundPage from "./pages/NotFoundPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import { CheckoutProvider } from "./context/CheckoutContext";
@@ -133,6 +134,7 @@ function App() {
           <Route path="/order-success" element={<OrderSuccessPage />} />
           <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
           <Route path="/payment-failed" element={<PaymentFailedPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
         {/* The design studio owns its full viewport: it renders its own app bar
             instead of the storefront's promo strip + header + footer, the same
@@ -159,7 +161,6 @@ function App() {
         {/* Branded landing for Firebase verification / password-reset links
             (configure the custom action URL to point here — see docs/AUTH.md). */}
         <Route path="/auth/action" element={<AuthActionPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );

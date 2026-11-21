@@ -1,4 +1,4 @@
-# Elite Empressions
+# Elite Impressions
 
 React + Vite storefront for a print shop with:
 

@@ -11,7 +11,7 @@ import { BUSINESS } from "../../config/business";
  * authoritative sites, so treat the schema as valid metadata rather than a
  * guaranteed rich result.)
  */
-const SUPPORT_EMAIL = "hello@elite-empressions.com";
+const SUPPORT_EMAIL = BUSINESS.email;
 
 const FAQS = [
   {

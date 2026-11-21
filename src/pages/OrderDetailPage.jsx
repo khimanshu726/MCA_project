@@ -13,8 +13,9 @@ import { useOrder } from "../hooks/useOrder";
 import { useCart } from "../hooks/useCart";
 import { useProducts } from "../hooks/useProducts";
 import { useToast } from "../hooks/useToast";
+import { BUSINESS } from "../config/business";
 
-const SUPPORT_EMAIL = "hello@elite-empressions.com";
+const SUPPORT_EMAIL = BUSINESS.email;
 const CANCELLABLE_STATUSES = ["Placed", "Confirmed"];
 const RETURNABLE_STATUSES = ["Delivered"];
 

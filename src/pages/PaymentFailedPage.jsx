@@ -9,8 +9,9 @@ import { useUserAuth } from "../context/UserAuthContext";
 import { useToast } from "../hooks/useToast";
 import { cancelPendingPaymentRequest } from "../api/ordersApi";
 import { openRazorpayCheckout } from "../utils/razorpayCheckout";
+import { BUSINESS } from "../config/business";
 
-const SUPPORT_EMAIL = "hello@elite-empressions.com";
+const SUPPORT_EMAIL = BUSINESS.email;
 
 /**
  * Terminal landing spot for an online payment that failed, was declined, or
