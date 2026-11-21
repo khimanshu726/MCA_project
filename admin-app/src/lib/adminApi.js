@@ -160,3 +160,13 @@ export const uploadProductImages = (files, token) => {
 };
 
 export const fetchHealth = () => request("/health");
+
+// HSN/SAC codes and their GST rates.
+export const fetchHsnCodes = (token) => request("/admin/hsn-codes", { token });
+
+export const createHsnCode = (payload, token) => request("/admin/hsn-codes", { method: "POST", body: payload, token });
+
+export const updateHsnCode = (id, payload, token) =>
+  request(`/admin/hsn-codes/${id}`, { method: "PUT", body: payload, token });
+
+export const deleteHsnCode = (id, token) => request(`/admin/hsn-codes/${id}`, { method: "DELETE", token });

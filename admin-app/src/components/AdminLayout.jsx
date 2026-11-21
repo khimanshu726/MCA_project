@@ -21,6 +21,9 @@ function AdminLayout() {
           <NavLink to="/admin/products" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
             Products
           </NavLink>
+          <NavLink to="/admin/gst" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            HSN &amp; GST
+          </NavLink>
           <a href={STOREFRONT_URL} className="nav-link">
             Storefront
           </a>

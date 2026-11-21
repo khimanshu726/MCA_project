@@ -26,8 +26,13 @@ import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
 import { ensureCouponsSeeded } from "./services/couponSeed.js";
+import { ensureHsnCodesSeeded } from "./services/hsnSeed.js";
+import { getSellerGstin, isGstChargingEnabled } from "./config/gst.js";
+import { Product } from "./models/Product.js";
+import { HsnCode } from "./models/HsnCode.js";
 import { connectDB } from "./config/db.js";
 import { authenticateCustomer } from "./middleware/authenticateCustomer.js";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -137,9 +142,27 @@ app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
  * history — ever attaches to the account. It reports only a boolean; the
  * service-account key is never described.
  */
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID ?? "";
   const mode = keyId.startsWith("rzp_live_") ? "live" : keyId.startsWith("rzp_test_") ? "test" : null;
+
+  // GST readiness: whether the seller GSTIN is valid, and how many products
+  // still lack a confirmed HSN code. Counts are best-effort: they're skipped
+  // unless the database is connected and capped at 2s, because the health
+  // check must answer quickly even when the database is down (Render uses it
+  // to decide whether the service is alive).
+  const sellerGstin = getSellerGstin();
+  let productsMissingHsn = null;
+  let unconfirmedHsnInUse = null;
+  try {
+    if (mongoose.connection.readyState !== 1) throw new Error("database not connected");
+    const confirmedCodes = (await HsnCode.find({ confirmed: true }, { code: 1 }).maxTimeMS(2000).lean()).map((row) => row.code);
+    const activeProducts = await Product.find({ status: "active" }, { hsnCode: 1 }).maxTimeMS(2000).lean();
+    productsMissingHsn = activeProducts.filter((product) => !product.hsnCode).length;
+    unconfirmedHsnInUse = activeProducts.filter((product) => product.hsnCode && !confirmedCodes.includes(product.hsnCode)).length;
+  } catch {
+    // leave as null
+  }
 
   res.json({
     ok: true,
@@ -155,6 +178,13 @@ app.get("/api/health", (_req, res) => {
       // Customer login is only real if the server can verify the token the
       // browser gets from Firebase.
       firebaseAdminConfigured: isFirebaseAdminConfigured(),
+    },
+    gst: {
+      sellerGstinConfigured: sellerGstin.configured,
+      sellerGstinError: sellerGstin.configured ? null : sellerGstin.reason,
+      chargingEnabled: isGstChargingEnabled(),
+      productsMissingHsn,
+      unconfirmedHsnInUse,
     },
   });
 });
@@ -227,6 +257,7 @@ const startServer = async (port = appConfig.apiPort) => {
   await ensureDefaultAdminUser();
   await ensureProductsSeeded();
   await ensureCouponsSeeded();
+  await ensureHsnCodesSeeded();
 
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {

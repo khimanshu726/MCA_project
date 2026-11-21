@@ -19,6 +19,7 @@ import {
 } from "../../../src/utils/productAvailability";
 // Same rules the server enforces on save, so problems show while typing.
 import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
+import { fetchHsnCodes } from "../lib/adminApi";
 
 const productCurrency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -57,6 +58,8 @@ const EMPTY_FORM = {
   minimumOrderQty: "1",
   // Volume pricing rows: { minQty, price } as typed text.
   priceTiers: [],
+  // HSN/SAC code from the HSN & GST rates list; the GST rate comes from there.
+  hsnCode: "",
   leadTime: "",
   sku: "",
   badge: "",
@@ -79,6 +82,7 @@ const toForm = (product) => ({
   stock: String(product.stock ?? ""),
   minimumOrderQty: String(product.minimumOrderQty ?? "1"),
   priceTiers: (product.priceTiers || []).map((tier) => ({ minQty: String(tier.minQty), price: String(tier.price) })),
+  hsnCode: product.hsnCode || "",
   leadTime: product.leadTime || "",
   sku: product.sku || "",
   badge: product.badge || "",
@@ -110,6 +114,7 @@ const toPayload = (form) => ({
   priceTiers: form.priceTiers
     .filter((tier) => String(tier.minQty).trim() !== "" || String(tier.price).trim() !== "")
     .map((tier) => ({ minQty: Number(tier.minQty), price: Number(tier.price) })),
+  hsnCode: form.hsnCode,
   leadTime: form.leadTime.trim(),
   sku: form.sku.trim(),
   badge: form.badge.trim(),
@@ -203,6 +208,16 @@ function AdminProductsPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  // HSN codes for the picker and the list's GST column.
+  const [hsnCodes, setHsnCodes] = useState([]);
+  useEffect(() => {
+    fetchHsnCodes(token)
+      .then((data) => setHsnCodes(data.hsnCodes || []))
+      .catch(() => setHsnCodes([]));
+  }, [token]);
+  const hsnByCode = useMemo(() => new Map(hsnCodes.map((row) => [row.code, row])), [hsnCodes]);
+  const productHsnOptions = hsnCodes.filter((row) => row.appliesTo === "product");
 
   useEffect(() => {
     // A failed health check shouldn't disable the uploader — assume storage is
@@ -426,6 +441,7 @@ function AdminProductsPage() {
                     <th>Price</th>
                     <th>Stock</th>
                     <th>Status</th>
+                    <th>GST</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -446,6 +462,17 @@ function AdminProductsPage() {
                       </td>
                       <td>
                         <span className={`status-badge status-${product.status}`}>{product.status}</span>
+                      </td>
+                      <td>
+                        {!product.hsnCode ? (
+                          <span className="status-badge status-draft">No HSN</span>
+                        ) : hsnByCode.get(product.hsnCode)?.confirmed ? (
+                          <span>
+                            {product.hsnCode} · {hsnByCode.get(product.hsnCode).rate}%
+                          </span>
+                        ) : (
+                          <span className="status-badge status-draft">{product.hsnCode} unconfirmed</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -470,6 +497,22 @@ function AdminProductsPage() {
 
               <InputField label="Description" htmlFor="f-description" error={fieldErrors.description}>
                 <textarea id="f-description" rows={3} value={form.description} onChange={setField("description")} />
+              </InputField>
+
+              <InputField
+                label="HSN / SAC code"
+                htmlFor="f-hsn"
+                error={fieldErrors.hsnCode}
+                helperText="Sets this product's GST rate. Manage codes under HSN & GST."
+              >
+                <select id="f-hsn" value={form.hsnCode} onChange={setField("hsnCode")}>
+                  <option value="">Not set</option>
+                  {productHsnOptions.map((row) => (
+                    <option key={row.code} value={row.code}>
+                      {row.kind} {row.code} · {row.rate}%{row.confirmed ? "" : " (needs confirming)"} · {row.description}
+                    </option>
+                  ))}
+                </select>
               </InputField>
 
               <InputField label="Category" htmlFor="f-category" error={fieldErrors.category}>
