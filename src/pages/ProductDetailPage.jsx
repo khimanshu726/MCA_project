@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ShieldCheck, Truck, Store, Clock } from "lucide-react";
 import Seo, { SITE_URL } from "../components/Seo";
@@ -9,6 +9,7 @@ import ProductRail from "../components/cart/ProductRail";
 import QuantitySelector from "../components/ui/QuantitySelector";
 import WishlistButton from "../components/ui/WishlistButton";
 import BulkPricingTable from "../components/BulkPricingTable";
+import MobileBuyBar from "../components/MobileBuyBar";
 import { useProduct } from "../hooks/useProduct";
 import { useProducts } from "../hooks/useProducts";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
@@ -32,6 +33,42 @@ const TRUST = [
   { icon: Truck, label: "Pan-India shipping", detail: "+ local delivery in Purnia" },
   { icon: Store, label: "Store pickup", detail: "At our Purnia shop" },
 ];
+
+// Price with MRP + discount so the value reads at a glance. Rendered twice on
+// phones (the summary above the gallery and, visually hidden, in the buy
+// panel); both copies get the same numbers.
+function DetailPrice({ unitPrice, isBulkPrice, hasDiscount, mrp, discountPercent }) {
+  return (
+    <>
+      <div className="detail-price-block">
+        <strong className="detail-price">{fmt(unitPrice)}</strong>
+        {isBulkPrice ? <span className="detail-discount">Bulk price</span> : null}
+        {hasDiscount ? (
+          <>
+            <span className="detail-mrp">{fmt(mrp)}</span>
+            <span className="detail-discount">{discountPercent}% off</span>
+          </>
+        ) : null}
+      </div>
+      {hasDiscount ? <p className="detail-savings">You save {fmt(mrp - unitPrice)} per unit</p> : null}
+    </>
+  );
+}
+
+// True while the element is off screen. Without IntersectionObserver (old
+// browsers, tests) it reports off screen, so the sticky bar is simply always
+// available on phones.
+function useIsOffScreen(ref) {
+  const [isOffScreen, setIsOffScreen] = useState(true);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof window.IntersectionObserver !== "function") return undefined;
+    const observer = new window.IntersectionObserver(([entry]) => setIsOffScreen(!entry.isIntersecting));
+    observer.observe(node);
+    return () => observer.disconnect();
+  });
+  return isOffScreen;
+}
 
 function DetailSkeleton() {
   return (
@@ -59,6 +96,10 @@ function ProductDetailPage() {
   const { data: relatedData } = useProducts({ category: product?.category, limit: 12 });
   const [activeImage, setActiveImage] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  // The sticky phone buy bar shows only while the page's own buy buttons are
+  // scrolled out of view.
+  const buyButtonsRef = useRef(null);
+  const buyButtonsOffScreen = useIsOffScreen(buyButtonsRef);
   const { recordView } = useRecentlyViewed();
 
   useEffect(() => {
@@ -148,6 +189,20 @@ function ProductDetailPage() {
         jsonLd={productJsonLd}
       />
       <section className="detail-layout">
+        {/* Phones: name and price above the gallery, so they're on the first
+            screen. aria-hidden because the real <h1> and price are in the buy
+            panel below (visually hidden there on phones). Hidden on desktop. */}
+        <div className="detail-mobile-summary" aria-hidden="true">
+          <p className="detail-mobile-title">{product.name}</p>
+          <DetailPrice
+            unitPrice={unitPrice}
+            isBulkPrice={isBulkPrice}
+            hasDiscount={hasDiscount}
+            mrp={product.mrp}
+            discountPercent={discountPercent}
+          />
+        </div>
+
         <ProductGallery
           images={product.images}
           productName={product.name}
@@ -159,20 +214,17 @@ function ProductDetailPage() {
           <Link className="eyebrow detail-category-link" to={`/products?category=${encodeURIComponent(product.category)}`}>
             {product.category}
           </Link>
-          <h1>{product.name}</h1>
+          <h1 className="detail-title">{product.name}</h1>
 
-          {/* Price with MRP + discount so the value reads at a glance. */}
-          <div className="detail-price-block">
-            <strong className="detail-price">{fmt(unitPrice)}</strong>
-            {isBulkPrice ? <span className="detail-discount">Bulk price</span> : null}
-            {hasDiscount ? (
-              <>
-                <span className="detail-mrp">{fmt(product.mrp)}</span>
-                <span className="detail-discount">{discountPercent}% off</span>
-              </>
-            ) : null}
+          <div className="detail-panel-price">
+            <DetailPrice
+              unitPrice={unitPrice}
+              isBulkPrice={isBulkPrice}
+              hasDiscount={hasDiscount}
+              mrp={product.mrp}
+              discountPercent={discountPercent}
+            />
           </div>
-          {hasDiscount ? <p className="detail-savings">You save {fmt(product.mrp - unitPrice)} per unit</p> : null}
 
           {/* Availability + lead time, stated together rather than hidden in a pill. */}
           <p className={`detail-availability ${outOfStock ? "is-out" : lowStock ? "is-low" : "is-in"}`}>
@@ -201,7 +253,7 @@ function ProductDetailPage() {
               feeds both buttons, so it sits directly above them; they get their
               own equal-width row so neither reads as secondary to the other and
               they stack cleanly on a phone. */}
-          <div className="detail-buy">
+          <div className="detail-buy" ref={buyButtonsRef}>
             {showStepper ? (
               <div className="detail-qty-row">
                 <span className="detail-qty-label">Quantity</span>
@@ -255,6 +307,14 @@ function ProductDetailPage() {
         <section className="section-panel">
           <ProductRail title={`More in ${product.category}`} products={related} />
         </section>
+      ) : null}
+
+      {!outOfStock ? (
+        <>
+          <MobileBuyBar product={product} quantity={quantity} unitPrice={unitPrice} isVisible={buyButtonsOffScreen} />
+          {/* Room for the bar, so it never covers the end of the page on phones. */}
+          <div className="mobile-buy-bar-spacer" aria-hidden="true" />
+        </>
       ) : null}
     </main>
   );

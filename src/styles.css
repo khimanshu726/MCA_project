@@ -3892,3 +3892,80 @@ textarea {
   }
 }
 
+/* ==========================================================================
+   Phones: product page (mobile review, step 2)
+   ========================================================================== */
+
+/* Desktop shows the name and price in the buy panel beside the gallery; the
+   phone summary and the sticky buy bar don't exist there. */
+.detail-mobile-summary,
+.mobile-buy-bar,
+.mobile-buy-bar-spacer { display: none; }
+
+@media (max-width: 900px) {
+  /* The name started ~730px down an 812px screen, below the gallery and the
+     buy card's padding. Name and price now sit above the gallery. */
+  .detail-mobile-summary { display: block; }
+  .detail-mobile-summary .detail-price-block { margin-top: 0.35rem; }
+  .detail-mobile-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--ink-950);
+  }
+  .detail-layout { gap: 1.25rem; }
+
+  /* The real <h1> and price stay in the buy panel for search engines and
+     screen readers; they're only hidden visually, so the name isn't shown twice. */
+  .detail-panel .detail-title,
+  .detail-panel .detail-panel-price {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mobile-buy-bar {
+    display: block;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--stroke);
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.25s var(--ease-out);
+  }
+  .mobile-buy-bar.is-visible { transform: translateY(0); }
+  .mobile-buy-bar-inner {
+    max-width: 42rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .mobile-buy-bar-label { margin: 0; font-size: 0.75rem; color: var(--ink-500); }
+  .mobile-buy-bar-total {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    line-height: 1.2;
+    color: var(--ink-950);
+  }
+  .mobile-buy-bar-button { flex: 1; margin-left: auto; white-space: nowrap; }
+  .mobile-buy-bar-spacer { display: block; height: 5.5rem; }
+}
+
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .mobile-buy-bar { transition: none; }
+}
+
