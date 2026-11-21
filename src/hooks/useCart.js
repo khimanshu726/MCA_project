@@ -5,6 +5,7 @@ import { useServerCart } from "./useServerCart";
 import { useProducts } from "./useProducts";
 import { computeClientCartPricing } from "../utils/pricing";
 import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
+import { getUnitPrice } from "../utils/tierPricing";
 
 // The cart line's own snapshot, saved when it was added. Used when there is no
 // live product to show (yet, or any more).
@@ -46,6 +47,7 @@ const buildGuestItems = (guestCartItems, liveProductsById, hasFreshCatalog) =>
         isOutOfStock: isMissing,
         isLowStock: false,
         isPriceChanged: false,
+        unitPrice: item.price,
         lineTotal: isMissing ? 0 : item.price * item.quantity,
       };
     }
@@ -65,7 +67,9 @@ const buildGuestItems = (guestCartItems, liveProductsById, hasFreshCatalog) =>
       isOutOfStock,
       isLowStock: isProductLowStock(liveProduct),
       isPriceChanged: Number(liveProduct.price) !== Number(item.price),
-      lineTotal: liveProduct.price * item.quantity,
+      // Volume pricing: the unit price depends on the quantity.
+      unitPrice: getUnitPrice(liveProduct, item.quantity),
+      lineTotal: getUnitPrice(liveProduct, item.quantity) * item.quantity,
     };
   });
 
@@ -115,7 +119,7 @@ export function useCart() {
       computeClientCartPricing(
         guestItems
           .filter((item) => !item.isMissing && !item.isOutOfStock)
-          .map((item) => ({ price: item.product.price, mrp: item.product.mrp, quantity: item.quantity })),
+          .map((item) => ({ price: item.unitPrice, mrp: item.product.mrp, quantity: item.quantity })),
       ),
     [guestItems],
   );
@@ -220,7 +224,9 @@ export function useCart() {
       items.map((item) => ({
         id: item.productId,
         name: item.product?.name,
-        price: item.product?.price,
+        // The unit price for this quantity (volume pricing), which is what the
+        // checkout review shows and the server charges.
+        price: item.unitPrice ?? item.product?.price,
         category: item.product?.category,
         description: item.product?.description,
         images: item.product?.images,

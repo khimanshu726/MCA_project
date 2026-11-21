@@ -17,6 +17,8 @@ import {
   isProductLowStock,
   isProductOutOfStock,
 } from "../../../src/utils/productAvailability";
+// Same rules the server enforces on save, so problems show while typing.
+import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
 
 const productCurrency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -53,6 +55,8 @@ const EMPTY_FORM = {
   mrp: "",
   stock: "",
   minimumOrderQty: "1",
+  // Volume pricing rows: { minQty, price } as typed text.
+  priceTiers: [],
   leadTime: "",
   sku: "",
   badge: "",
@@ -74,6 +78,7 @@ const toForm = (product) => ({
   mrp: String(product.mrp ?? ""),
   stock: String(product.stock ?? ""),
   minimumOrderQty: String(product.minimumOrderQty ?? "1"),
+  priceTiers: (product.priceTiers || []).map((tier) => ({ minQty: String(tier.minQty), price: String(tier.price) })),
   leadTime: product.leadTime || "",
   sku: product.sku || "",
   badge: product.badge || "",
@@ -102,6 +107,9 @@ const toPayload = (form) => ({
   mrp: form.mrp === "" ? Number(form.price) : Number(form.mrp),
   stock: Number(form.stock || 0),
   minimumOrderQty: Number(form.minimumOrderQty || 1),
+  priceTiers: form.priceTiers
+    .filter((tier) => String(tier.minQty).trim() !== "" || String(tier.price).trim() !== "")
+    .map((tier) => ({ minQty: Number(tier.minQty), price: Number(tier.price) })),
   leadTime: form.leadTime.trim(),
   sku: form.sku.trim(),
   badge: form.badge.trim(),
@@ -245,8 +253,38 @@ function AdminProductsPage() {
   const removeOption = (index) =>
     setForm((current) => ({ ...current, options: current.options.filter((_, i) => i !== index) }));
 
+  // Bulk pricing repeater — each row is { minQty, price } as typed text.
+  const addPriceTier = () =>
+    setForm((current) => ({ ...current, priceTiers: [...current.priceTiers, { minQty: "", price: "" }] }));
+
+  const setPriceTierField = (index, key) => (event) => {
+    const { value } = event.target;
+    setForm((current) => ({
+      ...current,
+      priceTiers: current.priceTiers.map((tier, i) => (i === index ? { ...tier, [key]: value } : tier)),
+    }));
+  };
+
+  const removePriceTier = (index) =>
+    setForm((current) => ({ ...current, priceTiers: current.priceTiers.filter((_, i) => i !== index) }));
+
+  const priceTierErrors = useMemo(
+    () =>
+      validatePriceTiers(toPayload(form).priceTiers, {
+        price: Number(form.price),
+        minimumOrderQty: Number(form.minimumOrderQty || 1),
+      }).errors,
+    [form],
+  );
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    // The bulk pricing errors are already on screen; the server would refuse
+    // the save for the same reasons.
+    if (priceTierErrors.length > 0) {
+      setFieldErrors({ priceTiers: priceTierErrors.join(" ") });
+      return;
+    }
     setIsSaving(true);
     setFieldErrors({});
     setActionMessage("");
@@ -468,6 +506,63 @@ function AdminProductsPage() {
                 <InputField label="Min order qty" htmlFor="f-moq" error={fieldErrors.minimumOrderQty}>
                   <input id="f-moq" type="number" min="1" step="1" value={form.minimumOrderQty} onChange={setField("minimumOrderQty")} />
                 </InputField>
+              </div>
+
+              {/* Volume pricing: cheaper per unit from a quantity up. Checked live with
+                  the same rules the server applies on save. */}
+              <div className="input-field">
+                <span className="field-label strong-label">Bulk pricing</span>
+                <p className="section-copy" style={{ margin: "0 0 0.5rem" }}>
+                  Lower unit prices for larger orders, e.g. 250+ at ₹16 each. The base price above applies from the
+                  minimum order up to the first row. Up to {MAX_PRICE_TIERS} rows.
+                </p>
+                {form.priceTiers.length > 0 ? (
+                  <div className="page-stack" style={{ gap: "0.75rem" }}>
+                    {form.priceTiers.map((tier, index) => (
+                      <div key={index} className="admin-filters-grid" style={{ alignItems: "end" }}>
+                        <InputField label="From quantity" htmlFor={`f-tier-qty-${index}`}>
+                          <input
+                            id={`f-tier-qty-${index}`}
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="e.g. 250"
+                            value={tier.minQty}
+                            onChange={setPriceTierField(index, "minQty")}
+                          />
+                        </InputField>
+                        <InputField label="Price per unit (₹)" htmlFor={`f-tier-price-${index}`}>
+                          <input
+                            id={`f-tier-price-${index}`}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="e.g. 16"
+                            value={tier.price}
+                            onChange={setPriceTierField(index, "price")}
+                          />
+                        </InputField>
+                        <button type="button" className="secondary-button danger-button" onClick={() => removePriceTier(index)}>
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {priceTierErrors.length > 0 || fieldErrors.priceTiers ? (
+                  <div className="field-error" role="alert">
+                    {(priceTierErrors.length > 0 ? priceTierErrors : [fieldErrors.priceTiers]).map((message) => (
+                      <p key={message}>{message}</p>
+                    ))}
+                  </div>
+                ) : null}
+                {form.priceTiers.length < MAX_PRICE_TIERS ? (
+                  <div className="action-row" style={{ marginTop: "0.5rem" }}>
+                    <button type="button" className="secondary-button" onClick={addPriceTier}>
+                      + Add bulk price
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               {/* The whole reason this page exists: never let stock sit below the

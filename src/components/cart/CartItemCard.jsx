@@ -4,6 +4,7 @@ import ResponsiveImage from "../ResponsiveImage";
 import Badge from "../ui/Badge";
 import PriceDisplay, { currencyFormatter } from "../ui/PriceDisplay";
 import QuantitySelector from "../ui/QuantitySelector";
+import { getNextTier } from "../../utils/tierPricing";
 
 function CartItemCard({
   item,
@@ -26,6 +27,8 @@ function CartItemCard({
     savedForLater,
     priceAtAdd,
   } = item;
+  // Volume pricing: the line is charged at the tier price for its quantity.
+  const unitPrice = item.unitPrice ?? product?.price;
 
   if (isMissing) {
     return (
@@ -42,6 +45,9 @@ function CartItemCard({
       </div>
     );
   }
+
+  const isBulkPrice = unitPrice < Number(product.price);
+  const nextTier = !isOutOfStock && !savedForLater ? getNextTier(product, quantity) : null;
 
   return (
     <article
@@ -76,7 +82,11 @@ function CartItemCard({
               {product.name}
             </Link>
           </div>
-          <PriceDisplay price={product.price} mrp={product.mrp} discountPercent={product.discountPercent} />
+          <PriceDisplay
+            price={unitPrice}
+            mrp={product.mrp}
+            discountPercent={product.mrp > unitPrice ? Math.round(((product.mrp - unitPrice) / product.mrp) * 100) : 0}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -94,6 +104,17 @@ function CartItemCard({
             <Badge tone="success">In stock</Badge>
           )}
         </div>
+
+        {isBulkPrice || nextTier ? (
+          <p className="text-xs text-ink-600">
+            {isBulkPrice ? (
+              <span className="font-semibold text-success-600">Bulk price applied. </span>
+            ) : null}
+            {nextTier
+              ? `Add ${nextTier.minQty - quantity} more to pay ${currencyFormatter.format(nextTier.price)} each.`
+              : null}
+          </p>
+        ) : null}
 
         {isPriceChanged && !isOutOfStock ? (
           <div className="flex items-center gap-2 rounded-lg bg-gold-500/10 px-3 py-2 text-xs text-ink-700">

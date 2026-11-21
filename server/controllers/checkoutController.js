@@ -1,5 +1,6 @@
 import { getProductsByIds } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
+import { getUnitPrice } from "../../src/utils/tierPricing.js";
 import { findCouponByCode, validateCoupon } from "../services/couponStore.js";
 import { normalizeLineItems, parseLineItems } from "../utils/orderHelpers.js";
 
@@ -48,7 +49,7 @@ export const previewCheckoutPricing = async (req, res, next) => {
 
     const pricingItems = requestedLineItems.map((item) => {
       const product = productsById.get(item.productId);
-      return { price: product.price, mrp: product.mrp, quantity: item.quantity };
+      return { price: getUnitPrice(product, item.quantity), mrp: product.mrp, quantity: item.quantity };
     });
 
     const subtotal = pricingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);

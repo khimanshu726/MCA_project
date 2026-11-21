@@ -12,6 +12,7 @@ import {
 } from "../services/orderStore.js";
 import { decrementStockAtomic, getProductsByIds, restoreStock } from "../services/productStore.js";
 import { computeCartPricing } from "../services/pricingService.js";
+import { getUnitPrice } from "../../src/utils/tierPricing.js";
 import { findCouponByCode, incrementCouponUsage, validateCoupon } from "../services/couponStore.js";
 import { notifyOrderConfirmed, sendShipmentEmail, sendDeliveryEmail } from "../services/email/resendService.js";
 import { COURIER_IDS } from "../../src/utils/couriers.js";
@@ -95,7 +96,7 @@ export const createOrder = async (req, res, next) => {
 
   if (req.body.couponCode) {
     const requestedSubtotal = requestedLineItems.reduce(
-      (sum, item) => sum + productsById.get(item.productId).price * item.quantity,
+      (sum, item) => sum + getUnitPrice(productsById.get(item.productId), item.quantity) * item.quantity,
       0,
     );
     const candidate = await findCouponByCode(req.body.couponCode);
@@ -143,12 +144,15 @@ export const createOrder = async (req, res, next) => {
   try {
     const lineItems = requestedLineItems.map((item) => {
       const product = productsById.get(item.productId);
+      // The volume-tier price for this quantity is what the order charges and
+      // stores, so the invoice shows the unit price actually paid.
+      const unitPrice = getUnitPrice(product, item.quantity);
       return {
         productId: item.productId,
         name: product.name,
         quantity: item.quantity,
-        unitPrice: product.price,
-        totalPrice: product.price * item.quantity,
+        unitPrice,
+        totalPrice: unitPrice * item.quantity,
         customizationText: item.customizationText,
       };
     });
@@ -156,7 +160,7 @@ export const createOrder = async (req, res, next) => {
     const pricing = computeCartPricing(
       requestedLineItems.map((item) => {
         const product = productsById.get(item.productId);
-        return { price: product.price, mrp: product.mrp, quantity: item.quantity };
+        return { price: getUnitPrice(product, item.quantity), mrp: product.mrp, quantity: item.quantity };
       }),
       coupon,
     );
