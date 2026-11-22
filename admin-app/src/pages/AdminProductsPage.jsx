@@ -9,6 +9,7 @@ import {
 import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
 import ProductImageUploader from "../components/ProductImageUploader";
+import NewHsnCodePanel from "../components/NewHsnCodePanel";
 // The one source of truth for "buyable", shared with the storefront and the
 // server (src/utils/productAvailability.js). Using it here means the admin sees
 // exactly the availability the customer will.
@@ -28,6 +29,10 @@ const productCurrency = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 const formatMoney = (value) => productCurrency.format(value || 0);
+
+// Dropdown entry that opens the "new code" panel. Not a valid HSN code (codes
+// are digits only), so it can never collide with a real one.
+const NEW_HSN_OPTION = "__new__";
 
 // Free-text on the model, but a fixed list keeps the storefront's categories
 // coherent; the storefront filters and studio templates key off these exact
@@ -220,6 +225,20 @@ function AdminProductsPage() {
   }, [token]);
   const hsnByCode = useMemo(() => new Map(hsnCodes.map((row) => [row.code, row])), [hsnCodes]);
   const productHsnOptions = hsnCodes.filter((row) => row.appliesTo === "product");
+  const [isAddingHsn, setIsAddingHsn] = useState(false);
+
+  // A code added from the product form joins the shared list (so every other
+  // product can pick it too) and is selected for this one.
+  const handleHsnCreated = (row) => {
+    setHsnCodes((current) =>
+      current.some((existing) => existing.code === row.code)
+        ? current
+        : [...current, row].sort((a, b) => a.code.localeCompare(b.code)),
+    );
+    setForm((current) => ({ ...current, hsnCode: row.code }));
+    setFieldErrors((current) => ({ ...current, hsnCode: undefined }));
+    setIsAddingHsn(false);
+  };
 
   useEffect(() => {
     // A failed health check shouldn't disable the uploader — assume storage is
@@ -240,6 +259,7 @@ function AdminProductsPage() {
     setForm(EMPTY_FORM);
     setFieldErrors({});
     setActionMessage("");
+    setIsAddingHsn(false);
     revealPanel();
   };
 
@@ -248,6 +268,7 @@ function AdminProductsPage() {
     setForm(toForm(product));
     setFieldErrors({});
     setActionMessage("");
+    setIsAddingHsn(false);
     revealPanel();
   };
 
@@ -514,17 +535,37 @@ function AdminProductsPage() {
                 label="HSN / SAC code"
                 htmlFor="f-hsn"
                 error={fieldErrors.hsnCode}
-                helperText="Sets this product's GST rate. Manage codes under HSN & GST."
+                helperText="Sets this product's GST rate. Not in the list? Choose “+ Add a new code…”. It’s saved for every product."
               >
-                <select id="f-hsn" value={form.hsnCode} onChange={setField("hsnCode")}>
+                <select
+                  id="f-hsn"
+                  value={form.hsnCode}
+                  onChange={(event) => {
+                    // The "add" entry opens the panel; it never becomes the value.
+                    if (event.target.value === NEW_HSN_OPTION) {
+                      setIsAddingHsn(true);
+                      return;
+                    }
+                    setField("hsnCode")(event);
+                  }}
+                >
                   <option value="">Not set</option>
                   {productHsnOptions.map((row) => (
                     <option key={row.code} value={row.code}>
                       {row.kind} {row.code} · {row.rate}%{row.confirmed ? "" : " (needs confirming)"} · {row.description}
                     </option>
                   ))}
+                  <option value={NEW_HSN_OPTION}>+ Add a new code…</option>
                 </select>
               </InputField>
+              {isAddingHsn ? (
+                <NewHsnCodePanel
+                  token={token}
+                  existingCodes={hsnCodes}
+                  onCreated={handleHsnCreated}
+                  onCancel={() => setIsAddingHsn(false)}
+                />
+              ) : null}
 
               <InputField label="Category" htmlFor="f-category" error={fieldErrors.category}>
                 <select id="f-category" value={form.category} onChange={setField("category")}>

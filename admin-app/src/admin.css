@@ -658,3 +658,14 @@
     box-shadow: inset 3px 0 0 var(--accent, #d86a3d);
   }
 }
+
+/* "Add a new code" panel under the product form's HSN dropdown. */
+.new-hsn-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.new-hsn-panel .eyebrow {
+  margin: 0;
+}
