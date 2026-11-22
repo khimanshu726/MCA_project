@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
+import CollectionDesignsList from "../components/CollectionDesignsList";
 import ProductImageUploader from "../components/ProductImageUploader";
 import { createCollection, deleteCollection, fetchAdminCollections, updateCollection } from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
@@ -147,8 +148,8 @@ function AdminCollectionsPage() {
           <h2>Collections</h2>
           <p className="section-copy">
             A collection is one storefront page holding many designs, like every wedding card in Wedding Invitation
-            Suite. Create the collection here, then add each design on the Products page and choose this collection
-            there. Each design keeps its own photos, price, stock and HSN code.
+            Suite. Open a collection to see its designs and add new ones with &ldquo;+ Add a design&rdquo;. Each design
+            keeps its own photos, price, stock and HSN code, and shows on the shop once its Status is active.
           </p>
         </div>
       </section>
@@ -268,12 +269,7 @@ function AdminCollectionsPage() {
             <input id="c-legacy" type="text" value={form.legacyProductIds} onChange={setField("legacyProductIds")} />
           </InputField>
 
-          {editingRow ? (
-            <p className="section-copy">
-              {editingRow.productCount} design{editingRow.productCount === 1 ? "" : "s"} in this collection. Add more
-              on the Products page.
-            </p>
-          ) : null}
+          {editingRow ? <CollectionDesignsList key={editingRow.id} token={token} collection={editingRow} /> : null}
           {message ? (
             <p className="section-copy" role="status">
               {message}

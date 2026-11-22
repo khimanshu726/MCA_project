@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   createProduct,
   deleteProduct,
@@ -105,6 +106,30 @@ const splitList = (value) =>
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+// A new design started from a collection ("+ Add a design"): already in the
+// collection, listed under its category, and set to go live on save, since
+// the owner is adding it to the shop on purpose. Status can still be changed.
+export const buildNewDesignForm = (collection) => ({
+  ...EMPTY_FORM,
+  collectionId: collection.id,
+  category: CATEGORY_OPTIONS.includes(collection.category) ? collection.category : EMPTY_FORM.category,
+  status: "active",
+});
+
+// What the owner needs to hear after saving a design: whether it is actually
+// on the shop inside its collection.
+export const savedMessage = ({ wasEditing, product, collection }) => {
+  const base = wasEditing ? "Product updated." : "Product created.";
+  if (!collection) return base;
+  if (product.status !== "active") {
+    return `${base} It's a ${product.status}, so it won't show in “${collection.name}” on the shop until you set Status to active.`;
+  }
+  if (collection.status !== "active") {
+    return `${base} It's in “${collection.name}”, but that collection is a draft, so customers can't see it yet.`;
+  }
+  return `${base} It's live in “${collection.name}”.`;
+};
+
 // Everything carries over; it starts as a draft so a half-edited copy never
 // goes on sale, and "(copy)" makes it obvious in the list until renamed.
 export const buildDuplicatePayload = (form) => ({
@@ -185,6 +210,7 @@ function StockCell({ product }) {
 
 function AdminProductsPage() {
   const { token } = useAdminAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({ query: "", status: "All", category: "All", collection: "" });
   const [isLoading, setIsLoading] = useState(true);
@@ -242,6 +268,10 @@ function AdminProductsPage() {
       .then((data) => setCollections(data.collections || []))
       .catch(() => setCollections([]));
   }, [token]);
+  const collectionNameById = useMemo(
+    () => new Map(collections.map((collection) => [collection.id, collection.name])),
+    [collections],
+  );
   const [isAddingHsn, setIsAddingHsn] = useState(false);
   const [isAddingCollection, setIsAddingCollection] = useState(false);
   const [isEditingCollection, setIsEditingCollection] = useState(false);
@@ -334,6 +364,38 @@ function AdminProductsPage() {
     revealPanel();
   };
 
+  const startAddDesign = (collection) => {
+    setEditingId(null);
+    setForm(buildNewDesignForm(collection));
+    setFieldErrors({});
+    setActionMessage(`New design for “${collection.name}”. Add its name, photos and price, then Create product.`);
+    setIsAddingHsn(false);
+    setIsAddingCollection(false);
+    setIsEditingCollection(false);
+    revealPanel();
+  };
+
+  // Links from the Collections page: ?addTo=<collection id> starts a new
+  // design in it, ?edit=<product id> opens that product. Handled once the
+  // data they need has loaded, then dropped from the address.
+  const addTo = searchParams.get("addTo");
+  const editParam = searchParams.get("edit");
+  useEffect(() => {
+    if (!addTo) return;
+    const collection = collections.find((row) => row.id === addTo);
+    if (!collection) return;
+    startAddDesign(collection);
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addTo, collections]);
+  useEffect(() => {
+    if (!editParam || isLoading) return;
+    const product = products.find((row) => row.id === editParam);
+    if (product) startEdit(product);
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editParam, isLoading, products]);
+
   const startEdit = (product) => {
     setEditingId(product.id);
     setForm(toForm(product));
@@ -409,11 +471,17 @@ function AdminProductsPage() {
         ? await updateProduct(editingId, payload, token)
         : await createProduct(payload, token);
 
-      setActionMessage(editingId ? "Product updated." : "Product created.");
+      const saved = response.product;
+      setActionMessage(
+        savedMessage({
+          wasEditing: Boolean(editingId),
+          product: saved,
+          collection: collections.find((row) => row.id === saved.collectionId) || null,
+        }),
+      );
       await loadProducts();
 
       // Stay on the freshly saved product so the admin can keep tuning stock.
-      const saved = response.product;
       setEditingId(saved.id);
       setForm(toForm(saved));
     } catch (saveError) {
@@ -603,6 +671,9 @@ function AdminProductsPage() {
                     >
                       <td>
                         <strong>{product.name}</strong>
+                        {collectionNameById.get(product.collectionId) ? (
+                          <span>Design in {collectionNameById.get(product.collectionId)}</span>
+                        ) : null}
                         <span>MOQ {getMinimumOrderQty(product)}</span>
                       </td>
                       <td data-label="Category">{product.category}</td>
@@ -786,6 +857,15 @@ function AdminProductsPage() {
 
               {selectedCollection && !isEditingCollection ? (
                 <div className="collection-actions">
+                  {editingId ? (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => startAddDesign(selectedCollection)}
+                    >
+                      + Add another design to {selectedCollection.name}
+                    </button>
+                  ) : null}
                   <button type="button" className="secondary-button" onClick={() => setIsEditingCollection(true)}>
                     Edit collection details
                   </button>
@@ -991,6 +1071,13 @@ function AdminProductsPage() {
                   </label>
                 </div>
               </div>
+
+              {selectedCollection && form.status !== "active" ? (
+                <p className="availability-note availability-warn" role="note">
+                  Status is {form.status}: this design won&rsquo;t show in &ldquo;{selectedCollection.name}&rdquo; on
+                  the shop until Status is active.
+                </p>
+              ) : null}
 
               <div className="action-row">
                 <button type="submit" className="primary-button" disabled={isSaving}>
