@@ -3989,10 +3989,18 @@ textarea {
   /* Cart item checkbox: 16px box, 44px to tap (the label toggles it). */
   .cart-select-hit { padding: 14px; margin: -14px; }
 
-  /* Login: "Show" password toggle was 28px tall, the round sign-in arrow
-     34px. The toggle keeps its position (it sits left of the arrow when both
-     show); the arrow gets an invisible 44px hit area. */
-  .auth-password-toggle { min-height: 44px; min-width: 44px; }
+  /* Login: the touch-target block above (pointer: coarse / <=1024px) set
+     .auth-password-toggle to position: relative to anchor its 44px ::after
+     hit area. That also pulled the toggle out of the password box (it sat
+     left of the field, partly off screen). Absolute positioning anchors the
+     ::after just as well and keeps the toggle inside the field. The round
+     sign-in arrow (34px) gets the same invisible 44px hit area. */
+  .auth-password-toggle { position: absolute; }
   .auth-password-submit::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; }
 }
 
+/* Same conditions as the touch-target block that set it relative, so tablets
+   (up to 1024px, or any touch screen) get the fix too. */
+@media (pointer: coarse), (max-width: 1024px) {
+  .auth-password-toggle { position: absolute; }
+}

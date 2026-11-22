@@ -21,7 +21,7 @@ const IconButton = ({ label, shortcut, onClick, disabled, children }) => (
     title={shortcut ? `${label} (${shortcut})` : label}
     onClick={onClick}
     disabled={disabled}
-    className="flex size-8 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30 max-lg:size-11"
+    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30 max-lg:size-11"
   >
     {children}
   </button>
@@ -191,7 +191,7 @@ function StudioAppBar({
           onClick={onSave}
           disabled={isPersisting}
           aria-label="Save"
-          className="flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-ink-500 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:opacity-50 max-lg:h-11 max-sm:min-w-11 max-sm:justify-center"
+          className="flex h-8 shrink-0 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-ink-500 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 disabled:opacity-50 max-lg:h-11 max-sm:min-w-11 max-sm:justify-center"
         >
           {isPersisting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
@@ -205,7 +205,7 @@ function StudioAppBar({
           onClick={onPreview}
           // The text label is hidden on phones, leaving an icon: name it.
           aria-label="Preview"
-          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-medium text-ink-800 transition-colors duration-150 hover:bg-ink-200 max-lg:h-11 max-lg:min-w-11 max-lg:justify-center"
+          className="ml-1 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-medium max-sm:ml-0 text-ink-800 transition-colors duration-150 hover:bg-ink-200 max-lg:h-11 max-lg:min-w-11 max-lg:justify-center"
         >
           <Eye size={14} aria-hidden="true" />
           <span className="hidden sm:inline">Preview</span>
@@ -216,7 +216,7 @@ function StudioAppBar({
           disabled={isExporting}
           // The text label is hidden on phones, leaving an icon: name it.
           aria-label={isExporting ? "Preparing your design" : "Add to cart"}
-          className="ml-2 flex h-8 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-semibold text-ink-800 transition-colors duration-150 hover:bg-ink-200 disabled:opacity-60 max-lg:h-11 max-lg:min-w-11 max-lg:justify-center"
+          className="ml-2 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-ink-100 px-3 text-xs font-semibold max-sm:ml-0 text-ink-800 transition-colors duration-150 hover:bg-ink-200 disabled:opacity-60 max-lg:h-11 max-lg:min-w-11 max-lg:justify-center"
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
@@ -229,7 +229,7 @@ function StudioAppBar({
           type="button"
           onClick={onBuyNow}
           disabled={isExporting}
-          className="ml-1 flex h-8 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs max-lg:h-11 max-sm:px-3 font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
+          className="ml-1 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-brand-500 px-4 text-xs max-lg:h-11 max-sm:ml-0 max-sm:px-3 font-semibold text-white shadow-panel transition-all duration-150 hover:bg-brand-600 hover:shadow-raised disabled:opacity-60 disabled:shadow-none"
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
