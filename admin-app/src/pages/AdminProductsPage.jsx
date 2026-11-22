@@ -10,6 +10,7 @@ import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
 import ProductImageUploader from "../components/ProductImageUploader";
 import NewHsnCodePanel from "../components/NewHsnCodePanel";
+import NewCollectionPanel from "../components/NewCollectionPanel";
 // The one source of truth for "buyable", shared with the storefront and the
 // server (src/utils/productAvailability.js). Using it here means the admin sees
 // exactly the availability the customer will.
@@ -34,6 +35,8 @@ const formatMoney = (value) => productCurrency.format(value || 0);
 // Dropdown entry that opens the "new code" panel. Not a valid HSN code (codes
 // are digits only), so it can never collide with a real one.
 const NEW_HSN_OPTION = "__new__";
+// Same idea for the Collection dropdown (collection ids are UUIDs).
+const NEW_COLLECTION_OPTION = "__new_collection__";
 
 const STATUS_OPTIONS = ["active", "draft", "archived"];
 
@@ -238,6 +241,20 @@ function AdminProductsPage() {
       .catch(() => setCollections([]));
   }, [token]);
   const [isAddingHsn, setIsAddingHsn] = useState(false);
+  const [isAddingCollection, setIsAddingCollection] = useState(false);
+
+  // A collection created from the product form joins the list (and the list
+  // filter) and this product is put in it.
+  const handleCollectionCreated = (row) => {
+    setCollections((current) =>
+      current.some((existing) => existing.id === row.id)
+        ? current
+        : [...current, row].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    setForm((current) => ({ ...current, collectionId: row.id }));
+    setFieldErrors((current) => ({ ...current, collectionId: undefined }));
+    setIsAddingCollection(false);
+  };
 
   // A code added from the product form joins the shared list (so every other
   // product can pick it too) and is selected for this one.
@@ -272,6 +289,7 @@ function AdminProductsPage() {
     setFieldErrors({});
     setActionMessage("");
     setIsAddingHsn(false);
+    setIsAddingCollection(false);
     revealPanel();
   };
 
@@ -281,6 +299,7 @@ function AdminProductsPage() {
     setFieldErrors({});
     setActionMessage("");
     setIsAddingHsn(false);
+    setIsAddingCollection(false);
     revealPanel();
   };
 
@@ -644,9 +663,24 @@ function AdminProductsPage() {
                   label="Collection"
                   htmlFor="f-collection"
                   error={fieldErrors.collectionId}
-                  helperText="Put this product inside a collection, e.g. one design in Wedding Invitation Suite. Manage them under Collections."
+                  helperText={
+                    collections.length === 0
+                      ? "No collections yet. Choose “+ New collection…” to create one (e.g. Wedding Invitation Suite) and put this product in it."
+                      : "Put this product inside a collection, e.g. one design in Wedding Invitation Suite. Not listed? Choose “+ New collection…”."
+                  }
                 >
-                  <select id="f-collection" value={form.collectionId} onChange={setField("collectionId")}>
+                  <select
+                    id="f-collection"
+                    value={form.collectionId}
+                    onChange={(event) => {
+                      // The "new" entry opens the panel; it never becomes the value.
+                      if (event.target.value === NEW_COLLECTION_OPTION) {
+                        setIsAddingCollection(true);
+                        return;
+                      }
+                      setField("collectionId")(event);
+                    }}
+                  >
                     <option value="">None (standalone product)</option>
                     {collections.map((collection) => (
                       <option key={collection.id} value={collection.id}>
@@ -654,6 +688,7 @@ function AdminProductsPage() {
                         {collection.status === "draft" ? " (draft)" : ""}
                       </option>
                     ))}
+                    <option value={NEW_COLLECTION_OPTION}>+ New collection…</option>
                   </select>
                 </InputField>
                 {form.collectionId ? (
@@ -678,6 +713,16 @@ function AdminProductsPage() {
                   </InputField>
                 ) : null}
               </div>
+              {isAddingCollection ? (
+                <NewCollectionPanel
+                  token={token}
+                  existingCollections={collections}
+                  defaultCategory={form.category}
+                  defaultCover={form.images[0] || ""}
+                  onCreated={handleCollectionCreated}
+                  onCancel={() => setIsAddingCollection(false)}
+                />
+              ) : null}
 
               <ProductImageUploader
                 images={form.images}
