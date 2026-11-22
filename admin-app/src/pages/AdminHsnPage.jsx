@@ -3,6 +3,7 @@ import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
 import { createHsnCode, deleteHsnCode, fetchHsnCodes, updateHsnCode } from "../lib/adminApi";
 import { GST_RATES } from "../../../src/utils/gst";
+import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
 const EMPTY_FORM = {
   code: "",
@@ -59,6 +60,7 @@ function AdminHsnPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const { panelRef, listRef, revealPanel, revealList } = useStackedReveal();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -82,6 +84,7 @@ function AdminHsnPage() {
     setForm(toForm(row));
     setFieldErrors({});
     setMessage("");
+    revealPanel();
   };
 
   const startNew = () => {
@@ -89,6 +92,7 @@ function AdminHsnPage() {
     setForm(EMPTY_FORM);
     setFieldErrors({});
     setMessage("");
+    revealPanel();
   };
 
   const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -151,7 +155,7 @@ function AdminHsnPage() {
       </section>
 
       <section className="section-panel admin-dashboard-layout">
-        <div>
+        <div ref={listRef} tabIndex={-1}>
           {loadError ? <p className="field-error">{loadError}</p> : null}
           {isLoading ? (
             <p className="section-copy">Loading…</p>
@@ -170,21 +174,25 @@ function AdminHsnPage() {
                 {rows.map((row) => (
                   <tr
                     key={row._id}
+                    tabIndex={0}
                     onClick={() => startEdit(row)}
+                    onKeyDown={rowKeyHandler(() => startEdit(row))}
                     className={row._id === editingId ? "selected-row" : ""}
                     style={{ cursor: "pointer" }}
                   >
                     <td>
-                      {row.kind} {row.code}
+                      <strong>
+                        {row.kind} {row.code}
+                      </strong>
                     </td>
-                    <td>{row.description}</td>
-                    <td>{rateLabel(row)}</td>
-                    <td>
+                    <td data-label="Description">{row.description}</td>
+                    <td data-label="GST">{rateLabel(row)}</td>
+                    <td data-label="Used for">
                       {row.appliesTo === "product"
                         ? `${row.productCount} product${row.productCount === 1 ? "" : "s"}`
                         : APPLIES_TO_LABELS[row.appliesTo]}
                     </td>
-                    <td>{row.confirmed ? "Confirmed" : "Needs confirming"}</td>
+                    <td data-label="Status">{row.confirmed ? "Confirmed" : "Needs confirming"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -198,13 +206,20 @@ function AdminHsnPage() {
         </div>
 
         <form
+          ref={panelRef}
+          tabIndex={-1}
           className="delivery-form-card"
           onSubmit={(event) => {
             event.preventDefault();
             save(false);
           }}
         >
-          <h3>{editingId ? `Edit ${form.kind} ${form.code}` : "New code"}</h3>
+          <div className="admin-panel-head">
+            <h3>{editingId ? `Edit ${form.kind} ${form.code}` : "New code"}</h3>
+            <button type="button" className="ghost-button admin-back-to-list" onClick={revealList}>
+              Back to list
+            </button>
+          </div>
           {editingRow?.notes ? <p className="availability-note availability-warn">{editingRow.notes}</p> : null}
 
           <div className="admin-filters-grid">

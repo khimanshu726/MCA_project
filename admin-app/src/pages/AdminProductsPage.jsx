@@ -20,6 +20,7 @@ import {
 // Same rules the server enforces on save, so problems show while typing.
 import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
 import { fetchHsnCodes } from "../lib/adminApi";
+import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
 const productCurrency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -182,6 +183,7 @@ function AdminProductsPage() {
   const [storageDurable, setStorageDurable] = useState(true);
 
   const [editingId, setEditingId] = useState(null); // null = creating
+  const { panelRef, listRef, revealPanel, revealList } = useStackedReveal();
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -238,6 +240,7 @@ function AdminProductsPage() {
     setForm(EMPTY_FORM);
     setFieldErrors({});
     setActionMessage("");
+    revealPanel();
   };
 
   const startEdit = (product) => {
@@ -245,6 +248,7 @@ function AdminProductsPage() {
     setForm(toForm(product));
     setFieldErrors({});
     setActionMessage("");
+    revealPanel();
   };
 
   const setField = (key) => (event) => {
@@ -374,7 +378,7 @@ function AdminProductsPage() {
       </section>
 
       <section className="section-panel admin-dashboard-layout">
-        <div className="admin-orders-column">
+        <div className="admin-orders-column" ref={listRef} tabIndex={-1}>
           <div className="delivery-form-card admin-filters-grid">
             <div className="input-field">
               <label className="field-label strong-label" htmlFor="product-status">
@@ -449,21 +453,23 @@ function AdminProductsPage() {
                     <tr
                       key={product.id}
                       className={editingId === product.id ? "selected-row" : ""}
+                      tabIndex={0}
                       onClick={() => startEdit(product)}
+                      onKeyDown={rowKeyHandler(() => startEdit(product))}
                     >
                       <td>
                         <strong>{product.name}</strong>
                         <span>MOQ {getMinimumOrderQty(product)}</span>
                       </td>
-                      <td>{product.category}</td>
-                      <td>{formatMoney(product.price)}</td>
-                      <td>
+                      <td data-label="Category">{product.category}</td>
+                      <td data-label="Price">{formatMoney(product.price)}</td>
+                      <td data-label="Stock">
                         <StockCell product={product} />
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`status-badge status-${product.status}`}>{product.status}</span>
                       </td>
-                      <td>
+                      <td data-label="GST">
                         {!product.hsnCode ? (
                           <span className="status-badge status-draft">No HSN</span>
                         ) : hsnByCode.get(product.hsnCode)?.confirmed ? (
@@ -486,9 +492,14 @@ function AdminProductsPage() {
           </div>
         </div>
 
-        <aside className="checkout-column">
+        <aside className="checkout-column" ref={panelRef} tabIndex={-1}>
           <div className="summary-card">
-            <p className="eyebrow">{editingId ? "Edit product" : "New product"}</p>
+            <div className="admin-panel-head">
+              <p className="eyebrow">{editingId ? "Edit product" : "New product"}</p>
+              <button type="button" className="ghost-button admin-back-to-list" onClick={revealList}>
+                Back to list
+              </button>
+            </div>
 
             <form className="admin-product-form" onSubmit={handleSubmit}>
               <InputField label="Name" htmlFor="f-name" error={fieldErrors.name}>

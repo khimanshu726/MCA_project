@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_ASSET_BASE_URL, deleteOrder, fetchOrder, fetchOrders, updateOrder } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import ShipmentPanel from "../components/ShipmentPanel";
+import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
 const statusOptions = [
   "All",
@@ -66,6 +67,13 @@ function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const { panelRef, listRef, revealPanel, revealList } = useStackedReveal();
+  // Only a row the admin picked scrolls; the first order auto-selected on
+  // load must not yank the page away from the filters.
+  const openOrder = (orderId) => {
+    setSelectedOrderId(orderId);
+    revealPanel();
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [error, setError] = useState("");
@@ -233,7 +241,7 @@ function AdminOrdersPage() {
       </section>
 
       <section className="section-panel admin-dashboard-layout">
-        <div className="admin-orders-column">
+        <div className="admin-orders-column" ref={listRef} tabIndex={-1}>
           <div className="delivery-form-card admin-filters-grid">
             <div className="input-field">
               <label className="field-label strong-label" htmlFor="status-filter">
@@ -301,19 +309,21 @@ function AdminOrdersPage() {
                       className={`${selectedOrderId === order.id ? "selected-row" : ""} ${
                         order.notificationStatus === "Unread" ? "unread-row" : ""
                       }`}
-                      onClick={() => setSelectedOrderId(order.id)}
+                      tabIndex={0}
+                      onClick={() => openOrder(order.id)}
+                      onKeyDown={rowKeyHandler(() => openOrder(order.id))}
                     >
                       <td>
                         <strong>{order.orderId}</strong>
                         <span>{new Date(order.createdAt).toLocaleDateString("en-IN")}</span>
                       </td>
-                      <td>
+                      <td data-label="Customer">
                         <strong>{order.customerName}</strong>
                         <span>{order.phone}</span>
                       </td>
-                      <td>{order.productName}</td>
-                      <td>{formatMoney(order.price)}</td>
-                      <td>
+                      <td data-label="Products">{order.productName}</td>
+                      <td data-label="Total">{formatMoney(order.price)}</td>
+                      <td data-label="Status">
                         <span className={`status-badge status-${order.orderStatus.toLowerCase()}`}>
                           {statusLabel(order.orderStatus)}
                         </span>
@@ -330,9 +340,14 @@ function AdminOrdersPage() {
           </div>
         </div>
 
-        <aside className="checkout-column">
+        <aside className="checkout-column" ref={panelRef} tabIndex={-1}>
           <div className="summary-card">
-            <p className="eyebrow">Order detail</p>
+            <div className="admin-panel-head">
+              <p className="eyebrow">Order detail</p>
+              <button type="button" className="ghost-button admin-back-to-list" onClick={revealList}>
+                Back to list
+              </button>
+            </div>
             {isDetailLoading ? (
               <p className="section-copy">Loading the selected order...</p>
             ) : selectedOrder ? (
