@@ -18,6 +18,7 @@ import {
   createAdminCollection,
   deleteAdminCollection,
   listAdminCollections,
+  makeProductCollection,
   updateAdminCollection,
 } from "../controllers/collectionController.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
@@ -55,5 +56,7 @@ router.get("/collections", listAdminCollections);
 router.post("/collections", createAdminCollection);
 router.put("/collections/:id", updateAdminCollection);
 router.delete("/collections/:id", deleteAdminCollection);
+// Turn an existing product into a collection, keeping it inside as the first design.
+router.post("/products/:id/make-collection", makeProductCollection);
 
 export default router;

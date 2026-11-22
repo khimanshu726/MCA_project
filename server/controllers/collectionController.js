@@ -1,5 +1,6 @@
 import { Collection, slugifyCollectionName } from "../models/Collection.js";
 import { Product } from "../models/Product.js";
+import { escapeRegExp } from "../utils/escapeRegExp.js";
 
 const EDITABLE_FIELDS = ["name", "description", "coverImage", "category", "status", "legacyProductIds"];
 
@@ -133,6 +134,62 @@ export const getCollection = async (req, res, next) => {
     const stats = await statsByCollection({ status: "active", collectionId: row.id });
     return res.json({ collection: serialize(row, stats.get(row.id)) });
   } catch (error) {
+    return next(error);
+  }
+};
+
+// ── Turn a product into a collection ─────────────────────────────────────
+
+/**
+ * Makes a collection out of an existing product (same name, description,
+ * category, first photo as cover) and keeps the product inside it as the
+ * first design, still on sale at the same URL. Used from the product form.
+ */
+export const makeProductCollection = async (req, res, next) => {
+  try {
+    const product = await Product.findOne({ id: req.params.id });
+    if (!product) return res.status(404).json({ message: "Product not found." });
+
+    if (product.collectionId) {
+      return res.status(409).json({ message: "This product is already in a collection." });
+    }
+
+    const name = product.name.trim();
+    const clash = await Collection.exists({
+      $or: [{ name: new RegExp(`^${escapeRegExp(name)}$`, "i") }, { slug: slugifyCollectionName(name) }],
+    });
+    if (clash) {
+      return res.status(409).json({
+        message: `A collection named "${name}" already exists. Pick it from the Collection list instead.`,
+      });
+    }
+
+    const collection = await Collection.create({
+      name,
+      slug: slugifyCollectionName(name),
+      description: product.description || "",
+      coverImage: product.images?.[0] || "",
+      category: product.category,
+      status: product.status === "active" ? "active" : "draft",
+    });
+
+    try {
+      product.collectionId = collection.id;
+      await product.save();
+    } catch (error) {
+      // Never leave an empty collection behind a failed move.
+      await collection.deleteOne();
+      throw error;
+    }
+
+    const stats = await statsByCollection({ collectionId: collection.id });
+    return res.status(201).json({
+      collection: serialize(collection, stats.get(collection.id)),
+      product: product.toObject(),
+    });
+  } catch (error) {
+    const errors = validationErrors(error);
+    if (errors) return res.status(400).json({ message: "Please correct the fields.", errors });
     return next(error);
   }
 };

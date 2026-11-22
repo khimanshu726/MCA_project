@@ -266,3 +266,72 @@ describe("storefront collection links", () => {
     expect(res.text).not.toContain("/collections/hidden-suite");
   });
 });
+
+describe("making a product into a collection", () => {
+  const make = (productId) => asAdmin(request(app).post(`/api/admin/products/${productId}/make-collection`));
+
+  it("creates a collection from the product and keeps the product inside, still on sale", async () => {
+    const product = await seedDesign({
+      id: "wedding-suite",
+      name: "Wedding Invitation Suite",
+      description: "Invitation, RSVP and detail cards",
+      category: "Invitations",
+      images: ["https://example.com/suite-1.jpg", "https://example.com/suite-2.jpg"],
+    });
+
+    const response = await make(product.id);
+    expect(response.status).toBe(201);
+    expect(response.body.collection).toMatchObject({
+      name: "Wedding Invitation Suite",
+      slug: "wedding-invitation-suite",
+      description: "Invitation, RSVP and detail cards",
+      category: "Invitations",
+      coverImage: "https://example.com/suite-1.jpg",
+      status: "active",
+      productCount: 1,
+    });
+    expect(response.body.product).toMatchObject({ id: "wedding-suite", status: "active" });
+    expect(response.body.product.collectionId).toBe(response.body.collection.id);
+
+    // On the shop: a live collection with one design, shown instead of the product.
+    const live = await request(app).get("/api/collections/wedding-invitation-suite");
+    expect(live.body.collection.productCount).toBe(1);
+    const catalogue = await request(app).get("/api/products?excludeCollected=true");
+    expect(catalogue.body.items.map((item) => item.id)).not.toContain("wedding-suite");
+    // Its own page still works.
+    expect((await request(app).get("/api/products/wedding-suite")).status).toBe(200);
+  });
+
+  it("makes a draft collection from a draft product", async () => {
+    const product = await seedDesign({ name: "Draft Thing", status: "draft" });
+    const response = await make(product.id);
+    expect(response.status).toBe(201);
+    expect(response.body.collection.status).toBe("draft");
+  });
+
+  it("refuses a product that's already in a collection, without creating another", async () => {
+    const collection = await createCollection();
+    const product = await seedDesign({ collectionId: collection.id });
+
+    const response = await make(product.id);
+    expect(response.status).toBe(409);
+    expect(await Collection.countDocuments()).toBe(1);
+  });
+
+  it("refuses when a collection with that name already exists, and changes nothing", async () => {
+    await createCollection({ name: "Classic Visiting Card" });
+    const product = await seedDesign({ name: "classic visiting card" });
+
+    const response = await make(product.id);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/already exists/);
+    expect(await Collection.countDocuments()).toBe(1);
+    expect((await Product.findOne({ id: product.id })).collectionId).toBe("");
+  });
+
+  it("404s an unknown product, and needs an admin", async () => {
+    expect((await make("no-such-product")).status).toBe(404);
+    const product = await seedDesign();
+    expect((await request(app).post(`/api/admin/products/${product.id}/make-collection`)).status).toBe(401);
+  });
+});
