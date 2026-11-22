@@ -137,6 +137,7 @@ export const categoryMenu = [
   { label: "Merchandise", category: "Clothing & Merchandise" },
   { label: "Photo Gifts", category: "Photo Gifts" },
   { label: "Invitations", category: "Invitations" },
+  { label: "Wedding Cards", category: "Wedding Cards" },
   { label: "Institutions", category: "Institutional Supplies" },
 ];
 

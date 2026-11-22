@@ -21,6 +21,8 @@ export const EDITABLE_PRODUCT_FIELDS = [
   "minimumOrderQty",
   "priceTiers",
   "hsnCode",
+  "collectionId",
+  "designType",
   "badge",
   "materials",
   "options",
@@ -51,6 +53,8 @@ export const listProducts = async ({
   status,
   featured,
   ids,
+  collection,
+  excludeCollected = false,
   page = 1,
   limit = 24,
   sort = "-createdAt",
@@ -76,6 +80,14 @@ export const listProducts = async ({
     filter.id = { $in: ids };
   }
 
+  if (collection) {
+    filter.collectionId = collection;
+  } else if (excludeCollected && !q) {
+    // The main catalogue shows a collection as one card instead of all of its
+    // designs; a search still finds designs individually.
+    filter.collectionId = { $in: ["", null] };
+  }
+
   if (q) {
     // Escape the user input so it matches literally — an unescaped regex here is
     // a ReDoS vector (e.g. q="(a+)+$" hangs the event loop). Cap the length too,
@@ -85,6 +97,7 @@ export const listProducts = async ({
       { name: new RegExp(safe, "i") },
       { description: new RegExp(safe, "i") },
       { category: new RegExp(safe, "i") },
+      { designType: new RegExp(safe, "i") },
     ];
   }
 
@@ -121,8 +134,26 @@ export const getProductsByIds = async (ids) => {
   return products.map(serializeProduct);
 };
 
+const slugifyName = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+// Slugs are unique, and duplicating a product twice gives two "X (copy)"s.
+// Suffix -2, -3… instead of failing on the unique index.
+const uniqueSlugFor = async (name) => {
+  const base = slugifyName(name) || "product";
+  let candidate = base;
+  for (let n = 2; await Product.exists({ slug: candidate }); n += 1) {
+    candidate = `${base}-${n}`;
+  }
+  return candidate;
+};
+
 export const createProductRecord = async (payload) => {
   const product = new Product({
+    slug: await uniqueSlugFor(payload.name),
     id: payload.id || crypto.randomUUID(),
     name: payload.name?.trim(),
     description: payload.description?.trim(),
@@ -138,6 +169,8 @@ export const createProductRecord = async (payload) => {
     minimumOrderQty: Number(payload.minimumOrderQty) || 1,
     priceTiers: Array.isArray(payload.priceTiers) ? payload.priceTiers : [],
     hsnCode: typeof payload.hsnCode === "string" ? payload.hsnCode.trim() : "",
+    collectionId: typeof payload.collectionId === "string" ? payload.collectionId.trim() : "",
+    designType: typeof payload.designType === "string" ? payload.designType.trim() : "",
     badge: payload.badge || "",
     materials: payload.materials || [],
     options: payload.options || [],

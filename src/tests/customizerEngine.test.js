@@ -42,6 +42,7 @@ describe("template registry", () => {
   it("resolves a template from a product category with a fallback", () => {
     expect(getTemplateForProduct({ id: "x", category: "Visiting Cards" }).id).toBe("visiting-cards");
     expect(getTemplateForProduct({ id: "x", category: "Banners" }).id).toBe("banners");
+    expect(getTemplateForProduct({ id: "x", category: "Wedding Cards" }).id).toBe("invitations");
     expect(getTemplateForProduct({ id: "x", category: "Unknown Category" }).id).toBe("custom-print");
     expect(getTemplateForProduct(null).id).toBe("custom-print");
     expect(getTemplateById("nope").id).toBe("custom-print");

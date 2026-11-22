@@ -61,6 +61,12 @@ const productSchema = new mongoose.Schema(
     // HSN/SAC code (HsnCode.code). The GST rate is always read from that row,
     // never stored here. Empty until the owner assigns one.
     hsnCode: { type: String, default: "", trim: true },
+    // Collection this product is a design in (Collection.id), e.g. one wedding
+    // card inside "Wedding Invitation Suite". Empty = a standalone product.
+    collectionId: { type: String, default: "", trim: true, index: true },
+    // The design's type within its collection ("Royal", "Floral"), used for
+    // the collection page's filter chips. Free text.
+    designType: { type: String, default: "", trim: true },
     badge: { type: String, default: "" },
     materials: { type: [String], default: [] },
     options: { type: [productOptionSchema], default: [] },
