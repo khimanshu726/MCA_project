@@ -138,13 +138,14 @@ export function useCart() {
   // product loaded and its stock can't meet its MOQ. A line whose product was
   // removed from the catalog (`isMissing`) still counts, so the badge matches
   // the line the customer will find in the cart and can remove.
+  //
+  // It counts products (cart lines), not units: print quantities run to the
+  // hundreds, so 100 visiting cards made the badge read "100", which looks
+  // like a hundred things in the cart. One line = one, matching the cart
+  // page's "N items".
   const cartCount = useMemo(
     () =>
-      items.reduce(
-        (total, item) =>
-          item.savedForLater || (!item.isMissing && item.isOutOfStock) ? total : total + item.quantity,
-        0,
-      ),
+      items.filter((item) => !item.savedForLater && (item.isMissing || !item.isOutOfStock)).length,
     [items],
   );
 
