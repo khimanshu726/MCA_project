@@ -471,3 +471,190 @@
     position: static;
   }
 }
+
+/* ── Phones and tablets (mobile review, step 4) ─────────────────────── */
+
+/* The admin header never had a layout of its own: it borrowed the
+   storefront's .site-header, whose grid lives on a row the admin doesn't
+   render. Brand left, nav right, wrapping when there isn't room. */
+.admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 0.85rem 2rem;
+}
+
+.admin-header .site-nav {
+  align-items: center;
+}
+
+/* Panel heading with the phone-only way back to the list beside it. */
+.admin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-panel-head > :first-child {
+  margin: 0;
+}
+
+.admin-back-to-list {
+  display: none;
+}
+
+/* Focus follows the scroll to the panel / list; that is for screen readers
+   and keyboards, not something to draw a ring around. */
+.admin-shell [tabindex="-1"]:focus {
+  outline: none;
+}
+
+.orders-table tbody tr:focus-visible {
+  outline: 2px solid var(--accent, #d86a3d);
+  outline-offset: -2px;
+}
+
+@media (max-width: 1080px) {
+  .admin-back-to-list {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  /* Scrolled-to panels stop clear of the sticky header. */
+  .admin-shell .admin-dashboard-layout > * {
+    scroll-margin-top: 96px;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-header {
+    padding: 0.75rem 1rem;
+    /* Two rows tall on a phone: pinning it would cost a fifth of the screen
+       on every admin page. */
+    position: static;
+  }
+
+  /* Five destinations don't fit on one line at 375px; "Storefront" and
+     Logout used to run off the right edge. Wrap them instead, full width. */
+  .admin-header .site-nav {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .admin-header .site-nav .nav-link,
+  .admin-header .site-nav .compact-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .admin-header .site-nav .compact-button {
+    margin-left: auto;
+  }
+
+  .admin-shell .admin-dashboard-layout > * {
+    scroll-margin-top: 12px;
+  }
+
+  .admin-back-to-list,
+  .admin-shell .compact-button {
+    min-height: 44px;
+  }
+
+  .checkbox-row,
+  .image-url-fallback summary {
+    min-height: 44px;
+  }
+
+  .image-url-fallback summary {
+    display: flex;
+    align-items: center;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Image controls only appear on hover, which a phone doesn't have. */
+  .image-thumb-actions {
+    opacity: 1;
+  }
+
+  .image-thumb-actions button {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* ── Tables become stacked cards ── */
+
+  /* Wide tables (456–514px) scrolled sideways inside their box, hiding the
+     status and GST columns. Each row becomes a card: the first cell is the
+     title, the rest are labelled pairs in two columns. */
+  .orders-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .orders-table,
+  .orders-table tbody {
+    display: block;
+  }
+
+  .orders-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--stroke, rgba(131, 102, 76, 0.12));
+  }
+
+  .orders-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .orders-table td,
+  .orders-table tbody tr:last-child td {
+    display: block;
+    padding: 0;
+    border: none;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .orders-table td:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .orders-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted, #6d655d);
+  }
+
+  .orders-table td span {
+    font-size: 0.8rem;
+  }
+
+  /* The selection bar moves from the first cell to the whole card. */
+  .orders-table tbody tr.selected-row td:first-child {
+    box-shadow: none;
+  }
+
+  .orders-table tbody tr.selected-row {
+    box-shadow: inset 3px 0 0 var(--accent, #d86a3d);
+  }
+}
