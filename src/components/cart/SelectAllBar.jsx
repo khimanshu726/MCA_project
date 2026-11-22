@@ -5,7 +5,8 @@ function SelectAllBar({ allSelected, someSelected, onToggleAll, selectedCount, o
 
   return (
     <div className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-4 py-3 text-sm">
-      <label className="flex items-center gap-2 font-medium text-ink-700">
+      {/* -my-3 py-3: a 44px+ tap area without making the bar taller. */}
+      <label className="-my-3 flex items-center gap-2 py-3 font-medium text-ink-700">
         <input
           type="checkbox"
           className="size-4 rounded border-ink-300 text-brand-500 focus:ring-brand-500"
@@ -20,7 +21,7 @@ function SelectAllBar({ allSelected, someSelected, onToggleAll, selectedCount, o
       {selectedCount > 0 ? (
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 font-semibold text-danger-600 hover:text-danger-700"
+          className="-my-3 inline-flex items-center gap-1.5 py-3 font-semibold text-danger-600 hover:text-danger-700"
           onClick={onBulkRemove}
         >
           <Trash2 size={14} /> Remove selected ({selectedCount})

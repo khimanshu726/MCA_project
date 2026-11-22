@@ -22,7 +22,7 @@ function CouponForm({ pricing, isAuthenticated, isApplyingCoupon, onApplyCoupon,
     return (
       <div className="flex items-center gap-2 rounded-xl border border-dashed border-ink-200 px-3 py-2 text-sm text-ink-400">
         <Tag size={15} className="shrink-0" aria-hidden="true" />
-        <Link to="/login" className="font-medium text-brand-600 hover:underline">
+        <Link to="/login" className="-mx-1.5 -my-3 inline-flex items-center px-1.5 py-3 font-medium text-brand-600 hover:underline">
           Log in
         </Link>
         <span>to apply a coupon code.</span>
@@ -155,7 +155,7 @@ function OrderSummaryCard({
       {!canCheckout && checkoutDisabledReason ? (
         <p className="mt-2 text-center text-xs text-ink-400">{checkoutDisabledReason}</p>
       ) : null}
-      <Link to="/products" className="mt-3 block text-center text-sm font-medium text-ink-600 hover:text-brand-600">
+      <Link to="/products" className="mt-1 flex min-h-11 items-center justify-center text-sm font-medium text-ink-600 hover:text-brand-600">
         Continue shopping
       </Link>
 
