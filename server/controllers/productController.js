@@ -9,7 +9,7 @@ const parseBoolean = (value) => {
 
 export const getProducts = async (req, res, next) => {
   try {
-    const { category, q, sort, page, limit, featured, ids } = req.query;
+    const { category, q, sort, page, limit, featured, ids, collection, excludeCollected } = req.query;
     const idList = typeof ids === "string" ? ids.split(",").map((id) => id.trim()).filter(Boolean) : undefined;
 
     const result = await listProducts({
@@ -20,6 +20,8 @@ export const getProducts = async (req, res, next) => {
       limit: limit || idList?.length,
       featured: parseBoolean(featured),
       ids: idList,
+      collection: typeof collection === "string" ? collection : undefined,
+      excludeCollected: excludeCollected === "true",
     });
 
     return res.json(result);

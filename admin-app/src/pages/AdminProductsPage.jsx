@@ -20,7 +20,8 @@ import {
 } from "../../../src/utils/productAvailability";
 // Same rules the server enforces on save, so problems show while typing.
 import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
-import { fetchHsnCodes } from "../lib/adminApi";
+import { fetchAdminCollections, fetchHsnCodes } from "../lib/adminApi";
+import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
 import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
 const productCurrency = new Intl.NumberFormat("en-IN", {
@@ -34,21 +35,6 @@ const formatMoney = (value) => productCurrency.format(value || 0);
 // are digits only), so it can never collide with a real one.
 const NEW_HSN_OPTION = "__new__";
 
-// Free-text on the model, but a fixed list keeps the storefront's categories
-// coherent; the storefront filters and studio templates key off these exact
-// strings.
-const CATEGORY_OPTIONS = [
-  "Visiting Cards",
-  "Marketing Materials",
-  "Banners",
-  "Invitations",
-  "Photo Gifts",
-  "Stationery",
-  "Clothing & Merchandise",
-  "Labels & Packaging",
-  "Institutional Supplies",
-  "Photo Frames",
-];
 const STATUS_OPTIONS = ["active", "draft", "archived"];
 
 // `images` is a real array (the uploader owns it); `materials` is still edited
@@ -66,6 +52,10 @@ const EMPTY_FORM = {
   priceTiers: [],
   // HSN/SAC code from the HSN & GST rates list; the GST rate comes from there.
   hsnCode: "",
+  // Collection this product is a design in (e.g. Wedding Invitation Suite),
+  // and its type there ("Royal") for the collection page's filters.
+  collectionId: "",
+  designType: "",
   leadTime: "",
   sku: "",
   badge: "",
@@ -89,6 +79,8 @@ const toForm = (product) => ({
   minimumOrderQty: String(product.minimumOrderQty ?? "1"),
   priceTiers: (product.priceTiers || []).map((tier) => ({ minQty: String(tier.minQty), price: String(tier.price) })),
   hsnCode: product.hsnCode || "",
+  collectionId: product.collectionId || "",
+  designType: product.designType || "",
   leadTime: product.leadTime || "",
   sku: product.sku || "",
   badge: product.badge || "",
@@ -108,6 +100,15 @@ const splitList = (value) =>
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+// Everything carries over; it starts as a draft so a half-edited copy never
+// goes on sale, and "(copy)" makes it obvious in the list until renamed.
+export const buildDuplicatePayload = (form) => ({
+  ...toPayload(form),
+  name: `${form.name.trim()} (copy)`,
+  status: "draft",
+  featured: false,
+});
+
 const toPayload = (form) => ({
   name: form.name.trim(),
   description: form.description.trim(),
@@ -121,6 +122,8 @@ const toPayload = (form) => ({
     .filter((tier) => String(tier.minQty).trim() !== "" || String(tier.price).trim() !== "")
     .map((tier) => ({ minQty: Number(tier.minQty), price: Number(tier.price) })),
   hsnCode: form.hsnCode,
+  collectionId: form.collectionId,
+  designType: form.designType.trim(),
   leadTime: form.leadTime.trim(),
   sku: form.sku.trim(),
   badge: form.badge.trim(),
@@ -178,7 +181,7 @@ function StockCell({ product }) {
 function AdminProductsPage() {
   const { token } = useAdminAuth();
   const [products, setProducts] = useState([]);
-  const [filters, setFilters] = useState({ query: "", status: "All", category: "All" });
+  const [filters, setFilters] = useState({ query: "", status: "All", category: "All", collection: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -202,6 +205,7 @@ function AdminProductsPage() {
         q: filters.query,
         status: filters.status === "All" ? "" : filters.status,
         category: filters.category === "All" ? "" : filters.category,
+        collection: filters.collection,
         limit: 100,
       });
       setProducts(response.items);
@@ -210,7 +214,7 @@ function AdminProductsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filters.category, filters.query, filters.status, token]);
+  }, [filters.category, filters.collection, filters.query, filters.status, token]);
 
   useEffect(() => {
     loadProducts();
@@ -225,6 +229,14 @@ function AdminProductsPage() {
   }, [token]);
   const hsnByCode = useMemo(() => new Map(hsnCodes.map((row) => [row.code, row])), [hsnCodes]);
   const productHsnOptions = hsnCodes.filter((row) => row.appliesTo === "product");
+
+  // Collections for the product's "Collection" field and the list filter.
+  const [collections, setCollections] = useState([]);
+  useEffect(() => {
+    fetchAdminCollections(token)
+      .then((data) => setCollections(data.collections || []))
+      .catch(() => setCollections([]));
+  }, [token]);
   const [isAddingHsn, setIsAddingHsn] = useState(false);
 
   // A code added from the product form joins the shared list (so every other
@@ -355,6 +367,28 @@ function AdminProductsPage() {
     }
   };
 
+  // Adding many similar designs (e.g. 50 wedding cards) is mostly the same
+  // price, MOQ, HSN and collection each time. Duplicate copies the product as
+  // a draft "(copy)" and opens it, so only the name, photos and price change.
+  const handleDuplicate = async () => {
+    if (!editingId) return;
+    setIsSaving(true);
+    setFieldErrors({});
+    setActionMessage("");
+    try {
+      const response = await createProduct(buildDuplicatePayload(form), token);
+      await loadProducts();
+      setEditingId(response.product.id);
+      setForm(toForm(response.product));
+      setActionMessage("Copy created as a draft. Change its name, photos and price, then set it to active.");
+      revealPanel();
+    } catch (duplicateError) {
+      setActionMessage(duplicateError.message || "Unable to duplicate the product.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!editingId || !window.confirm(`Delete ${form.name || "this product"}? This cannot be undone.`)) {
       return;
@@ -370,6 +404,17 @@ function AdminProductsPage() {
   };
 
   const availability = availabilityFromForm(form);
+
+  // Types already used in the chosen collection, offered as suggestions so the
+  // same type isn't spelled three different ways across fifty designs.
+  const designTypeSuggestions = [
+    ...new Set(
+      products
+        .filter((product) => form.collectionId && product.collectionId === form.collectionId)
+        .map((product) => product.designType)
+        .filter(Boolean),
+    ),
+  ].sort();
 
   return (
     <main className="page-stack">
@@ -429,6 +474,23 @@ function AdminProductsPage() {
                 {["All", ...CATEGORY_OPTIONS].map((category) => (
                   <option key={category} value={category}>
                     {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="input-field">
+              <label className="field-label strong-label" htmlFor="product-collection">
+                Collection
+              </label>
+              <select
+                id="product-collection"
+                value={filters.collection}
+                onChange={(e) => setFilters((c) => ({ ...c, collection: e.target.value }))}
+              >
+                <option value="">All</option>
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}
                   </option>
                 ))}
               </select>
@@ -576,6 +638,46 @@ function AdminProductsPage() {
                   ))}
                 </select>
               </InputField>
+
+              <div className="admin-filters-grid">
+                <InputField
+                  label="Collection"
+                  htmlFor="f-collection"
+                  error={fieldErrors.collectionId}
+                  helperText="Put this product inside a collection, e.g. one design in Wedding Invitation Suite. Manage them under Collections."
+                >
+                  <select id="f-collection" value={form.collectionId} onChange={setField("collectionId")}>
+                    <option value="">None (standalone product)</option>
+                    {collections.map((collection) => (
+                      <option key={collection.id} value={collection.id}>
+                        {collection.name}
+                        {collection.status === "draft" ? " (draft)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </InputField>
+                {form.collectionId ? (
+                  <InputField
+                    label="Design type"
+                    htmlFor="f-design-type"
+                    error={fieldErrors.designType}
+                    helperText="Groups designs on the collection page, e.g. Royal, Floral, Laser-cut."
+                  >
+                    <input
+                      id="f-design-type"
+                      type="text"
+                      list="f-design-type-options"
+                      value={form.designType}
+                      onChange={setField("designType")}
+                    />
+                    <datalist id="f-design-type-options">
+                      {designTypeSuggestions.map((type) => (
+                        <option key={type} value={type} />
+                      ))}
+                    </datalist>
+                  </InputField>
+                ) : null}
+              </div>
 
               <ProductImageUploader
                 images={form.images}
@@ -762,6 +864,11 @@ function AdminProductsPage() {
                 <button type="submit" className="primary-button" disabled={isSaving}>
                   {isSaving ? "Saving..." : editingId ? "Save changes" : "Create product"}
                 </button>
+                {editingId ? (
+                  <button type="button" className="secondary-button" onClick={handleDuplicate} disabled={isSaving}>
+                    Duplicate
+                  </button>
+                ) : null}
                 {editingId ? (
                   <button type="button" className="secondary-button danger-button" onClick={handleDelete}>
                     Delete

@@ -9,6 +9,7 @@ import {
 import { mapUserForClient } from "../utils/authHelpers.js";
 import { createUploadedFileUrl } from "../utils/orderHelpers.js";
 import { HsnCode } from "../models/HsnCode.js";
+import { Collection } from "../models/Collection.js";
 
 const hasProductValidationErrors = (errors) => Object.values(errors).some(Boolean);
 
@@ -123,6 +124,17 @@ const validateHsnReference = async (payload, errors) => {
   return errors;
 };
 
+// A product's collection must exist (or be empty = standalone).
+const validateCollectionReference = async (payload, errors) => {
+  if (typeof payload.collectionId === "string" && payload.collectionId.trim() !== "") {
+    const exists = await Collection.exists({ id: payload.collectionId.trim() });
+    if (!exists) {
+      errors.collectionId = "Pick a collection from the list.";
+    }
+  }
+  return errors;
+};
+
 // Mongoose ValidationErrors (e.g. the price ≤ mrp rule, which only fires on
 // save) should read to the admin as a 400 with per-field messages, not a 500.
 const mapMongooseValidationError = (error) => {
@@ -160,6 +172,7 @@ export const getAdminProducts = async (req, res, next) => {
       category: req.query.category,
       q: req.query.q,
       status: req.query.status,
+      collection: typeof req.query.collection === "string" ? req.query.collection : undefined,
       page: req.query.page,
       limit: req.query.limit,
       includeInactive: true,
@@ -173,7 +186,10 @@ export const getAdminProducts = async (req, res, next) => {
 
 export const createAdminProduct = async (req, res, next) => {
   const payload = req.body || {};
-  const errors = await validateHsnReference(payload, validateProductPayload(payload));
+  const errors = await validateCollectionReference(
+    payload,
+    await validateHsnReference(payload, validateProductPayload(payload)),
+  );
 
   if (hasProductValidationErrors(errors)) {
     return res.status(400).json({
@@ -205,7 +221,10 @@ export const createAdminProduct = async (req, res, next) => {
 
 export const updateAdminProduct = async (req, res, next) => {
   const payload = req.body || {};
-  const errors = await validateHsnReference(payload, validateProductPayload(payload, { partial: true }));
+  const errors = await validateCollectionReference(
+    payload,
+    await validateHsnReference(payload, validateProductPayload(payload, { partial: true })),
+  );
 
   if (hasProductValidationErrors(errors)) {
     return res.status(400).json({

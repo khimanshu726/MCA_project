@@ -162,6 +162,8 @@ const CATEGORY_TO_TEMPLATE = {
   "Marketing Materials": "marketing-materials",
   Banners: "banners",
   Invitations: "invitations",
+  // Wedding cards are invitations: same sizes, same starter layouts.
+  "Wedding Cards": "invitations",
   "Photo Gifts": "photo-gifts",
   Stationery: "stationery",
   "Clothing & Merchandise": "clothing-merchandise",

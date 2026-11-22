@@ -5,6 +5,7 @@ import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminOrdersPage from "./pages/AdminOrdersPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminHsnPage from "./pages/AdminHsnPage";
+import AdminCollectionsPage from "./pages/AdminCollectionsPage";
 
 function AdminApp() {
   return (
@@ -15,6 +16,7 @@ function AdminApp() {
         <Route element={<AdminLayout />}>
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/admin/collections" element={<AdminCollectionsPage />} />
           <Route path="/admin/gst" element={<AdminHsnPage />} />
         </Route>
       </Route>

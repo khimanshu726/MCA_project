@@ -14,6 +14,12 @@ import {
 } from "../controllers/adminController.js";
 import { getAdminReviews, patchAdminReview } from "../controllers/reviewController.js";
 import { createHsnCode, deleteHsnCode, listHsnCodes, updateHsnCode } from "../controllers/hsnController.js";
+import {
+  createAdminCollection,
+  deleteAdminCollection,
+  listAdminCollections,
+  updateAdminCollection,
+} from "../controllers/collectionController.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 import { uploadProductImages } from "../middleware/productImageUpload.js";
@@ -44,5 +50,10 @@ router.get("/hsn-codes", listHsnCodes);
 router.post("/hsn-codes", createHsnCode);
 router.put("/hsn-codes/:id", updateHsnCode);
 router.delete("/hsn-codes/:id", deleteHsnCode);
+// Collections that group products, e.g. every wedding card design (see models/Collection.js).
+router.get("/collections", listAdminCollections);
+router.post("/collections", createAdminCollection);
+router.put("/collections/:id", updateAdminCollection);
+router.delete("/collections/:id", deleteAdminCollection);
 
 export default router;

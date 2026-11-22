@@ -170,3 +170,14 @@ export const updateHsnCode = (id, payload, token) =>
   request(`/admin/hsn-codes/${id}`, { method: "PUT", body: payload, token });
 
 export const deleteHsnCode = (id, token) => request(`/admin/hsn-codes/${id}`, { method: "DELETE", token });
+
+// Collections that group products (e.g. every wedding card design).
+export const fetchAdminCollections = (token) => request("/admin/collections", { token });
+
+export const createCollection = (payload, token) =>
+  request("/admin/collections", { method: "POST", body: payload, token });
+
+export const updateCollection = (id, payload, token) =>
+  request(`/admin/collections/${id}`, { method: "PUT", body: payload, token });
+
+export const deleteCollection = (id, token) => request(`/admin/collections/${id}`, { method: "DELETE", token });
