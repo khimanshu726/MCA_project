@@ -93,7 +93,12 @@ function DetailSkeleton() {
 function ProductDetailPage() {
   const { productId } = useParams();
   const { data: product, isLoading, isError } = useProduct(productId);
-  const { data: relatedData } = useProducts({ category: product?.category, limit: 12 });
+  // A design in a collection suggests its sibling designs; anything else, its
+  // category. (The collection is only attached while it's live.)
+  const collection = product?.collection ?? null;
+  const { data: relatedData } = useProducts(
+    collection ? { collection: collection.id, limit: 24 } : { category: product?.category, limit: 12 },
+  );
   const [activeImage, setActiveImage] = useState(null);
   const [quantity, setQuantity] = useState(1);
   // The sticky phone buy bar shows only while the page's own buy buttons are
@@ -211,9 +216,17 @@ function ProductDetailPage() {
         />
 
         <article className="section-panel detail-panel">
-          <Link className="eyebrow detail-category-link" to={`/products?category=${encodeURIComponent(product.category)}`}>
-            {product.category}
-          </Link>
+          {collection ? (
+            <Link className="eyebrow detail-category-link" to={`/collections/${collection.slug}`}>
+              <span aria-hidden="true">← </span>
+              {collection.name}
+              {product.designType ? ` · ${product.designType}` : ""}
+            </Link>
+          ) : (
+            <Link className="eyebrow detail-category-link" to={`/products?category=${encodeURIComponent(product.category)}`}>
+              {product.category}
+            </Link>
+          )}
           <h1 className="detail-title">{product.name}</h1>
 
           <div className="detail-panel-price">
@@ -305,7 +318,10 @@ function ProductDetailPage() {
 
       {related.length > 0 ? (
         <section className="section-panel">
-          <ProductRail title={`More in ${product.category}`} products={related} />
+          <ProductRail
+            title={collection ? `More designs in ${collection.name}` : `More in ${product.category}`}
+            products={related}
+          />
         </section>
       ) : null}
 

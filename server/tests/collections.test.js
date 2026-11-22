@@ -228,3 +228,41 @@ describe("storefront collections", () => {
     expect(byType.body.items.map((item) => item.name)).toEqual(["Floral Bloom"]);
   });
 });
+
+describe("storefront collection links", () => {
+  it("lists a collection under its designs' category too, so hiding the designs never empties a category", async () => {
+    const collection = await createCollection({ category: "Invitations" });
+    await seedDesign({ collectionId: collection.id, category: "Wedding Cards" });
+
+    const byDesigns = await request(app).get("/api/collections?category=Wedding%20Cards");
+    expect(byDesigns.body.collections.map((c) => c.slug)).toEqual(["wedding-invitation-suite"]);
+    const byOwn = await request(app).get("/api/collections?category=Invitations");
+    expect(byOwn.body.collections).toHaveLength(1);
+  });
+
+  it("tells a design's page which live collection it belongs to", async () => {
+    const collection = await createCollection();
+    const design = await seedDesign({ collectionId: collection.id, designType: "Royal" });
+
+    const live = await request(app).get(`/api/products/${design.id}`);
+    expect(live.body.product.collection).toEqual({
+      id: collection.id,
+      name: "Wedding Invitation Suite",
+      slug: "wedding-invitation-suite",
+    });
+
+    await Collection.updateOne({ id: collection.id }, { status: "draft" });
+    const drafted = await request(app).get(`/api/products/${design.id}`);
+    expect(drafted.body.product.collection).toBeUndefined();
+  });
+
+  it("puts active collections in the sitemap", async () => {
+    const collection = await createCollection();
+    await seedDesign({ collectionId: collection.id });
+    await createCollection({ name: "Hidden Suite", status: "draft" });
+
+    const res = await request(app).get("/sitemap.xml");
+    expect(res.text).toContain("/collections/wedding-invitation-suite</loc>");
+    expect(res.text).not.toContain("/collections/hidden-suite");
+  });
+});

@@ -22,6 +22,20 @@ const products = {
 };
 const findProduct = async (id) => products[id] || null;
 
+const weddingSuite = {
+  id: "col-1",
+  slug: "wedding-invitation-suite",
+  name: "Wedding Invitation Suite",
+  description: "Every wedding card design",
+  coverImage: "https://example.com/cover.jpg",
+  status: "active",
+  legacyProductIds: ["wedding-suite"],
+};
+const findCollection = async (slug) => (slug === weddingSuite.slug ? weddingSuite : null);
+const findLegacyCollection = async (productId) =>
+  weddingSuite.legacyProductIds.includes(productId) ? weddingSuite : null;
+const lookups = { findProduct, findCollection, findLegacyCollection };
+
 describe("storefront route list", () => {
   // The server's list must mirror the React routes, or a new page would 404.
   it("covers every <Route path> in src/App.jsx", () => {
@@ -59,6 +73,26 @@ describe("resolveStorefrontStatus", () => {
     expect(status).toBe(expected);
   });
 
+  it.each([
+    ["/collections/wedding-invitation-suite", 200],
+    ["/collections/no-such-collection", 404],
+    ["/collections/%E0%A4", 404],
+    ["/collections/wedding-invitation-suite/extra", 404],
+  ])("%s → %i", async (pathname, expected) => {
+    const { status } = await resolveStorefrontStatus(pathname, lookups);
+    expect(status).toBe(expected);
+  });
+
+  it("sends a retired product's old URL to the collection that replaced it", async () => {
+    const result = await resolveStorefrontStatus("/products/wedding-suite", lookups);
+    expect(result).toMatchObject({ status: 301, redirect: "/collections/wedding-invitation-suite" });
+  });
+
+  it("still 404s a missing product no collection took over", async () => {
+    const { status } = await resolveStorefrontStatus("/products/no-such-product", lookups);
+    expect(status).toBe(404);
+  });
+
   it("answers 200 when the product lookup fails, so an outage never de-indexes live products", async () => {
     const failing = async () => {
       throw new Error("db down");
@@ -82,7 +116,7 @@ describe("storefront HTML responses", () => {
 
     // Same order as server/index.js in production.
     app = express();
-    app.use(createStorefrontStatus({ findProduct }));
+    app.use(createStorefrontStatus(lookups));
     app.use(createBotPrerender(distPath));
     app.get(/^(?!\/api\/|\/uploads\/|\/admin(?:\/|$)).*/, (req, res) => {
       res.status(res.locals.storefrontStatus ?? 200).sendFile(path.join(distPath, "index.html"));
@@ -103,6 +137,22 @@ describe("storefront HTML responses", () => {
     const res = await request(app).get("/this-page-does-not-exist");
     expect(res.statusCode).toBe(404);
     expect(res.text).toContain('<div id="root">');
+  });
+
+  it("redirects a retired product's URL to its collection with a 301", async () => {
+    const res = await request(app).get("/products/wedding-suite");
+    expect(res.status).toBe(301);
+    expect(res.headers.location).toBe("/collections/wedding-invitation-suite");
+  });
+
+  it("gives crawlers the collection's own title and canonical", async () => {
+    const res = await request(app)
+      .get("/collections/wedding-invitation-suite")
+      .set("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1)");
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("<title>Wedding Invitation Suite | Elite Impressions</title>");
+    expect(res.text).toContain("/collections/wedding-invitation-suite");
+    expect(res.text).toContain("https://example.com/cover.jpg");
   });
 
   it("serves a 404 for a product that doesn't exist", async () => {

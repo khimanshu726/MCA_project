@@ -70,8 +70,21 @@ const withBrand = (title) => (title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} 
  * Resolve head metadata for a path. `category` is the ?category= value (products
  * page); `product` is the resolved product doc for /products/:id (or null).
  */
-export function resolveRouteMeta(pathname, category, product) {
+export function resolveRouteMeta(pathname, category, product, collection = null) {
   const base = { image: DEFAULT_IMAGE, type: "website", jsonLd: [] };
+
+  // Collection page (e.g. every wedding card design in one place)
+  if (/^\/collections\/[^/]+$/.test(pathname) && collection) {
+    return {
+      ...base,
+      title: withBrand(collection.name),
+      description:
+        collection.description ||
+        `Browse every ${collection.name} design at Elite Impressions — order online with pan-India shipping.`,
+      canonical: `${SITE_URL}/collections/${collection.slug}`,
+      image: collection.coverImage || DEFAULT_IMAGE,
+    };
+  }
 
   // Product detail
   const productMatch = /^\/products\/[^/]+$/.test(pathname);

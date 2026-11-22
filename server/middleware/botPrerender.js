@@ -59,7 +59,11 @@ export const createBotPrerender = (distPath) => async (req, res, next) => {
       product = await getProductById(decodeURIComponent(productMatch[1]));
     }
 
-    const meta = status === 404 ? notFoundRouteMeta(req.path) : resolveRouteMeta(req.path, req.query.category || null, product);
+    const collection = res.locals.storefrontCollection ?? null;
+    const meta =
+      status === 404
+        ? notFoundRouteMeta(req.path)
+        : resolveRouteMeta(req.path, req.query.category || null, product, collection);
     res.status(status);
     res.set("Content-Type", "text/html; charset=utf-8");
     res.set("Cache-Control", "public, max-age=300");

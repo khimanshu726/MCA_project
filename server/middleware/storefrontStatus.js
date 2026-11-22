@@ -20,8 +20,12 @@ export const createStorefrontStatus =
   async (req, res, next) => {
     if (!isPageRequest(req)) return next();
 
-    const { status, product } = await resolveStorefrontStatus(req.path, options);
+    const { status, product, collection, redirect } = await resolveStorefrontStatus(req.path, options);
+    if (status === 301 && redirect) {
+      return res.redirect(301, redirect);
+    }
     res.locals.storefrontStatus = status;
     res.locals.storefrontProduct = product;
+    res.locals.storefrontCollection = collection ?? null;
     return next();
   };

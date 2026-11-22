@@ -1,6 +1,6 @@
 import { request } from "../lib/api";
 
-export const listProducts = ({ category, q, sort, page, limit, featured, ids } = {}) => {
+export const listProducts = ({ category, q, sort, page, limit, featured, ids, collection, excludeCollected } = {}) => {
   const params = new URLSearchParams();
 
   if (category && category !== "All") params.set("category", category);
@@ -10,6 +10,8 @@ export const listProducts = ({ category, q, sort, page, limit, featured, ids } =
   if (limit) params.set("limit", String(limit));
   if (typeof featured === "boolean") params.set("featured", String(featured));
   if (Array.isArray(ids) && ids.length) params.set("ids", ids.join(","));
+  if (collection) params.set("collection", collection);
+  if (excludeCollected) params.set("excludeCollected", "true");
 
   const query = params.toString();
   return request(`/products${query ? `?${query}` : ""}`);
