@@ -13,6 +13,7 @@ import HomePage from "./pages/HomePage";
 import InstitutionsPage from "./pages/InstitutionsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductsPage from "./pages/ProductsPage";
+import CollectionPage from "./pages/CollectionPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import PaymentFailedPage from "./pages/PaymentFailedPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -65,6 +66,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
+          <Route path="/collections/:slug" element={<CollectionPage />} />
           <Route path="/institutions" element={<InstitutionsPage />} />
           <Route path="/cart" element={<CartPage />} />
           {/* Checkout now requires a signed-in customer (guest checkout is

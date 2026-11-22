@@ -1,4 +1,5 @@
 import { Product } from "../models/Product.js";
+import { Collection } from "../models/Collection.js";
 
 // Canonical site origin for search. Defaults to the www host the shop wants to
 // rank; override with SITE_URL if the canonical domain ever changes.
@@ -27,10 +28,18 @@ const urlEntry = ({ loc, lastmod, priority }) =>
  */
 export const getSitemap = async (_req, res) => {
   try {
-    const products = await Product.find({ status: "active" }, { id: 1, updatedAt: 1 }).lean();
+    const [products, collections] = await Promise.all([
+      Product.find({ status: "active" }, { id: 1, updatedAt: 1 }).lean(),
+      Collection.find({ status: "active" }, { slug: 1, updatedAt: 1 }).lean(),
+    ]);
 
     const entries = [
       ...STATIC_ROUTES.map((route) => ({ loc: `${SITE_URL}${route.path}`, priority: route.priority })),
+      ...collections.map((collection) => ({
+        loc: `${SITE_URL}/collections/${collection.slug}`,
+        lastmod: collection.updatedAt ? new Date(collection.updatedAt).toISOString().slice(0, 10) : null,
+        priority: "0.8",
+      })),
       ...products.map((product) => ({
         loc: `${SITE_URL}/products/${product.id}`,
         lastmod: product.updatedAt ? new Date(product.updatedAt).toISOString().slice(0, 10) : null,

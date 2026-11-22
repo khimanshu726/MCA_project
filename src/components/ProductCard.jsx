@@ -32,7 +32,9 @@ function ProductCard({ product, className = "" }) {
       </div>
       <div className="card-content">
         <div className="card-topline">
-          <p className="eyebrow">{product.category}</p>
+          {/* A design in a collection is labelled by its type ("Royal"); the
+              category is the same for all of them there. */}
+          <p className="eyebrow">{product.designType || product.category}</p>
           {product.badge ? <span className="product-badge">{product.badge}</span> : null}
         </div>
         <h3>{product.name}</h3>

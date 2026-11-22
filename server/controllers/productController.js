@@ -1,4 +1,5 @@
 import { getProductById, listProducts } from "../services/productStore.js";
+import { Collection } from "../models/Collection.js";
 import { getFrequentlyBoughtTogether } from "../services/recommendationService.js";
 
 const parseBoolean = (value) => {
@@ -36,6 +37,18 @@ export const getProductDetail = async (req, res, next) => {
 
     if (!product || product.status !== "active") {
       return res.status(404).json({ message: "Product not found." });
+    }
+
+    // A design inside a live collection links back to it ("← Wedding
+    // Invitation Suite") and offers its sibling designs.
+    if (product.collectionId) {
+      const collection = await Collection.findOne(
+        { id: product.collectionId, status: "active" },
+        { _id: 0, id: 1, name: 1, slug: 1 },
+      ).lean();
+      if (collection) {
+        product.collection = collection;
+      }
     }
 
     return res.json({ product });

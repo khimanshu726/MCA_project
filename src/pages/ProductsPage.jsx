@@ -3,7 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
+import CollectionCard from "../components/CollectionCard";
 import { useProducts } from "../hooks/useProducts";
+import { useCollections } from "../hooks/useCollections";
 
 // Stable fallback so memoised values depending on the list don't recompute
 // on every render while the query is still loading.
@@ -34,8 +36,17 @@ function ProductsPage() {
 
   useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
 
-  const { data, isLoading, isError, refetch } = useProducts({ category, q: query, limit: 100 });
+  // Designs inside a collection (e.g. 50 wedding cards) are left out here and
+  // shown as one collection card instead; a search still finds them one by one.
+  const { data, isLoading, isError, refetch } = useProducts({
+    category,
+    q: query,
+    limit: 100,
+    excludeCollected: true,
+  });
   const items = data?.items ?? EMPTY_LIST;
+  const { data: collections = EMPTY_LIST } = useCollections({ category, enabled: !query });
+  const visibleCollections = query ? EMPTY_LIST : collections;
 
   // Fetched independently of the active category filter so the chip row
   // doesn't collapse to a single option once a category is selected.
@@ -183,18 +194,22 @@ function ProductsPage() {
         ) : (
           <>
             <div className="results-summary">
-              <strong>{visibleProducts.length}</strong> product{visibleProducts.length === 1 ? "" : "s"} available
+              <strong>{visibleProducts.length + visibleCollections.length}</strong>{" "}
+              {visibleProducts.length + visibleCollections.length === 1 ? "result" : "results"}
               {category !== "All" ? ` in ${category}` : ""}
               {query ? ` for "${query}"` : ""}
             </div>
 
             <div className="product-grid">
+              {visibleCollections.map((collection) => (
+                <CollectionCard key={`collection-${collection.id}`} collection={collection} />
+              ))}
               {visibleProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
 
-            {!visibleProducts.length ? (
+            {!visibleProducts.length && !visibleCollections.length ? (
               <div className="empty-state-card">
                 <p className="eyebrow">No products found</p>
                 <h3>Try a broader category or a shorter search term.</h3>
