@@ -181,3 +181,8 @@ export const updateCollection = (id, payload, token) =>
   request(`/admin/collections/${id}`, { method: "PUT", body: payload, token });
 
 export const deleteCollection = (id, token) => request(`/admin/collections/${id}`, { method: "DELETE", token });
+
+// Turns a product into a collection (same name, photo, category) and keeps the
+// product inside it as the first design.
+export const makeProductCollection = (productId, token) =>
+  request(`/admin/products/${productId}/make-collection`, { method: "POST", token });

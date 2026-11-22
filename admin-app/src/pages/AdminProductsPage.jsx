@@ -11,6 +11,8 @@ import InputField from "../components/InputField";
 import ProductImageUploader from "../components/ProductImageUploader";
 import NewHsnCodePanel from "../components/NewHsnCodePanel";
 import NewCollectionPanel from "../components/NewCollectionPanel";
+import CollectionDetailsPanel from "../components/CollectionDetailsPanel";
+import { STOREFRONT_URL } from "../lib/adminAppUrls";
 // The one source of truth for "buyable", shared with the storefront and the
 // server (src/utils/productAvailability.js). Using it here means the admin sees
 // exactly the availability the customer will.
@@ -21,7 +23,7 @@ import {
 } from "../../../src/utils/productAvailability";
 // Same rules the server enforces on save, so problems show while typing.
 import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
-import { fetchAdminCollections, fetchHsnCodes } from "../lib/adminApi";
+import { fetchAdminCollections, fetchHsnCodes, makeProductCollection } from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
 import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
@@ -242,6 +244,44 @@ function AdminProductsPage() {
   }, [token]);
   const [isAddingHsn, setIsAddingHsn] = useState(false);
   const [isAddingCollection, setIsAddingCollection] = useState(false);
+  const [isEditingCollection, setIsEditingCollection] = useState(false);
+  const [isMakingCollection, setIsMakingCollection] = useState(false);
+
+  // The collection the form currently points at, for "Edit collection details".
+  const selectedCollection = collections.find((collection) => collection.id === form.collectionId) || null;
+  // Whether the product, as saved, is outside any collection: only then can it
+  // become one (the server works from the saved product).
+  const savedProduct = editingId ? products.find((product) => product.id === editingId) : null;
+  const canMakeCollection = Boolean(savedProduct && !savedProduct.collectionId && !form.collectionId);
+
+  const handleCollectionDetailsSaved = (row) => {
+    setCollections((current) =>
+      current.map((existing) => (existing.id === row.id ? { ...existing, ...row } : existing)),
+    );
+    setIsEditingCollection(false);
+    setActionMessage(`Collection “${row.name}” updated.`);
+  };
+
+  // Turns the product being edited into a collection with the same name,
+  // photo and category, keeping it inside as the first design.
+  const handleMakeCollection = async () => {
+    if (!editingId) return;
+    setIsMakingCollection(true);
+    setActionMessage("");
+    try {
+      const data = await makeProductCollection(editingId, token);
+      setCollections((current) => [...current, data.collection].sort((a, b) => a.name.localeCompare(b.name)));
+      setForm((current) => ({ ...current, collectionId: data.collection.id }));
+      await loadProducts();
+      setActionMessage(
+        `“${data.collection.name}” is now a collection, with this product as its first design. Add more designs with Duplicate, or pick this collection on new products.`,
+      );
+    } catch (makeError) {
+      setActionMessage(makeError.message || "Unable to make this product a collection.");
+    } finally {
+      setIsMakingCollection(false);
+    }
+  };
 
   // A collection created from the product form joins the list (and the list
   // filter) and this product is put in it.
@@ -290,6 +330,7 @@ function AdminProductsPage() {
     setActionMessage("");
     setIsAddingHsn(false);
     setIsAddingCollection(false);
+    setIsEditingCollection(false);
     revealPanel();
   };
 
@@ -300,6 +341,7 @@ function AdminProductsPage() {
     setActionMessage("");
     setIsAddingHsn(false);
     setIsAddingCollection(false);
+    setIsEditingCollection(false);
     revealPanel();
   };
 
@@ -721,6 +763,51 @@ function AdminProductsPage() {
                   defaultCover={form.images[0] || ""}
                   onCreated={handleCollectionCreated}
                   onCancel={() => setIsAddingCollection(false)}
+                />
+              ) : null}
+
+              {canMakeCollection && !isAddingCollection ? (
+                <div className="collection-actions">
+                  <p className="section-copy">
+                    Want this product to hold its own designs (e.g. many wedding cards)? Make it a collection: it
+                    gets this product&rsquo;s name, photo and category, and keeps this product inside as its first
+                    design.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handleMakeCollection}
+                    disabled={isMakingCollection}
+                  >
+                    {isMakingCollection ? "Making it a collection…" : "Make this product a collection"}
+                  </button>
+                </div>
+              ) : null}
+
+              {selectedCollection && !isEditingCollection ? (
+                <div className="collection-actions">
+                  <button type="button" className="secondary-button" onClick={() => setIsEditingCollection(true)}>
+                    Edit collection details
+                  </button>
+                  {selectedCollection.status === "active" ? (
+                    <a
+                      className="ghost-button"
+                      href={`${STOREFRONT_URL}/collections/${selectedCollection.slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View collection on the shop ↗
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+              {selectedCollection && isEditingCollection ? (
+                <CollectionDetailsPanel
+                  key={selectedCollection.id}
+                  token={token}
+                  collection={selectedCollection}
+                  onSaved={handleCollectionDetailsSaved}
+                  onCancel={() => setIsEditingCollection(false)}
                 />
               ) : null}
 

@@ -669,3 +669,16 @@
 .new-hsn-panel .eyebrow {
   margin: 0;
 }
+
+/* Collection actions under the product form's Collection field. */
+.collection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.collection-actions .section-copy {
+  flex-basis: 100%;
+  margin: 0;
+}
