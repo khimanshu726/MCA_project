@@ -27,10 +27,8 @@ function CartProvider({ children }) {
     dispatch({ type: "CLEAR_CART" });
   }, []);
 
-  const cartCount = useMemo(
-    () => cartItems.reduce((total, item) => total + item.quantity, 0),
-    [cartItems],
-  );
+  // Products, not units — same rule as the header badge in hooks/useCart.js.
+  const cartCount = cartItems.length;
 
   const actions = useMemo(
     () => ({ addToCart, removeFromCart, updateQuantity, clearCart }),

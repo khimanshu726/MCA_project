@@ -84,6 +84,63 @@ describe("useCart (guest path)", () => {
   });
 });
 
+// The header badge counts products, not units: print orders come in hundreds,
+// and "100" on the cart icon read as a hundred things in the cart.
+describe("cart badge count", () => {
+  const BadgeHarness = () => {
+    const { cartCount, addToCart } = useCart();
+    return (
+      <div>
+        <div data-testid="badge">{cartCount}</div>
+        <button data-testid="add-cards" onClick={() => addToCart({ id: "cards", price: 2, name: "Cards" }, 100)}>
+          Add cards
+        </button>
+        <button data-testid="add-flyers" onClick={() => addToCart({ id: "flyers", price: 1, name: "Flyers" }, 250)}>
+          Add flyers
+        </button>
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    productsApi.listProducts.mockResolvedValue({ items: [], total: 0, page: 1, limit: 24 });
+    window.localStorage.clear();
+  });
+
+  it("counts one per product for a guest, however many units each line has", async () => {
+    mockUseUserAuth.mockReturnValue({ isAuthenticated: false, token: "" });
+    renderWithProviders(<BadgeHarness />);
+
+    await act(async () => {
+      screen.getByTestId("add-cards").click();
+    });
+    await waitFor(() => expect(screen.getByTestId("badge").textContent).toBe("1"));
+
+    await act(async () => {
+      screen.getByTestId("add-flyers").click();
+    });
+    await waitFor(() => expect(screen.getByTestId("badge").textContent).toBe("2"));
+  });
+
+  it("counts one per buyable product for a signed-in customer", async () => {
+    mockUseUserAuth.mockReturnValue({ isAuthenticated: true, token: "tok" });
+    cartApi.getCart.mockResolvedValue({
+      items: [
+        { productId: "cards", quantity: 100 },
+        { productId: "flyers", quantity: 250 },
+        { productId: "saved", quantity: 500, savedForLater: true },
+        { productId: "unbuyable", quantity: 50, isOutOfStock: true },
+        { productId: "removed", quantity: 10, isMissing: true, isOutOfStock: true },
+      ],
+      pricing: { subtotal: 0 },
+    });
+    renderWithProviders(<BadgeHarness />);
+
+    // cards + flyers + the removed line (still shown in the cart to remove).
+    await waitFor(() => expect(screen.getByTestId("badge").textContent).toBe("3"));
+  });
+});
+
 describe("useCartMerge", () => {
   beforeEach(() => {
     window.localStorage.clear();

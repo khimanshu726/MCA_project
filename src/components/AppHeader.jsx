@@ -32,7 +32,7 @@ function AccountActions({ cartCount, wishlistCount, mobileOpen, onToggleMobile }
       <NavLink
         to="/cart"
         className={({ isActive }) => `nav-link utility-link ${isActive ? "active" : ""}`}
-        aria-label={`Cart with ${cartCount} items`}
+        aria-label={`Cart with ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
       >
         <ShoppingBag size={16} strokeWidth={1.8} aria-hidden="true" />
         <span className="hide-mobile">Cart</span>
