@@ -292,3 +292,14 @@ describe("choosing the cover from a design's photo", () => {
     expect(onPick).toHaveBeenCalledWith("https://x/1.jpg");
   });
 });
+
+describe("the quantity steps hint in the product form", async () => {
+  const { quantityStepHint } = await import("../../admin-app/src/pages/AdminProductsPage");
+
+  it("spells out what customers can pick", () => {
+    expect(quantityStepHint({ minimumOrderQty: "100", quantityStep: "50" })).toBe(
+      "Customers can order 100, 150, 200… (the + and − buttons move by 50).",
+    );
+    expect(quantityStepHint({ minimumOrderQty: "1", quantityStep: "1" })).toMatch(/any amount from 1/);
+  });
+});

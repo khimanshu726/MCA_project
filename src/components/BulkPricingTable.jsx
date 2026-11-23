@@ -1,5 +1,5 @@
 import { getMinimumOrderQty } from "../utils/productAvailability";
-import { getNextTier, getSortedTiers, getUnitPrice } from "../utils/tierPricing";
+import { getSortedTiers } from "../utils/tierPricing";
 import { currencyFormatter } from "./ui/PriceDisplay";
 
 const money = (value) => currencyFormatter.format(value);
@@ -34,25 +34,18 @@ const rangeLabel = (row) =>
 
 /**
  * "Buy more, save more" for a product with volume tiers. Shows each quantity
- * range with its price per piece and saving, marks the range the selected
- * quantity falls in, lets a row set the quantity, and spells out in rupees
- * what the next range would save on the whole order. Renders nothing for a
+ * range with its price each and saving, marks the range the selected
+ * quantity falls in, and lets a row set the quantity. Renders nothing for a
  * product without tiers.
  */
 function BulkPricingTable({ product, quantity, onSelectQuantity, maxQuantity }) {
   const rows = buildBulkRows(product);
   if (rows.length === 0) return null;
 
-  const unitPrice = getUnitPrice(product, quantity);
   const activeIndex = rows.reduce((found, row, index) => (quantity >= row.minQty ? index : found), 0);
-  const nextTier = getNextTier(product, quantity);
   const best = rows[rows.length - 1];
 
   const canPick = (row) => Boolean(onSelectQuantity) && (!maxQuantity || row.minQty <= maxQuantity);
-
-  // What the next range is worth on the whole order, in rupees.
-  const nextSaving = nextTier ? (unitPrice - nextTier.price) * nextTier.minQty : 0;
-  const moreNeeded = nextTier ? nextTier.minQty - quantity : 0;
 
   return (
     <section className="bulk-pricing" aria-labelledby="bulk-pricing-heading">
@@ -116,30 +109,6 @@ function BulkPricingTable({ product, quantity, onSelectQuantity, maxQuantity }) 
           })}
         </tbody>
       </table>
-
-      <div className="bulk-pricing-summary" role="status">
-        <p>
-          {quantityText(quantity)} × {money(unitPrice)} = <strong>{money(quantity * unitPrice)}</strong>
-        </p>
-        {nextTier ? (
-          <p className="bulk-pricing-nudge">
-            Order {quantityText(moreNeeded)} more ({quantityText(nextTier.minQty)} total) and pay {money(nextTier.price)} each
-            instead of {money(unitPrice)}: <strong>{money(nextSaving)} off</strong> that order.
-            {canPick(nextTier) ? (
-              <>
-                {" "}
-                <button type="button" className="bulk-pricing-link" onClick={() => onSelectQuantity(nextTier.minQty)}>
-                  Switch to {quantityText(nextTier.minQty)}
-                </button>
-              </>
-            ) : null}
-          </p>
-        ) : best.saving > 0 ? (
-          <p className="bulk-pricing-best">
-            You&rsquo;re getting our best price: {money(best.saving * quantity)} less than at {money(rows[0].price)} each.
-          </p>
-        ) : null}
-      </div>
     </section>
   );
 }

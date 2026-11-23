@@ -54,6 +54,7 @@ function CheckoutReviewPage() {
     setQuantity,
     minQuantity,
     maxQuantity,
+    quantityStep,
     isMissing: sourceIsMissing,
     isOutOfStock: sourceIsOutOfStock,
     exceedsStock,
@@ -321,6 +322,7 @@ function CheckoutReviewPage() {
                     onChange={setQuantity}
                     min={minQuantity}
                     max={maxQuantity || minQuantity}
+                    step={quantityStep || 1}
                     ariaLabel="Order quantity"
                   />
                 </div>

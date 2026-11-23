@@ -73,3 +73,36 @@ describe("QuantitySelector", () => {
     expect(props.onChange).toHaveBeenCalledWith(8);
   });
 });
+
+describe("QuantitySelector with a step (sold in lots)", () => {
+  const lots = { value: 100, min: 100, max: 1000, step: 50 };
+
+  it("moves one lot at a time: 100 → 150, 150 → 100", () => {
+    const props = renderSelector(lots);
+    fireEvent.click(screen.getByLabelText("Increase quantity"));
+    expect(props.onChange).toHaveBeenLastCalledWith(150);
+  });
+
+  it("steps down by a lot, and with the arrow keys too", () => {
+    const props = renderSelector({ ...lots, value: 250 });
+    fireEvent.click(screen.getByLabelText("Decrease quantity"));
+    expect(props.onChange).toHaveBeenLastCalledWith(200);
+    const input = screen.getByRole("textbox", { name: "Quantity for Test Product" });
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(props.onChange).toHaveBeenLastCalledWith(300);
+  });
+
+  it("snaps a typed amount to the nearest lot", () => {
+    const props = renderSelector(lots);
+    const input = screen.getByRole("textbox", { name: "Quantity for Test Product" });
+    fireEvent.change(input, { target: { value: "180" } });
+    fireEvent.blur(input);
+    expect(props.onChange).toHaveBeenLastCalledWith(200);
+    expect(input).toHaveValue("200");
+  });
+
+  it("stops at the last whole lot within stock", () => {
+    renderSelector({ ...lots, value: 400, max: 420 });
+    expect(screen.getByLabelText("Increase quantity")).toBeDisabled();
+  });
+});

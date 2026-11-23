@@ -16,6 +16,8 @@ import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 import {
   getDefaultOrderQty,
   getMinimumOrderQty,
+  getQuantityStep,
+  snapQuantity,
   isProductLowStock,
   isProductOutOfStock,
 } from "../utils/productAvailability";
@@ -161,8 +163,13 @@ function ProductDetailPage() {
   // at what's actually in stock. Only offer the stepper when there's a real range
   // to choose from — a fixed-MOQ product just uses that quantity.
   const minQty = getMinimumOrderQty(product);
-  const maxQty = Math.max(minQty, Number(product.stock) || minQty);
+  const qtyStep = getQuantityStep(product);
+  // The most that can be ordered on the product's step grid within stock.
+  const maxQty = snapQuantity(Math.max(minQty, Number(product.stock) || minQty), { min: minQty, step: qtyStep }, "down");
   const showStepper = !outOfStock && maxQty > minQty;
+  // A bulk range can start off the step grid; pick the first allowed quantity in it.
+  const selectBulkQuantity = (next) =>
+    setQuantity(snapQuantity(next, { min: minQty, max: maxQty, step: qtyStep }, "up"));
   const related = (relatedData?.items ?? []).filter((entry) => entry.id !== product.id).slice(0, 8);
 
   const productJsonLd = {
@@ -251,7 +258,7 @@ function ProductDetailPage() {
             <BulkPricingTable
               product={product}
               quantity={quantity}
-              onSelectQuantity={setQuantity}
+              onSelectQuantity={selectBulkQuantity}
               maxQuantity={maxQty}
             />
           ) : null}
@@ -282,6 +289,7 @@ function ProductDetailPage() {
                   onChange={setQuantity}
                   min={minQty}
                   max={maxQty}
+                  step={qtyStep}
                   ariaLabel={`Quantity of ${product.name}`}
                 />
               </div>

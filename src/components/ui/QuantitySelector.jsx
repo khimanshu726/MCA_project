@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
 import { Loader2, Minus, Plus } from "lucide-react";
+import { snapQuantity } from "../../utils/productAvailability";
 
-function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false, isPending = false, ariaLabel }) {
+// `step` sells in lots (e.g. 50 from an MOQ of 100: 100, 150, 200…). The
+// buttons move one lot; a typed amount snaps to the nearest allowed one.
+function QuantitySelector({
+  value,
+  onChange,
+  min = 1,
+  max = 99,
+  step = 1,
+  disabled = false,
+  isPending = false,
+  ariaLabel,
+}) {
   const [draft, setDraft] = useState(String(value));
   const isDisabled = disabled || isPending;
 
@@ -9,8 +21,10 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
     setDraft(String(value));
   }, [value]);
 
-  const commit = (nextValue) => {
-    const clamped = Math.min(max, Math.max(min, Number(nextValue) || min));
+  const highest = snapQuantity(max, { min, max, step }, "down");
+
+  const commit = (nextValue, direction = "nearest") => {
+    const clamped = snapQuantity(nextValue, { min, max, step }, direction);
     setDraft(String(clamped));
     if (clamped !== value) {
       onChange(clamped);
@@ -22,10 +36,10 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
       event.currentTarget.blur();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      commit(value + 1);
+      commit(value + step, "down");
     } else if (event.key === "ArrowDown") {
       event.preventDefault();
-      commit(value - 1);
+      commit(value - step, "up");
     }
   };
 
@@ -38,7 +52,7 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
       <button
         type="button"
         className="flex size-11 items-center justify-center rounded-l-xl text-ink-600 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
-        onClick={() => commit(value - 1)}
+        onClick={() => commit(value - step, "up")}
         disabled={isDisabled || value <= min}
         aria-label="Decrease quantity"
       >
@@ -47,7 +61,7 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
       <input
         type="text"
         inputMode="numeric"
-        className="h-11 w-12 border-x border-ink-200 bg-transparent text-center text-sm font-semibold text-ink-900 focus:outline-none"
+        className="h-11 w-14 border-x border-ink-200 bg-transparent text-center text-sm font-semibold text-ink-900 focus:outline-none"
         value={draft}
         disabled={isDisabled}
         onChange={(event) => setDraft(event.target.value.replace(/[^0-9]/g, ""))}
@@ -59,8 +73,8 @@ function QuantitySelector({ value, onChange, min = 1, max = 99, disabled = false
       <button
         type="button"
         className="flex size-11 items-center justify-center rounded-r-xl text-ink-600 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
-        onClick={() => commit(value + 1)}
-        disabled={isDisabled || value >= max}
+        onClick={() => commit(value + step, "down")}
+        disabled={isDisabled || value >= highest}
         aria-label="Increase quantity"
       >
         <Plus size={15} strokeWidth={2} />

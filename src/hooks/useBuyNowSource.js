@@ -3,7 +3,13 @@ import { useProduct } from "./useProduct";
 import { useUserAuth } from "../context/UserAuthContext";
 import { computeClientCartPricing } from "../utils/pricing";
 import { previewCheckoutPricing } from "../lib/api";
-import { getMinimumOrderQty, isProductOutOfStock, isProductLowStock } from "../utils/productAvailability";
+import {
+  getMinimumOrderQty,
+  getQuantityStep,
+  isProductLowStock,
+  isProductOutOfStock,
+  snapQuantity,
+} from "../utils/productAvailability";
 import { getUnitPrice } from "../utils/tierPricing";
 import { clearBuyNowSession, loadBuyNowSession, updateBuyNowQuantity } from "../utils/buyNowSession";
 
@@ -40,6 +46,7 @@ export function useBuyNowSource() {
   const isLowStock = !isMissing && isProductLowStock(product);
 
   const minQuantity = product ? getMinimumOrderQty(product) : 1;
+  const quantityStep = product ? getQuantityStep(product) : 1;
   const maxQuantity = product ? Math.max(0, Number(product.stock) || 0) : 0;
   const exceedsStock = !isMissing && !isOutOfStock && quantity > maxQuantity;
 
@@ -107,13 +114,17 @@ export function useBuyNowSource() {
 
   const setQuantity = useCallback(
     (nextQuantity) => {
-      const clamped = Math.max(minQuantity, Math.min(Number(nextQuantity) || minQuantity, maxQuantity || minQuantity));
+      const clamped = snapQuantity(nextQuantity, {
+        min: minQuantity,
+        max: maxQuantity || minQuantity,
+        step: quantityStep,
+      });
       const updated = updateBuyNowQuantity(clamped);
       if (updated) {
         setSession(updated);
       }
     },
-    [minQuantity, maxQuantity],
+    [minQuantity, maxQuantity, quantityStep],
   );
 
   // A coupon that was valid at 1 unit may fall below its minimum when the
@@ -201,6 +212,7 @@ export function useBuyNowSource() {
     priceChanged,
     minQuantity,
     maxQuantity,
+    quantityStep,
     quantity,
     setQuantity,
     coupon,

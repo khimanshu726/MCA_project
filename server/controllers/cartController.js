@@ -55,6 +55,7 @@ const resolveCartView = async (cart) => {
             stock: product.stock,
             leadTime: product.leadTime,
             minimumOrderQty: product.minimumOrderQty,
+            quantityStep: product.quantityStep || 1,
             priceTiers: product.priceTiers || [],
           },
       isMissing,

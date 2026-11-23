@@ -161,6 +161,21 @@ describe("PUT /api/admin/products/:id", () => {
     expect(res.body.product.slug).toBe(original.slug);
   });
 
+  it("saves quantity steps (sold in lots), defaulting to 1, and refuses a bad one", async () => {
+    const { body } = await seed();
+    expect(body.product.quantityStep).toBe(1);
+
+    const res = await asAdmin(request(app).put(`/api/admin/products/${body.product.id}`)).send({ quantityStep: 50 });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.product.quantityStep).toBe(50);
+
+    for (const quantityStep of [0, 2.5, "lots"]) {
+      const bad = await asAdmin(request(app).put(`/api/admin/products/${body.product.id}`)).send({ quantityStep });
+      expect(bad.statusCode).toBe(400);
+      expect(bad.body.errors).toHaveProperty("quantityStep");
+    }
+  });
+
   it("rejects a stock update that isn't a non-negative integer", async () => {
     const { body } = await seed();
 
