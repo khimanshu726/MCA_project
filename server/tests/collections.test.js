@@ -441,3 +441,51 @@ describe("managing a collection's designs in bulk", () => {
     expect((await request(app).post(`/api/admin/collections/${suite.id}/designs`).send({})).status).toBe(401);
   });
 });
+
+describe("retiring a product into its collection", () => {
+  const retire = (id) => asAdmin(request(app).post(`/api/admin/products/${id}/retire-into-collection`));
+
+  it("hides the product, sends its link to the collection, and keeps it for past orders", async () => {
+    const suite = await createCollection({ category: "Wedding Cards", coverImage: "" });
+    const source = await seedDesign({
+      id: "wedding-suite",
+      name: "Wedding Invitation Suite",
+      collectionId: suite.id,
+      category: "Invitations",
+      images: ["https://example.com/suite.jpg"],
+    });
+    await seedDesign({ collectionId: suite.id, name: "Fancy Red", category: "Wedding Cards" });
+
+    const response = await retire(source.id);
+    expect(response.status).toBe(200);
+    expect(response.body.product.status).toBe("archived");
+    expect(response.body.collection.legacyProductIds).toEqual(["wedding-suite"]);
+    expect(response.body.collection.coverImage).toBe("https://example.com/suite.jpg");
+
+    // Still in the database, out of the listings and the count.
+    expect(await Product.exists({ id: "wedding-suite" })).toBeTruthy();
+    const listed = await request(app).get("/api/products?category=Wedding%20Cards&withCollectionDesigns=true");
+    expect(listed.body.items.map((item) => item.name)).toEqual(["Fancy Red"]);
+    const publicSuite = await request(app).get("/api/collections/wedding-invitation-suite");
+    expect(publicSuite.body.collection.productCount).toBe(1);
+
+    // Doing it twice doesn't duplicate the link.
+    const again = await retire(source.id);
+    expect(again.body.collection.legacyProductIds).toEqual(["wedding-suite"]);
+  });
+
+  it("keeps a collection's own cover", async () => {
+    const suite = await createCollection({ coverImage: "https://example.com/own-cover.jpg" });
+    const source = await seedDesign({ collectionId: suite.id, images: ["https://example.com/other.jpg"] });
+    const response = await retire(source.id);
+    expect(response.body.collection.coverImage).toBe("https://example.com/own-cover.jpg");
+  });
+
+  it("refuses a product outside a collection or an unknown one, and needs an admin", async () => {
+    const loose = await seedDesign();
+    expect((await retire(loose.id)).status).toBe(409);
+    expect((await retire("nope")).status).toBe(404);
+    expect((await request(app).post(`/api/admin/products/${loose.id}/retire-into-collection`)).status).toBe(401);
+    expect((await Product.findOne({ id: loose.id })).status).toBe("active");
+  });
+});

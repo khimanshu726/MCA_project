@@ -222,5 +222,9 @@ export const deleteCollection = (id, token) => request(`/admin/collections/${id}
 
 // Turns a product into a collection (same name, photo, category) and keeps the
 // product inside it as the first design.
+// Archives a product its collection stands for; its old link then opens the collection.
+export const retireProductIntoCollection = (productId, token) =>
+  request(`/admin/products/${productId}/retire-into-collection`, { method: "POST", token });
+
 export const makeProductCollection = (productId, token) =>
   request(`/admin/products/${productId}/make-collection`, { method: "POST", token });
