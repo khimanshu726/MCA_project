@@ -4186,18 +4186,6 @@ textarea {
 }
 .bulk-pricing-pick:hover { text-decoration-color: currentColor; }
 
-.bulk-pricing-badge {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--r-full);
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
 .bulk-pricing-price {
   font-weight: 700;
   font-size: 1.05rem;
@@ -4220,5 +4208,4 @@ textarea {
   .bulk-pricing-table thead th,
   .bulk-pricing-table tbody th,
   .bulk-pricing-table td { padding-left: 0.75rem; padding-right: 0.75rem; }
-  .bulk-pricing-badge { display: block; width: fit-content; margin: 0.25rem 0 0; }
 }
