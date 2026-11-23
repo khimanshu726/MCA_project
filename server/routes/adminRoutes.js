@@ -19,6 +19,7 @@ import {
   deleteAdminCollection,
   listAdminCollections,
   makeProductCollection,
+  updateCollectionDesigns,
   updateAdminCollection,
 } from "../controllers/collectionController.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
@@ -56,6 +57,8 @@ router.get("/collections", listAdminCollections);
 router.post("/collections", createAdminCollection);
 router.put("/collections/:id", updateAdminCollection);
 router.delete("/collections/:id", deleteAdminCollection);
+// Add, remove, publish or re-categorise a collection's designs in one go.
+router.post("/collections/:id/designs", updateCollectionDesigns);
 // Turn an existing product into a collection, keeping it inside as the first design.
 router.post("/products/:id/make-collection", makeProductCollection);
 

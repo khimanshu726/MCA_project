@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
 import CollectionDesignsList from "../components/CollectionDesignsList";
+import DesignPhotoPicker from "../components/DesignPhotoPicker";
 import ProductImageUploader from "../components/ProductImageUploader";
 import { createCollection, deleteCollection, fetchAdminCollections, updateCollection } from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
@@ -139,6 +140,7 @@ function AdminCollectionsPage() {
   };
 
   const editingRow = rows.find((row) => row.id === editingId);
+  const collectionNames = new Map(rows.map((row) => [row.id, row.name]));
 
   return (
     <main className="page-stack">
@@ -237,6 +239,14 @@ function AdminCollectionsPage() {
               onChange={(images) => setForm((current) => ({ ...current, coverImage: images[images.length - 1] || "" }))}
               token={token}
             />
+            {editingId ? (
+              <DesignPhotoPicker
+                token={token}
+                collectionId={editingId}
+                value={form.coverImage}
+                onPick={(url) => setForm((current) => ({ ...current, coverImage: url }))}
+              />
+            ) : null}
           </InputField>
           <div className="admin-filters-grid">
             <InputField
@@ -260,16 +270,29 @@ function AdminCollectionsPage() {
               </select>
             </InputField>
           </div>
-          <InputField
-            label="Old product links to send here"
-            htmlFor="c-legacy"
-            error={fieldErrors.legacyProductIds}
-            helperText="Product ids, comma-separated (e.g. wedding-suite). Once that product is archived, its old link opens this collection."
-          >
-            <input id="c-legacy" type="text" value={form.legacyProductIds} onChange={setField("legacyProductIds")} />
-          </InputField>
+          <details className="admin-advanced">
+            <summary>Advanced</summary>
+            <InputField
+              label="Old product links to send here"
+              htmlFor="c-legacy"
+              error={fieldErrors.legacyProductIds}
+              helperText="Product ids, comma-separated (e.g. wedding-suite). Once that product is archived, its old link opens this collection."
+            >
+              <input id="c-legacy" type="text" value={form.legacyProductIds} onChange={setField("legacyProductIds")} />
+            </InputField>
+          </details>
 
-          {editingRow ? <CollectionDesignsList key={editingRow.id} token={token} collection={editingRow} /> : null}
+          {editingRow ? (
+            <CollectionDesignsList
+              key={editingRow.id}
+              token={token}
+              collection={editingRow}
+              collectionNames={collectionNames}
+              onChanged={(updated) =>
+                setRows((current) => current.map((row) => (row.id === updated.id ? { ...row, ...updated } : row)))
+              }
+            />
+          ) : null}
           {message ? (
             <p className="section-copy" role="status">
               {message}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import InputField from "./InputField";
 import ProductImageUploader from "./ProductImageUploader";
+import DesignPhotoPicker from "./DesignPhotoPicker";
 import { updateCollection } from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
 
@@ -78,6 +79,12 @@ function CollectionDetailsPanel({ token, collection, onSaved, onCancel }) {
           images={draft.coverImage ? [draft.coverImage] : []}
           onChange={(images) => setDraft((current) => ({ ...current, coverImage: images[images.length - 1] || "" }))}
           token={token}
+        />
+        <DesignPhotoPicker
+          token={token}
+          collectionId={collection.id}
+          value={draft.coverImage}
+          onPick={(url) => setDraft((current) => ({ ...current, coverImage: url }))}
         />
       </InputField>
       <InputField label="Shown under" htmlFor="edit-collection-category" error={errors.category}>

@@ -138,6 +138,83 @@ export const getCollection = async (req, res, next) => {
   }
 };
 
+// ── Manage a collection's designs in bulk ────────────────────────────────
+
+const idList = (value) =>
+  Array.isArray(value) ? [...new Set(value.map((id) => String(id).trim()).filter(Boolean))] : [];
+
+/**
+ * Bulk changes to the designs in one collection, from the Collections page:
+ *   add      – product ids to put in this collection (moved from any other)
+ *   remove   – product ids to take out (they become standalone products)
+ *   publish  – product ids in this collection to set active ("on the shop")
+ *   category – set every design in the collection to this category, so the
+ *              collection and its designs are listed in the same place
+ * Any combination may be sent; each only touches what it names.
+ */
+export const updateCollectionDesigns = async (req, res, next) => {
+  try {
+    const collection = await Collection.findOne({ id: req.params.id });
+    if (!collection) return res.status(404).json({ message: "Collection not found." });
+
+    const body = req.body || {};
+    const add = idList(body.add);
+    const remove = idList(body.remove);
+    const publish = idList(body.publish);
+    const category = typeof body.category === "string" ? body.category.trim() : "";
+    if (body.category !== undefined && !category) {
+      return res.status(400).json({
+        message: "Please correct the fields.",
+        errors: { category: "Pick a category." },
+      });
+    }
+
+    if (add.length > 0) {
+      const found = await Product.countDocuments({ id: { $in: add } });
+      if (found !== add.length) {
+        return res.status(400).json({
+          message: "Please correct the fields.",
+          errors: {
+            add: "Some of those products no longer exist. Refresh and try again.",
+          },
+        });
+      }
+    }
+
+    const inThis = { collectionId: collection.id };
+    const changed = { added: 0, removed: 0, published: 0, recategorized: 0 };
+    if (add.length > 0) {
+      changed.added = (await Product.updateMany({ id: { $in: add } }, { $set: inThis })).modifiedCount;
+    }
+    if (remove.length > 0) {
+      changed.removed = (
+        await Product.updateMany({ id: { $in: remove }, ...inThis }, { $set: { collectionId: "" } })
+      ).modifiedCount;
+    }
+    if (publish.length > 0) {
+      changed.published = (
+        await Product.updateMany(
+          { id: { $in: publish }, ...inThis, status: { $ne: "active" } },
+          { $set: { status: "active" } },
+        )
+      ).modifiedCount;
+    }
+    if (category) {
+      changed.recategorized = (
+        await Product.updateMany({ ...inThis, category: { $ne: category } }, { $set: { category } })
+      ).modifiedCount;
+    }
+
+    const stats = await statsByCollection({ collectionId: collection.id });
+    return res.json({
+      collection: serialize(collection, stats.get(collection.id)),
+      changed,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // ── Turn a product into a collection ─────────────────────────────────────
 
 /**

@@ -214,6 +214,10 @@ export const createCollection = (payload, token) =>
 export const updateCollection = (id, payload, token) =>
   request(`/admin/collections/${id}`, { method: "PUT", body: payload, token });
 
+// Bulk changes to a collection's designs: { add, remove, publish: [product ids], category }.
+export const updateCollectionDesigns = (id, changes, token) =>
+  request(`/admin/collections/${id}/designs`, { method: "POST", body: changes, token });
+
 export const deleteCollection = (id, token) => request(`/admin/collections/${id}`, { method: "DELETE", token });
 
 // Turns a product into a collection (same name, photo, category) and keeps the
