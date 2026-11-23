@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { Product } from "../models/Product.js";
+import { Collection } from "../models/Collection.js";
 import { escapeRegExp } from "../utils/escapeRegExp.js";
 
 // The only fields an admin edit may write. `id`, `slug`, `source`, and the
@@ -56,6 +57,7 @@ export const listProducts = async ({
   ids,
   collection,
   excludeCollected = false,
+  withCollectionDesigns = false,
   page = 1,
   limit = 24,
   sort = "-createdAt",
@@ -69,8 +71,19 @@ export const listProducts = async ({
     filter.status = status;
   }
 
+  // Conditions that each need their own $or (category with collection
+  // designs, search) are combined here so neither overwrites the other.
+  const allOf = [];
+
   if (category && category !== "All") {
-    filter.category = category;
+    if (withCollectionDesigns) {
+      // A category page lists every design of the collections shown under
+      // it too, even a design still tagged with another category.
+      const collectionIds = await Collection.find({ category, status: "active" }).distinct("id");
+      allOf.push({ $or: [{ category }, { collectionId: { $in: collectionIds } }] });
+    } else {
+      filter.category = category;
+    }
   }
 
   if (typeof featured === "boolean") {
@@ -83,7 +96,7 @@ export const listProducts = async ({
 
   if (collection) {
     filter.collectionId = collection;
-  } else if (excludeCollected && !q) {
+  } else if (excludeCollected && !q && !withCollectionDesigns) {
     // The main catalogue shows a collection as one card instead of all of its
     // designs; a search still finds designs individually.
     filter.collectionId = { $in: ["", null] };
@@ -94,12 +107,20 @@ export const listProducts = async ({
     // a ReDoS vector (e.g. q="(a+)+$" hangs the event loop). Cap the length too,
     // so a giant literal can't produce a pathologically long pattern.
     const safe = escapeRegExp(String(q).slice(0, 100));
-    filter.$or = [
-      { name: new RegExp(safe, "i") },
-      { description: new RegExp(safe, "i") },
-      { category: new RegExp(safe, "i") },
-      { designType: new RegExp(safe, "i") },
-    ];
+    allOf.push({
+      $or: [
+        { name: new RegExp(safe, "i") },
+        { description: new RegExp(safe, "i") },
+        { category: new RegExp(safe, "i") },
+        { designType: new RegExp(safe, "i") },
+      ],
+    });
+  }
+
+  if (allOf.length === 1) {
+    Object.assign(filter, allOf[0]);
+  } else if (allOf.length > 1) {
+    filter.$and = allOf;
   }
 
   const safeLimit = Math.min(Math.max(Number(limit) || 24, 1), 100);

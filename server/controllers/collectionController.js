@@ -26,11 +26,26 @@ const serialize = (row, stats = {}) => ({
   minPrice: stats.minPrice ?? null,
 });
 
+// For customers: a collection without its own cover shows one of its designs'
+// photos instead of an "Image unavailable" placeholder. (The admin still sees
+// that no cover is set.)
+const serializePublic = (row, stats = {}) => {
+  const plain = serialize(row, stats);
+  return { ...plain, coverImage: plain.coverImage || stats.cover || "" };
+};
+
 // Design counts and lowest prices per collection, in one aggregate.
 const statsByCollection = async (match) => {
   const rows = await Product.aggregate([
     { $match: { collectionId: { $nin: ["", null] }, ...match } },
-    { $group: { _id: "$collectionId", count: { $sum: 1 }, minPrice: { $min: "$price" } } },
+    {
+      $group: {
+        _id: "$collectionId",
+        count: { $sum: 1 },
+        minPrice: { $min: "$price" },
+        cover: { $first: { $arrayElemAt: ["$images", 0] } },
+      },
+    },
   ]);
   return new Map(rows.map((row) => [row._id, row]));
 };
@@ -119,7 +134,7 @@ export const listCollections = async (req, res, next) => {
     // Only what a customer can actually buy counts toward "N designs, from ₹x".
     const stats = await statsByCollection({ status: "active" });
     const collections = rows
-      .map((row) => serialize(row, stats.get(row.id)))
+      .map((row) => serializePublic(row, stats.get(row.id)))
       .filter((collection) => collection.productCount > 0);
     return res.json({ collections });
   } catch (error) {
@@ -132,7 +147,7 @@ export const getCollection = async (req, res, next) => {
     const row = await Collection.findOne({ slug: req.params.slug, status: "active" });
     if (!row) return res.status(404).json({ message: "Collection not found." });
     const stats = await statsByCollection({ status: "active", collectionId: row.id });
-    return res.json({ collection: serialize(row, stats.get(row.id)) });
+    return res.json({ collection: serializePublic(row, stats.get(row.id)) });
   } catch (error) {
     return next(error);
   }

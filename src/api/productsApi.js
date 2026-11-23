@@ -1,6 +1,17 @@
 import { request } from "../lib/api";
 
-export const listProducts = ({ category, q, sort, page, limit, featured, ids, collection, excludeCollected } = {}) => {
+export const listProducts = ({
+  category,
+  q,
+  sort,
+  page,
+  limit,
+  featured,
+  ids,
+  collection,
+  excludeCollected,
+  withCollectionDesigns,
+} = {}) => {
   const params = new URLSearchParams();
 
   if (category && category !== "All") params.set("category", category);
@@ -12,6 +23,7 @@ export const listProducts = ({ category, q, sort, page, limit, featured, ids, co
   if (Array.isArray(ids) && ids.length) params.set("ids", ids.join(","));
   if (collection) params.set("collection", collection);
   if (excludeCollected) params.set("excludeCollected", "true");
+  if (withCollectionDesigns) params.set("withCollectionDesigns", "true");
 
   const query = params.toString();
   return request(`/products${query ? `?${query}` : ""}`);
