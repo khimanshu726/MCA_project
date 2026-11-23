@@ -135,11 +135,30 @@ function CollectionPage() {
       </section>
 
       <section className="section-panel">
-        <div className="catalog-toolbar collection-toolbar">
-          <div className="catalog-sort">
-            <label className="field-label" htmlFor="collection-sort">
-              Sort by
-            </label>
+        {/* One slim row above the designs: type chips (or the count) on the
+            left, a small sort control on the right. */}
+        <div className="listing-bar">
+          {typeChips.length > 1 ? (
+            <div className="category-chip-row" role="group" aria-label="Design types">
+              {[{ type: "All", count: designs.length }, ...typeChips].map(({ type, count }) => (
+                <button
+                  key={type}
+                  type="button"
+                  aria-pressed={type === activeType}
+                  className={`category-chip ${type === activeType ? "active" : ""}`}
+                  onClick={() => updateParams({ type })}
+                >
+                  {type} <span className="chip-count">{count}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="listing-count">
+              <strong>{visibleDesigns.length}</strong> design{visibleDesigns.length === 1 ? "" : "s"}
+            </p>
+          )}
+          <div className="listing-sort">
+            <label htmlFor="collection-sort">Sort by</label>
             <select id="collection-sort" value={sort} onChange={(event) => updateParams({ sort: event.target.value })}>
               <option value="featured">Featured</option>
               <option value="price-low">Price: low to high</option>
@@ -148,22 +167,6 @@ function CollectionPage() {
             </select>
           </div>
         </div>
-
-        {typeChips.length > 1 ? (
-          <div className="category-chip-row" role="group" aria-label="Design types">
-            {[{ type: "All", count: designs.length }, ...typeChips].map(({ type, count }) => (
-              <button
-                key={type}
-                type="button"
-                aria-pressed={type === activeType}
-                className={`category-chip ${type === activeType ? "active" : ""}`}
-                onClick={() => updateParams({ type })}
-              >
-                {type} <span className="chip-count">{count}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         {isProductsLoading ? (
           <p className="section-copy">Loading designs…</p>
@@ -177,10 +180,6 @@ function CollectionPage() {
           </div>
         ) : (
           <>
-            <div className="results-summary">
-              <strong>{visibleDesigns.length}</strong> design{visibleDesigns.length === 1 ? "" : "s"}
-              {activeType !== "All" ? ` · ${activeType}` : ""}
-            </div>
             <div className="product-grid">
               {visibleDesigns.map((product) => (
                 <ProductCard key={product.id} product={product} />

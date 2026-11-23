@@ -93,4 +93,13 @@ describe("collection page", () => {
     expect(document.querySelector("img[src*=\"cover.jpg\"]")).toBeNull();
   });
 
+  it("keeps the type chips and a small sort control in one slim row", () => {
+    renderAt("/collections/wedding-invitation-suite");
+    const bar = document.querySelector(".listing-bar");
+    expect(bar).toContainElement(screen.getByRole("group", { name: "Design types" }));
+    expect(bar).toContainElement(screen.getByLabelText("Sort by"));
+    expect(document.querySelector(".catalog-toolbar")).toBeNull();
+    expect(document.querySelector(".results-summary")).toBeNull();
+  });
+
 });
