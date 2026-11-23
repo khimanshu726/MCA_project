@@ -17,28 +17,62 @@ const buildHeaders = (headers, body, token) => {
   return nextHeaders;
 };
 
+// Fired when the server refuses the admin's token (it lasts 8 hours). The
+// auth context listens and signs out, so the admin lands on the login page
+// instead of seeing empty lists that look like missing data.
+export const SESSION_EXPIRED_EVENT = "elite-admin-session-expired";
+
+// While Render restarts the server (every deploy) requests briefly fail with
+// a gateway error or no answer at all. Reads are safe to repeat, so they get
+// a couple of quiet retries before an error is shown.
+const RETRYABLE_STATUSES = new Set([502, 503, 504]);
+export const READ_RETRY_DELAYS_MS = [1500, 4000];
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const request = async (path, { method = "GET", body, headers, token } = {}) => {
   let response;
+  const retryDelays = method === "GET" ? READ_RETRY_DELAYS_MS : [];
 
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      method,
-      headers: buildHeaders(headers, body, token),
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    const backendHint = API_BASE_URL.startsWith("http")
-      ? ` Make sure the backend is running on ${API_BASE_URL.replace(/\/api$/, "")}.`
-      : " Make sure the backend is running and reachable from this site.";
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers: buildHeaders(headers, body, token),
+        body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      if (attempt < retryDelays.length) {
+        await wait(retryDelays[attempt]);
+        continue;
+      }
+      const backendHint = API_BASE_URL.startsWith("http")
+        ? ` Make sure the backend is running on ${API_BASE_URL.replace(/\/api$/, "")}.`
+        : " The server may be restarting after an update. Try again in a minute.";
 
-    throw new Error(`Unable to reach the admin server.${backendHint}`);
+      throw new Error(`Unable to reach the admin server.${backendHint}`);
+    }
+    if (RETRYABLE_STATUSES.has(response.status) && attempt < retryDelays.length) {
+      await wait(retryDelays[attempt]);
+      continue;
+    }
+    break;
+  }
+
+  if (response.status === 401 && token && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
   }
 
   const contentType = response.headers.get("content-type") || "";
   const data = contentType.includes("application/json") ? await response.json() : null;
 
   if (!response.ok) {
-    const error = new Error(data?.message || "Request failed.");
+    const error = new Error(
+      data?.message ||
+        (RETRYABLE_STATUSES.has(response.status)
+          ? "The server is restarting after an update. Try again in a minute."
+          : "Request failed."),
+    );
+    error.status = response.status;
     error.payload = data;
     throw error;
   }

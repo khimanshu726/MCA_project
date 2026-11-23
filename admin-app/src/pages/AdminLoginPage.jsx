@@ -9,7 +9,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { completeOtpAuth, requestOtp } = useAdminAuth();
+  const { completeOtpAuth, requestOtp, sessionExpired } = useAdminAuth();
 
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -83,6 +83,11 @@ function AdminLoginPage() {
           <p className="section-copy">
             Enter your admin email and we&apos;ll send a 6-digit sign-in code to your inbox.
           </p>
+          {sessionExpired ? (
+            <p className="availability-note availability-warn" role="status">
+              Your sign-in expired (it lasts 8 hours). Sign in again to carry on where you were.
+            </p>
+          ) : null}
         </div>
 
         <form className="delivery-form-card admin-login-form" onSubmit={handleOtpLogin}>
