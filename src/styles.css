@@ -1351,7 +1351,11 @@ a { color: inherit; text-decoration: none; }
 }
 .responsive-image.is-loaded { opacity: 1; }
 
-/* fit="contain": the whole photo, never cropped, over a blurred copy of itself. */
+/* fit="contain": the whole photo, never cropped, over a blurred copy of itself.
+   `isolation` keeps the photo-over-blur layering inside the frame, so on a
+   product card the photo doesn't rise above the card's whole-card link (which
+   would make clicks on the photo do nothing). */
+.image-shell.fit-contain { isolation: isolate; }
 .image-shell.fit-contain .responsive-image {
   position: relative;
   z-index: 1;
