@@ -23,8 +23,9 @@ function CollectionCard({ collection, className = "" }) {
           src={collection.coverImage}
           alt={collection.name}
           className="card-image"
-          aspectClassName="ratio-product"
-          width={360}
+          aspectClassName="ratio-square"
+          fit="contain"
+          width={480}
         />
       </div>
       <div className="card-content">

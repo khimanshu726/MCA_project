@@ -1214,7 +1214,7 @@ a { color: inherit; text-decoration: none; }
   transition: transform 0.8s var(--ease-out);
 }
 .image-card:hover .card-image,
-.product-card:hover .card-image { transform: scale(1.05); }
+.product-card:hover .card-image { transform: scale(1.03); }
 
 .product-card-media { position: relative; }
 
@@ -1390,7 +1390,9 @@ a { color: inherit; text-decoration: none; }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* Big enough to see a design properly: at most 4 per row at the 1400px page
+     width, 3 on small laptops, 2 on tablets (phones: see below). */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: clamp(1rem, 1.6vw, 1.5rem);
 }
 @media (max-width: 520px) {
