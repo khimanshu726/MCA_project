@@ -172,3 +172,36 @@ describe("ResponsiveImage", () => {
     expect(screen.getByAltText("Test product").className).not.toContain("is-loaded");
   });
 });
+
+describe("ResponsiveImage fit=contain (product page gallery)", () => {
+  const UPLOAD = "https://res.cloudinary.com/demo/image/upload/v1/products/red-card.jpg";
+
+  it("asks Cloudinary for the whole photo instead of a cropped one", () => {
+    const { rerender } = render(
+      <ResponsiveImage src={UPLOAD} alt="Card" aspectClassName="ratio-product" width={800} />,
+    );
+    expect(screen.getByAltText("Card").getAttribute("src")).toContain("c_fill,g_auto,ar_4:3");
+
+    rerender(<ResponsiveImage src={UPLOAD} alt="Card" aspectClassName="ratio-gallery" fit="contain" width={800} />);
+    const src = screen.getByAltText("Card").getAttribute("src");
+    expect(src).toContain("/upload/w_800,q_auto,f_auto/");
+    expect(src).not.toContain("c_fill");
+  });
+
+  it("letterboxes the photo over a blurred copy of itself once it has loaded", () => {
+    render(<ResponsiveImage src={UPLOAD} alt="Card" aspectClassName="ratio-gallery" fit="contain" width={800} />);
+    const img = screen.getByAltText("Card");
+    expect(img.closest(".image-shell")).toHaveClass("fit-contain", "ratio-gallery");
+    expect(document.querySelector(".image-backdrop")).not.toBeInTheDocument();
+
+    fireEvent.load(img);
+    const backdrop = document.querySelector(".image-backdrop");
+    expect(backdrop).toHaveAttribute("aria-hidden", "true");
+    expect(backdrop.style.backgroundImage).toContain(img.getAttribute("src"));
+  });
+
+  it("draws no backdrop behind the fallback graphic", () => {
+    render(<ResponsiveImage src="" alt="Card" fit="contain" />);
+    expect(document.querySelector(".image-backdrop")).not.toBeInTheDocument();
+  });
+});

@@ -13,7 +13,6 @@ const ASPECT_BY_CLASS = {
   "ratio-square": "1:1",
   "ratio-card": "5:4",
   "ratio-product": "4:3",
-  "ratio-gallery": "4:3",
   "ratio-feature": "4:3",
   "ratio-banner": "5:4",
   "ratio-portrait": "4:5",
@@ -26,6 +25,12 @@ const ASPECT_BY_CLASS = {
  * placeholder graphic if the image never loads — including a couple of
  * quick retries first, since most real-world failures here are transient
  * network blips rather than a genuinely broken URL.
+ *
+ * `fit="contain"` shows the whole photo, never cropped: it is requested at
+ * its own shape (no Cloudinary crop), letterboxed inside the shell, and the
+ * empty edges are filled with a soft blurred copy of the same photo so the
+ * frame still looks designed. Used where the customer judges the product
+ * (the product page gallery); grids keep `cover` so cards line up.
  */
 function ResponsiveImage({
   src,
@@ -34,8 +39,13 @@ function ResponsiveImage({
   aspectClassName = "ratio-square",
   priority = false,
   width,
+  fit = "cover",
 }) {
-  const resolvedSrc = getOptimizedImageUrl(src, { width, aspect: ASPECT_BY_CLASS[aspectClassName] });
+  const contain = fit === "contain";
+  const resolvedSrc = getOptimizedImageUrl(src, {
+    width,
+    aspect: contain ? undefined : ASPECT_BY_CLASS[aspectClassName],
+  });
   const [imageSrc, setImageSrc] = useState(resolvedSrc || fallbackImage);
   const [isLoaded, setIsLoaded] = useState(false);
   const retryCountRef = useRef(0);
@@ -121,8 +131,11 @@ function ResponsiveImage({
   };
 
   return (
-    <div className={`image-shell ${aspectClassName}`}>
+    <div className={`image-shell ${aspectClassName}${contain ? " fit-contain" : ""}`}>
       {!isLoaded && <div className="image-skeleton" aria-hidden="true" />}
+      {contain && isLoaded && imageSrc !== fallbackImage ? (
+        <div className="image-backdrop" aria-hidden="true" style={{ backgroundImage: `url("${imageSrc}")` }} />
+      ) : null}
       <img
         ref={imageNodeRef}
         src={imageSrc}
