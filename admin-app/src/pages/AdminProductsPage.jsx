@@ -54,6 +54,8 @@ const EMPTY_FORM = {
   mrp: "",
   stock: "",
   minimumOrderQty: "1",
+  // Sold in lots of this many from the minimum (50 → 100, 150, 200…).
+  quantityStep: "1",
   // Volume pricing rows: { minQty, price } as typed text.
   priceTiers: [],
   // HSN/SAC code from the HSN & GST rates list; the GST rate comes from there.
@@ -83,6 +85,7 @@ const toForm = (product) => ({
   mrp: String(product.mrp ?? ""),
   stock: String(product.stock ?? ""),
   minimumOrderQty: String(product.minimumOrderQty ?? "1"),
+  quantityStep: String(product.quantityStep ?? "1"),
   priceTiers: (product.priceTiers || []).map((tier) => ({ minQty: String(tier.minQty), price: String(tier.price) })),
   hsnCode: product.hsnCode || "",
   collectionId: product.collectionId || "",
@@ -133,6 +136,7 @@ export const buildNewDesignForm = (collection, template = null) => {
     priceTiers: copied.priceTiers,
     stock: copied.stock,
     minimumOrderQty: copied.minimumOrderQty,
+    quantityStep: copied.quantityStep,
     leadTime: copied.leadTime,
     materials: copied.materials,
     options: copied.options,
@@ -144,6 +148,14 @@ export const buildNewDesignForm = (collection, template = null) => {
 export const pickDesignTemplate = (designs) =>
   [...(designs || [])].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))[0] ||
   null;
+
+// Spells out what customers can pick, e.g. "Customers can order 100, 150, 200…".
+export const quantityStepHint = (form) => {
+  const moq = Math.max(1, Number(form.minimumOrderQty) || 1);
+  const step = Math.max(1, Math.floor(Number(form.quantityStep) || 1));
+  if (step === 1) return `Customers can order any amount from ${moq}. Set e.g. 50 to sell in lots of 50.`;
+  return `Customers can order ${moq}, ${moq + step}, ${moq + 2 * step}… (the + and − buttons move by ${step}).`;
+};
 
 // What the owner needs to hear after saving a design: whether it is actually
 // on the shop inside its collection.
@@ -177,6 +189,7 @@ const toPayload = (form) => ({
   mrp: form.mrp === "" ? Number(form.price) : Number(form.mrp),
   stock: Number(form.stock || 0),
   minimumOrderQty: Number(form.minimumOrderQty || 1),
+  quantityStep: Number(form.quantityStep || 1),
   priceTiers: form.priceTiers
     .filter((tier) => String(tier.minQty).trim() !== "" || String(tier.price).trim() !== "")
     .map((tier) => ({ minQty: Number(tier.minQty), price: Number(tier.price) })),
@@ -966,6 +979,21 @@ function AdminProductsPage() {
                   <input id="f-moq" type="number" min="1" step="1" value={form.minimumOrderQty} onChange={setField("minimumOrderQty")} />
                 </InputField>
               </div>
+              <InputField
+                label="Quantity steps of"
+                htmlFor="f-qty-step"
+                error={fieldErrors.quantityStep}
+                helperText={quantityStepHint(form)}
+              >
+                <input
+                  id="f-qty-step"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.quantityStep}
+                  onChange={setField("quantityStep")}
+                />
+              </InputField>
 
               {/* Volume pricing: cheaper per unit from a quantity up. Checked live with
                   the same rules the server applies on save. */}

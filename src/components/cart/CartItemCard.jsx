@@ -5,6 +5,7 @@ import Badge from "../ui/Badge";
 import PriceDisplay, { currencyFormatter } from "../ui/PriceDisplay";
 import QuantitySelector from "../ui/QuantitySelector";
 import { getNextTier } from "../../utils/tierPricing";
+import { getQuantityStep } from "../../utils/productAvailability";
 
 function CartItemCard({
   item,
@@ -128,6 +129,7 @@ function CartItemCard({
           <QuantitySelector
             value={quantity}
             min={product.minimumOrderQty || 1}
+            step={getQuantityStep(product)}
             max={Math.max(product.stock, 1)}
             disabled={isOutOfStock || savedForLater}
             isPending={isQuantityPending}

@@ -4172,32 +4172,6 @@ textarea {
 }
 .bulk-pricing-muted { font-size: 0.85rem; color: var(--ink-500); }
 
-.bulk-pricing-summary {
-  padding: 0.85rem 1.1rem 1rem;
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.92rem;
-  color: var(--ink-700);
-}
-.bulk-pricing-summary p { margin: 0; }
-.bulk-pricing-summary strong { color: var(--heading); }
-.bulk-pricing-nudge strong,
-.bulk-pricing-best { color: var(--success); }
-
-.bulk-pricing-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: 600;
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  min-height: 32px;
-}
-.bulk-pricing-link:hover { color: var(--accent-dark); }
-
 @media (max-width: 480px) {
   .bulk-pricing-table thead th,
   .bulk-pricing-table tbody th,

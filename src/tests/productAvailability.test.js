@@ -2,9 +2,40 @@ import { describe, expect, it } from "vitest";
 import {
   getDefaultOrderQty,
   getMinimumOrderQty,
+  getQuantityStep,
   isProductLowStock,
   isProductOutOfStock,
+  snapQuantity,
 } from "../utils/productAvailability.js";
+
+describe("quantity steps", () => {
+  it("reads a product's step, defaulting to 1", () => {
+    expect(getQuantityStep({ quantityStep: 50 })).toBe(50);
+    expect(getQuantityStep({})).toBe(1);
+    expect(getQuantityStep({ quantityStep: 0 })).toBe(1);
+    expect(getQuantityStep({ quantityStep: 2.5 })).toBe(1);
+  });
+
+  it("puts quantities on the grid from the minimum: 100, 150, 200…", () => {
+    const grid = { min: 100, max: 1000, step: 50 };
+    expect(snapQuantity(170, grid)).toBe(150);
+    expect(snapQuantity(180, grid)).toBe(200);
+    expect(snapQuantity(101, grid, "up")).toBe(150);
+    expect(snapQuantity(199, grid, "down")).toBe(150);
+    expect(snapQuantity(40, grid)).toBe(100);
+    expect(snapQuantity(5000, grid)).toBe(1000);
+  });
+
+  it("never goes past stock, stopping at the last allowed quantity", () => {
+    expect(snapQuantity(5000, { min: 100, max: 420, step: 50 })).toBe(400);
+    expect(snapQuantity(420, { min: 100, max: 420, step: 50 }, "up")).toBe(400);
+  });
+
+  it("is a plain clamp with a step of 1", () => {
+    expect(snapQuantity(137, { min: 100, max: 1000 })).toBe(137);
+    expect(snapQuantity("", { min: 100, max: 1000 })).toBe(100);
+  });
+});
 
 /**
  * The bug this module exists to prevent: `launch-flyer` shipped with stock 100

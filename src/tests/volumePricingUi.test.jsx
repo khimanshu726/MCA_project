@@ -46,32 +46,22 @@ describe("BulkPricingTable", () => {
     expect(rows[2]).toHaveTextContent("₹1422% off₹4 less each");
   });
 
-  it("totals the order and spells out what the next range saves, in rupees", () => {
+  it("shows no total or upsell lines under the table", () => {
     render(<BulkPricingTable product={card} quantity={300} />);
-    const summary = screen.getByRole("status");
-    expect(summary).toHaveTextContent("300 × ₹16 = ₹4,800");
-    // 500 at ₹14 instead of ₹16 each.
-    expect(summary).toHaveTextContent("Order 200 more (500 total) and pay ₹14 each instead of ₹16: ₹1,000 off that order.");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByText(/more \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/best price/)).not.toBeInTheDocument();
   });
 
-  it("lets a row or the nudge set the quantity, but not past what's in stock", () => {
+  it("lets a row set the quantity, but not past what's in stock", () => {
     const onSelectQuantity = vi.fn();
     render(
       <BulkPricingTable product={card} quantity={100} onSelectQuantity={onSelectQuantity} maxQuantity={400} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Order 250 at ₹16 each" }));
     expect(onSelectQuantity).toHaveBeenLastCalledWith(250);
-    fireEvent.click(screen.getByRole("button", { name: "Switch to 250" }));
-    expect(onSelectQuantity).toHaveBeenCalledTimes(2);
     // 500+ is beyond the 400 in stock, so it can't be picked.
     expect(screen.queryByRole("button", { name: "Order 500 at ₹14 each" })).not.toBeInTheDocument();
-  });
-
-  it("says when the best price is reached, and what it saves", () => {
-    render(<BulkPricingTable product={card} quantity={600} />);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "You’re getting our best price: ₹2,400 less than at ₹18 each.",
-    );
   });
 
   it("renders nothing for a product without tiers", () => {

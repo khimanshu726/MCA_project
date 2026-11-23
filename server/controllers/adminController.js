@@ -96,6 +96,13 @@ const validateProductPayload = (payload = {}, { partial = false } = {}) => {
     }
   }
 
+  if (has("quantityStep")) {
+    const step = Number(payload.quantityStep);
+    if (!Number.isInteger(step) || step < 1) {
+      errors.quantityStep = "Quantity steps must be a whole number of at least 1.";
+    }
+  }
+
   if (has("status") && !["active", "draft", "archived"].includes(payload.status)) {
     errors.status = "Status must be active, draft, or archived.";
   }

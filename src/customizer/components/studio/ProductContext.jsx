@@ -81,6 +81,7 @@ function ProductContext({ product, template, design, quantity, onQuantityChange,
             onChange={onQuantityChange}
             min={minQty}
             max={100000}
+            step={Number.isInteger(product.quantityStep) && product.quantityStep > 1 ? product.quantityStep : 1}
             ariaLabel="Print quantity"
           />
           {minQty > 1 ? <span className="text-xs text-ink-400">Min {minQty}</span> : null}

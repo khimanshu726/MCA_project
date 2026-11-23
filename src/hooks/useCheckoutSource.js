@@ -59,6 +59,7 @@ export function useCheckoutSource() {
         quantity: buyNow.quantity,
         setQuantity: buyNow.setQuantity,
         minQuantity: buyNow.minQuantity,
+        quantityStep: buyNow.quantityStep,
         maxQuantity: buyNow.maxQuantity,
         isEditableQuantity: true,
 

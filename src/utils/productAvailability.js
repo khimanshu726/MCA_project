@@ -47,6 +47,32 @@ export const isProductOutOfStock = (product) => {
   return stock < getMinimumOrderQty(product);
 };
 
+/**
+ * The quantity a product is sold in steps of, from its minimum: a step of 50
+ * with an MOQ of 100 allows 100, 150, 200… Products without one step by 1.
+ */
+export const getQuantityStep = (product) => {
+  const step = Number(product?.quantityStep);
+  return Number.isInteger(step) && step > 1 ? step : 1;
+};
+
+/**
+ * Puts a quantity on the product's grid (min, min + step, min + 2·step…),
+ * never below `min` and never above `max` (above it, the last allowed
+ * quantity at or under max wins). `direction` is "nearest", "up" or "down".
+ */
+export const snapQuantity = (quantity, { min = 1, max = Infinity, step = 1 } = {}, direction = "nearest") => {
+  const floor = Math.max(1, Number(min) || 1);
+  const ceiling = Number.isFinite(Number(max)) ? Math.max(floor, Number(max)) : Infinity;
+  const size = Number.isInteger(step) && step > 1 ? step : 1;
+  const wanted = Math.min(ceiling, Math.max(floor, Number(quantity) || floor));
+  const steps = (wanted - floor) / size;
+  const round = direction === "up" ? Math.ceil : direction === "down" ? Math.floor : Math.round;
+  let snapped = floor + round(steps) * size;
+  while (snapped > ceiling && snapped - size >= floor) snapped -= size;
+  return Math.min(snapped, Math.max(floor, ceiling));
+};
+
 export const isProductLowStock = (product) =>
   Boolean(product) && !isProductOutOfStock(product) && Number(product.stock) <= LOW_STOCK_THRESHOLD;
 
