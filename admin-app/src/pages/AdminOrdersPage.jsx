@@ -392,6 +392,7 @@ function AdminOrdersPage() {
                   <strong>Line items</strong>
                   {selectedOrder.lineItems.map((item) => (
                     <span key={item.productId}>
+                      {item.productCode ? item.productCode + " · " : ""}
                       {item.name} x {item.quantity} ({formatMoney(item.totalPrice)})
                     </span>
                   ))}

@@ -253,6 +253,8 @@ function ProductDetailPage() {
             {outOfStock ? "Out of stock" : lowStock ? `Only ${product.stock} left` : "In stock"}
             {product.leadTime ? ` · ${formatLeadTime(product.leadTime)}` : ""}
             {product.minimumOrderQty ? ` · MOQ ${product.minimumOrderQty}` : ""}
+            {/* The number customers can quote on a call or WhatsApp. */}
+            {product.code ? <span className="detail-product-code"> · Product no. {product.code}</span> : null}
           </p>
 
           {showStepper ? (

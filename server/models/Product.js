@@ -34,6 +34,9 @@ const priceTierSchema = new mongoose.Schema(
 const productSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
+    // Short readable product number (EI-0016), assigned once on creation and
+    // never changed or reused. See services/productCodes.js.
+    code: { type: String, unique: true, sparse: true, trim: true },
     name: { type: String, required: true, trim: true },
     slug: { type: String, unique: true, sparse: true, index: true },
     description: { type: String, required: true, trim: true },

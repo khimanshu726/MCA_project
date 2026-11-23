@@ -104,9 +104,12 @@ describe("the message after saving a design", () => {
     ).toMatch(/that collection is a draft/);
   });
 
-  it("stays plain for a standalone product", () => {
+  it("says whether a standalone product is on the shop", () => {
     expect(savedMessage({ wasEditing: false, product: { status: "draft" }, collection: null })).toBe(
-      "Product created.",
+      "Product created. It's a draft, so customers won't see it until you set Status to active.",
+    );
+    expect(savedMessage({ wasEditing: true, product: { status: "active" }, collection: null })).toBe(
+      "Product updated. It's live on the shop.",
     );
   });
 });
@@ -301,5 +304,55 @@ describe("the quantity steps hint in the product form", async () => {
       "Customers can order 100, 150, 200… (the + and − buttons move by 50).",
     );
     expect(quantityStepHint({ minimumOrderQty: "1", quantityStep: "1" })).toMatch(/any amount from 1/);
+  });
+});
+
+describe("after creating a product, the form starts the next one", async () => {
+  const { buildNextProductForm } = await import("../../admin-app/src/pages/AdminProductsPage");
+
+  it("is a blank new product that keeps the shared settings", () => {
+    const saved = {
+      id: "abada7d1",
+      code: "EI-0016",
+      name: "Yellow and Golden Card",
+      description: "Yellow card with a ganesha sticker.",
+      images: ["https://x/y.jpg"],
+      category: "Wedding Cards",
+      collectionId: "col-1",
+      designType: "Default Hindi",
+      sku: "WC-16",
+      badge: "New",
+      price: 26,
+      mrp: 30,
+      stock: 1000,
+      minimumOrderQty: 100,
+      quantityStep: 50,
+      priceTiers: [{ minQty: 500, price: 22 }],
+      hsnCode: "49090010",
+      leadTime: "6",
+      materials: ["Hard Paper Card", "PVC Sticker"],
+      options: [],
+      status: "active",
+    };
+    expect(buildNextProductForm(saved)).toMatchObject({
+      name: "",
+      description: "",
+      images: [],
+      sku: "",
+      badge: "",
+      designType: "",
+      category: "Wedding Cards",
+      collectionId: "col-1",
+      status: "active",
+      price: "26",
+      mrp: "30",
+      stock: "1000",
+      minimumOrderQty: "100",
+      quantityStep: "50",
+      priceTiers: [{ minQty: "500", price: "22" }],
+      hsnCode: "49090010",
+      leadTime: "6",
+      materials: "Hard Paper Card, PVC Sticker",
+    });
   });
 });

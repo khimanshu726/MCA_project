@@ -808,3 +808,41 @@
   display: flex;
   align-items: center;
 }
+
+/* Product form: always say whether saving edits an existing product or
+   creates a new one. */
+.admin-edit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+}
+.admin-edit-banner.is-editing {
+  background: rgba(184, 70, 29, 0.1);
+  border: 1px solid rgba(184, 70, 29, 0.35);
+  color: #7a2e10;
+}
+.admin-edit-banner.is-new {
+  background: rgba(46, 106, 69, 0.08);
+  border: 1px solid rgba(46, 106, 69, 0.3);
+  color: #234f35;
+}
+.admin-created-note {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(46, 106, 69, 0.08);
+  border: 1px solid rgba(46, 106, 69, 0.3);
+}
+.admin-created-note p { margin: 0 0 6px; }
+.admin-created-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-product-code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+}

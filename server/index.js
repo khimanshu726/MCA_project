@@ -26,6 +26,7 @@ import { getUploadStorageStatus } from "./config/uploadStorage.js";
 import { isFirebaseAdminConfigured } from "./config/firebaseAdmin.js";
 import { ensureDefaultAdminUser } from "./services/userStore.js";
 import { ensureProductsSeeded } from "./services/productMigration.js";
+import { ensureProductCodes } from "./services/productCodes.js";
 import { ensureCouponsSeeded } from "./services/couponSeed.js";
 import { ensureHsnCodesSeeded } from "./services/hsnSeed.js";
 import { getSellerGstin, isGstChargingEnabled } from "./config/gst.js";
@@ -258,6 +259,7 @@ const startServer = async (port = appConfig.apiPort) => {
   await connectDB();
   await ensureDefaultAdminUser();
   await ensureProductsSeeded();
+  await ensureProductCodes();
   await ensureCouponsSeeded();
   await ensureHsnCodesSeeded();
 
