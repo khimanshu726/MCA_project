@@ -72,6 +72,7 @@ function BulkPricingTable({ product, quantity, onSelectQuantity, maxQuantity }) 
               <tr
                 key={row.minQty}
                 data-active={isActive ? "true" : "false"}
+                aria-current={isActive ? "true" : undefined}
                 className={`${isActive ? "is-active" : ""}${pickable ? " is-pickable" : ""}`}
                 onClick={pickable ? () => onSelectQuantity(row.minQty) : undefined}
               >
@@ -91,7 +92,6 @@ function BulkPricingTable({ product, quantity, onSelectQuantity, maxQuantity }) 
                   ) : (
                     rangeLabel(row)
                   )}
-                  {isActive ? <span className="bulk-pricing-badge">Your price</span> : null}
                 </th>
                 <td className="bulk-pricing-price">{money(row.price)}</td>
                 <td className="bulk-pricing-saving">

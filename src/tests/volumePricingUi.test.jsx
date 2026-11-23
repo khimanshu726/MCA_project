@@ -39,8 +39,10 @@ describe("BulkPricingTable", () => {
     expect(screen.getByRole("heading", { name: "Buy more, save more" })).toBeInTheDocument();
     expect(screen.getByText(/Save up to/)).toHaveTextContent("Save up to 22%.");
     const rows = bodyRows();
-    expect(rows.map((row) => row.querySelector("th").textContent)).toEqual(["100–249", "250–499Your price", "500+"]);
+    expect(rows.map((row) => row.querySelector("th").textContent)).toEqual(["100–249", "250–499", "500+"]);
     expect(rows.map((row) => row.dataset.active)).toEqual(["false", "true", "false"]);
+    // The row in use is shown by its highlight alone, with no badge.
+    expect(screen.queryByText("Your price")).not.toBeInTheDocument();
     expect(rows[0]).toHaveTextContent("₹18Starting price");
     expect(rows[1]).toHaveTextContent("₹1611% off₹2 less each");
     expect(rows[2]).toHaveTextContent("₹1422% off₹4 less each");
