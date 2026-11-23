@@ -725,3 +725,86 @@
   font-size: 0.85em;
   opacity: 0.75;
 }
+
+/* Designs list: photo, name, status, actions. */
+.collection-designs-list li {
+  flex-wrap: wrap;
+}
+
+.collection-designs-list li > a {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.collection-design-thumb {
+  width: 56px;
+  height: 42px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.collection-design-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.collection-hidden-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.collection-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  display: grid;
+  gap: 4px;
+}
+
+.collection-picker-list small {
+  opacity: 0.75;
+}
+
+/* Cover from a design's photo. */
+.design-photo-picker ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.design-photo-picker button {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.design-photo-picker button.is-picked {
+  border-color: currentColor;
+}
+
+.design-photo-picker img {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.admin-advanced > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}

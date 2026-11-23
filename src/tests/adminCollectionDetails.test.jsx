@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 vi.mock("../../admin-app/src/lib/adminApi", () => ({
   updateCollection: vi.fn(),
   uploadProductImages: vi.fn(),
+  fetchAdminProducts: vi.fn(() => Promise.resolve({ items: [] })),
 }));
 
 import { updateCollection } from "../../admin-app/src/lib/adminApi";

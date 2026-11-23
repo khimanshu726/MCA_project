@@ -109,12 +109,41 @@ const splitList = (value) =>
 // A new design started from a collection ("+ Add a design"): already in the
 // collection, listed under its category, and set to go live on save, since
 // the owner is adding it to the shop on purpose. Status can still be changed.
-export const buildNewDesignForm = (collection) => ({
-  ...EMPTY_FORM,
-  collectionId: collection.id,
-  category: CATEGORY_OPTIONS.includes(collection.category) ? collection.category : EMPTY_FORM.category,
-  status: "active",
-});
+//
+// With a template (the newest design already in the collection) the settings
+// designs share are copied too, so the fiftieth wedding card only needs its
+// own name and photos: description, HSN code, price/MRP and bulk prices (kept
+// together so they stay consistent), stock, MOQ, lead time, materials,
+// options and audience. Name, photos, SKU, badge and design type start empty.
+export const buildNewDesignForm = (collection, template = null) => {
+  const base = {
+    ...EMPTY_FORM,
+    collectionId: collection.id,
+    category: CATEGORY_OPTIONS.includes(collection.category) ? collection.category : EMPTY_FORM.category,
+    status: "active",
+  };
+  if (!template) return base;
+  const copied = toForm(template);
+  return {
+    ...base,
+    description: copied.description,
+    hsnCode: copied.hsnCode,
+    price: copied.price,
+    mrp: copied.mrp,
+    priceTiers: copied.priceTiers,
+    stock: copied.stock,
+    minimumOrderQty: copied.minimumOrderQty,
+    leadTime: copied.leadTime,
+    materials: copied.materials,
+    options: copied.options,
+    audience: copied.audience,
+  };
+};
+
+// The design a new one starts from: the most recently added in the collection.
+export const pickDesignTemplate = (designs) =>
+  [...(designs || [])].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))[0] ||
+  null;
 
 // What the owner needs to hear after saving a design: whether it is actually
 // on the shop inside its collection.
@@ -364,11 +393,23 @@ function AdminProductsPage() {
     revealPanel();
   };
 
-  const startAddDesign = (collection) => {
+  const startAddDesign = async (collection) => {
+    // Start from the newest design already in the collection, when there is one.
+    let template = null;
+    try {
+      const data = await fetchAdminProducts(token, { collection: collection.id, limit: 100 });
+      template = pickDesignTemplate(data.items);
+    } catch {
+      template = null;
+    }
     setEditingId(null);
-    setForm(buildNewDesignForm(collection));
+    setForm(buildNewDesignForm(collection, template));
     setFieldErrors({});
-    setActionMessage(`New design for “${collection.name}”. Add its name, photos and price, then Create product.`);
+    setActionMessage(
+      template
+        ? `New design for “${collection.name}”, starting from “${template.name}”: HSN, price, stock, MOQ and options are copied. Add its name and photos, check the price, then Create product.`
+        : `New design for “${collection.name}”. Add its name, photos and price, then Create product.`,
+    );
     setIsAddingHsn(false);
     setIsAddingCollection(false);
     setIsEditingCollection(false);

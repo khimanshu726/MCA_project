@@ -335,3 +335,66 @@ describe("making a product into a collection", () => {
     expect((await request(app).post(`/api/admin/products/${product.id}/make-collection`)).status).toBe(401);
   });
 });
+
+describe("managing a collection's designs in bulk", () => {
+  const designs = (id, body) => asAdmin(request(app).post(`/api/admin/collections/${id}/designs`)).send(body);
+
+  it("adds existing products, moving them from another collection", async () => {
+    const suite = await createCollection();
+    const other = await createCollection({ name: "Birthday Cards" });
+    const loose = await seedDesign();
+    const elsewhere = await seedDesign({ collectionId: other.id });
+
+    const response = await designs(suite.id, { add: [loose.id, elsewhere.id, loose.id] });
+    expect(response.status).toBe(200);
+    expect(response.body.changed.added).toBe(2);
+    expect(response.body.collection.productCount).toBe(2);
+    expect((await Product.findOne({ id: elsewhere.id })).collectionId).toBe(suite.id);
+  });
+
+  it("refuses to add products that don't exist, changing nothing", async () => {
+    const suite = await createCollection();
+    const loose = await seedDesign();
+    const response = await designs(suite.id, { add: [loose.id, "gone"] });
+    expect(response.status).toBe(400);
+    expect(response.body.errors.add).toMatch(/no longer exist/);
+    expect((await Product.findOne({ id: loose.id })).collectionId).toBe("");
+  });
+
+  it("removes and publishes only designs that are in this collection", async () => {
+    const suite = await createCollection();
+    const other = await createCollection({ name: "Birthday Cards" });
+    const draft = await seedDesign({ collectionId: suite.id, status: "draft" });
+    const keep = await seedDesign({ collectionId: suite.id });
+    const outsider = await seedDesign({ collectionId: other.id, status: "draft" });
+
+    const response = await designs(suite.id, { publish: [draft.id, outsider.id], remove: [keep.id, outsider.id] });
+    expect(response.status).toBe(200);
+    expect(response.body.changed).toMatchObject({ published: 1, removed: 1 });
+    expect((await Product.findOne({ id: draft.id })).status).toBe("active");
+    expect((await Product.findOne({ id: keep.id })).collectionId).toBe("");
+    const untouched = await Product.findOne({ id: outsider.id });
+    expect(untouched.status).toBe("draft");
+    expect(untouched.collectionId).toBe(other.id);
+  });
+
+  it("sets every design's category, and refuses a blank one", async () => {
+    const suite = await createCollection({ category: "Wedding Cards" });
+    await seedDesign({ collectionId: suite.id, category: "Invitations" });
+    await seedDesign({ collectionId: suite.id, category: "Wedding Cards" });
+    const loose = await seedDesign({ category: "Invitations" });
+
+    const response = await designs(suite.id, { category: "Wedding Cards" });
+    expect(response.body.changed.recategorized).toBe(1);
+    expect(await Product.countDocuments({ collectionId: suite.id, category: "Wedding Cards" })).toBe(2);
+    expect((await Product.findOne({ id: loose.id })).category).toBe("Invitations");
+
+    expect((await designs(suite.id, { category: "  " })).status).toBe(400);
+  });
+
+  it("404s an unknown collection, and needs an admin", async () => {
+    expect((await designs("no-such-collection", { publish: ["x"] })).status).toBe(404);
+    const suite = await createCollection();
+    expect((await request(app).post(`/api/admin/collections/${suite.id}/designs`).send({})).status).toBe(401);
+  });
+});
