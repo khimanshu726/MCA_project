@@ -227,6 +227,49 @@ describe("storefront collections", () => {
     const byType = await request(app).get("/api/products?q=floral");
     expect(byType.body.items.map((item) => item.name)).toEqual(["Floral Bloom"]);
   });
+
+  it("lists every design on a category page, including collection designs tagged with another category", async () => {
+    const suite = await createCollection({ category: "Wedding Cards" });
+    await seedDesign({ collectionId: suite.id, name: "Fancy Red", category: "Wedding Cards" });
+    await seedDesign({ collectionId: suite.id, name: "Classic Suite", category: "Invitations" });
+    await seedDesign({ collectionId: suite.id, name: "Hidden Draft", status: "draft" });
+    await seedDesign({ name: "Loose Wedding Card", category: "Wedding Cards" });
+    await seedDesign({ name: "Birthday Invite", category: "Invitations" });
+    const draftCollection = await createCollection({ name: "Draft Suite", category: "Wedding Cards", status: "draft" });
+    await seedDesign({ collectionId: draftCollection.id, name: "From Draft Collection", category: "Invitations" });
+
+    const page = await request(app).get("/api/products?category=Wedding%20Cards&withCollectionDesigns=true");
+    expect(page.body.items.map((item) => item.name).sort()).toEqual(["Classic Suite", "Fancy Red", "Loose Wedding Card"]);
+
+    // Without the flag, the category stays strict and collected designs are hidden.
+    const strict = await request(app).get("/api/products?category=Wedding%20Cards&excludeCollected=true");
+    expect(strict.body.items.map((item) => item.name)).toEqual(["Loose Wedding Card"]);
+
+    // A search still narrows it.
+    const searched = await request(app).get("/api/products?category=Wedding%20Cards&withCollectionDesigns=true&q=classic");
+    expect(searched.body.items.map((item) => item.name)).toEqual(["Classic Suite"]);
+  });
+
+  it("gives customers a cover from a design's photo when the collection has none", async () => {
+    const suite = await createCollection({ coverImage: "" });
+    await seedDesign({ collectionId: suite.id, images: ["https://example.com/red-card.jpg"] });
+
+    const list = await request(app).get("/api/collections");
+    expect(list.body.collections[0].coverImage).toBe("https://example.com/red-card.jpg");
+    const one = await request(app).get("/api/collections/wedding-invitation-suite");
+    expect(one.body.collection.coverImage).toBe("https://example.com/red-card.jpg");
+
+    // The admin still sees that no cover is set.
+    const admin = await asAdmin(request(app).get("/api/admin/collections"));
+    expect(admin.body.collections[0].coverImage).toBe("");
+  });
+
+  it("keeps a collection's own cover", async () => {
+    const suite = await createCollection({ coverImage: "https://example.com/cover.jpg" });
+    await seedDesign({ collectionId: suite.id, images: ["https://example.com/red-card.jpg"] });
+    const list = await request(app).get("/api/collections");
+    expect(list.body.collections[0].coverImage).toBe("https://example.com/cover.jpg");
+  });
 });
 
 describe("storefront collection links", () => {
