@@ -291,6 +291,15 @@ function AdminOrdersPage() {
               <div className="summary-card">
                 <p className="section-copy">Loading orders...</p>
               </div>
+            ) : error && orders.length === 0 ? (
+              <div className="summary-card" role="alert">
+                <p className="field-error">Couldn&rsquo;t load the orders: {error}</p>
+                <div className="action-row">
+                  <button type="button" className="secondary-button" onClick={() => loadOrders()}>
+                    Try again
+                  </button>
+                </div>
+              </div>
             ) : orders.length > 0 ? (
               <table className="orders-table">
                 <thead>

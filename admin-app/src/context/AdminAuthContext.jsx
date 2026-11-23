@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { fetchAdminProfile, loginAdmin, sendAdminEmailOtp, verifyAdminEmailOtp } from "../lib/adminApi";
+import {
+  SESSION_EXPIRED_EVENT,
+  fetchAdminProfile,
+  loginAdmin,
+  sendAdminEmailOtp,
+  verifyAdminEmailOtp,
+} from "../lib/adminApi";
 
 const ADMIN_SESSION_KEY = "elite-admin-session";
 const AdminAuthContext = createContext(null);
@@ -28,12 +34,24 @@ const loadSession = () => {
 
 function AdminAuthProvider({ children }) {
   const [session, setSession] = useState(loadSession);
+  // Set when the server ended the session, so the login page can say why.
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    const handleExpired = () => {
+      setSession({ token: "", admin: null });
+      setSessionExpired(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
   }, [session]);
 
   const applySession = (token, admin) => {
+    setSessionExpired(false);
     setSession({
       token,
       admin,
@@ -80,6 +98,7 @@ function AdminAuthProvider({ children }) {
       token: session.token,
       admin: session.admin,
       isAuthenticated: Boolean(session.token),
+      sessionExpired,
       signInWithPassword,
       requestOtp,
       completeOtpAuth,
@@ -91,7 +110,7 @@ function AdminAuthProvider({ children }) {
     // changes keeps them current. Listing them would rebuild the context —
     // and re-render every consumer — on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [session.admin, session.token],
+    [session.admin, session.token, sessionExpired],
   );
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

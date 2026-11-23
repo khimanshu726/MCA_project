@@ -648,6 +648,15 @@ function AdminProductsPage() {
               <div className="summary-card">
                 <p className="section-copy">Loading products...</p>
               </div>
+            ) : error ? (
+              <div className="summary-card" role="alert">
+                <p className="field-error">Couldn&rsquo;t load the products: {error}</p>
+                <div className="action-row">
+                  <button type="button" className="secondary-button" onClick={loadProducts}>
+                    Try again
+                  </button>
+                </div>
+              </div>
             ) : products.length > 0 ? (
               <table className="orders-table">
                 <thead>
@@ -1099,11 +1108,6 @@ function AdminProductsPage() {
             </form>
           </div>
 
-          {error ? (
-            <div className="summary-card">
-              <p className="field-error">{error}</p>
-            </div>
-          ) : null}
         </aside>
       </section>
     </main>
