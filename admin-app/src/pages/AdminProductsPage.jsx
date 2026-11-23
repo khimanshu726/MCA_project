@@ -24,6 +24,7 @@ import {
 } from "../../../src/utils/productAvailability";
 // Same rules the server enforces on save, so problems show while typing.
 import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
+import { formatLeadTime } from "../../../src/utils/leadTime";
 import { fetchAdminCollections, fetchHsnCodes, makeProductCollection } from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
 import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
@@ -1061,7 +1062,15 @@ function AdminProductsPage() {
               ) : null}
 
               <div className="admin-filters-grid">
-                <InputField label="Lead time" htmlFor="f-lead" helperText="e.g. Ready in 3-5 days">
+                <InputField
+                  label="Lead time (days)"
+                  htmlFor="f-lead"
+                  helperText={
+                    form.leadTime.trim()
+                      ? `Customers see: “${formatLeadTime(form.leadTime)}”`
+                      : "Days to get an order ready, e.g. 5 or 3-5. Customers see “Ready in 3-5 days”."
+                  }
+                >
                   <input id="f-lead" type="text" value={form.leadTime} onChange={setField("leadTime")} />
                 </InputField>
                 <InputField label="SKU" htmlFor="f-sku">

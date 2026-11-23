@@ -4,6 +4,7 @@ import ResponsiveImage from "./ResponsiveImage";
 import WishlistButton from "./ui/WishlistButton";
 import { warmImageCache } from "../utils/imageUrl";
 import { isProductLowStock, isProductOutOfStock } from "../utils/productAvailability";
+import { formatLeadTime } from "../utils/leadTime";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -55,7 +56,7 @@ function ProductCard({ product, className = "" }) {
           ) : (
             <span className="status-pill in">In stock</span>
           )}
-          {product.leadTime ? <span className="meta-pill">{product.leadTime}</span> : null}
+          {product.leadTime ? <span className="meta-pill">{formatLeadTime(product.leadTime)}</span> : null}
           {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
         </div>
         <div className="product-card-footer">

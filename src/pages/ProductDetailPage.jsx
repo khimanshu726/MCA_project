@@ -22,6 +22,7 @@ import {
   isProductOutOfStock,
 } from "../utils/productAvailability";
 import { getUnitPrice } from "../utils/tierPricing";
+import { formatLeadTime } from "../utils/leadTime";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -250,7 +251,7 @@ function ProductDetailPage() {
           <p className={`detail-availability ${outOfStock ? "is-out" : lowStock ? "is-low" : "is-in"}`}>
             <Clock size={15} strokeWidth={1.8} aria-hidden="true" />
             {outOfStock ? "Out of stock" : lowStock ? `Only ${product.stock} left` : "In stock"}
-            {product.leadTime ? ` · ${product.leadTime}` : ""}
+            {product.leadTime ? ` · ${formatLeadTime(product.leadTime)}` : ""}
             {product.minimumOrderQty ? ` · MOQ ${product.minimumOrderQty}` : ""}
           </p>
 

@@ -6,6 +6,7 @@ import PriceDisplay, { currencyFormatter } from "../ui/PriceDisplay";
 import QuantitySelector from "../ui/QuantitySelector";
 import { getNextTier } from "../../utils/tierPricing";
 import { getQuantityStep } from "../../utils/productAvailability";
+import { formatLeadTime } from "../../utils/leadTime";
 
 function CartItemCard({
   item,
@@ -91,7 +92,7 @@ function CartItemCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          {product.leadTime ? <Badge tone="neutral">{product.leadTime}</Badge> : null}
+          {product.leadTime ? <Badge tone="neutral">{formatLeadTime(product.leadTime)}</Badge> : null}
           {product.minimumOrderQty ? <Badge tone="neutral">MOQ {product.minimumOrderQty}</Badge> : null}
           {/* Live product not loaded (server waking or unreachable): the line
               shows its saved details, but stock isn't known, so claim nothing. */}
