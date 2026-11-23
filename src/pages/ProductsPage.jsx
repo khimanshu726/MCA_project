@@ -232,7 +232,7 @@ function ProductsPage() {
             {Array.from({ length: 8 }).map((_, index) => (
               <article key={index} className="product-card">
                 <div className="product-card-media">
-                  <div className="image-shell ratio-product">
+                  <div className="image-shell ratio-square">
                     <div className="image-skeleton" />
                   </div>
                 </div>

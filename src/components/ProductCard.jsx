@@ -25,8 +25,9 @@ function ProductCard({ product, className = "" }) {
           src={product.images?.[0]}
           alt={product.name}
           className="card-image"
-          aspectClassName="ratio-product"
-          width={360}
+          aspectClassName="ratio-square"
+          fit="contain"
+          width={480}
         />
         <WishlistButton productId={product.id} className="wishlist-toggle-overlay" />
       </div>
