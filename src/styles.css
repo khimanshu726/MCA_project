@@ -4063,3 +4063,144 @@ textarea {
     min-height: 44px;
   }
 }
+
+/* ==========================================================================
+   Bulk pricing ("Buy more, save more") on the product page
+   ========================================================================== */
+
+.bulk-pricing {
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.bulk-pricing-head {
+  padding: 1rem 1.1rem 0.75rem;
+  background: linear-gradient(135deg, var(--accent-tint), transparent 70%);
+}
+.bulk-pricing-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  color: var(--heading);
+}
+.bulk-pricing-head p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-600);
+}
+.bulk-pricing-head strong { color: var(--success); }
+
+.bulk-pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.bulk-pricing-table thead th {
+  padding: 0.5rem 1.1rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink-500);
+  border-bottom: 1px solid var(--stroke);
+}
+.bulk-pricing-table tbody th,
+.bulk-pricing-table td {
+  padding: 0.7rem 1.1rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--stroke);
+}
+.bulk-pricing-table tbody th {
+  font-weight: 600;
+  color: var(--ink-900);
+  white-space: nowrap;
+}
+.bulk-pricing-table tbody tr { transition: background-color 0.2s var(--ease-out); }
+.bulk-pricing-table tbody tr.is-pickable { cursor: pointer; }
+.bulk-pricing-table tbody tr.is-pickable:hover { background: var(--ink-50); }
+.bulk-pricing-table tbody tr.is-active {
+  background: var(--accent-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.bulk-pricing-pick {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  min-height: 32px;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-300);
+  text-underline-offset: 3px;
+}
+.bulk-pricing-pick:hover { text-decoration-color: currentColor; }
+
+.bulk-pricing-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.bulk-pricing-price {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.bulk-pricing-saving strong {
+  display: block;
+  color: var(--success);
+  font-weight: 700;
+}
+.bulk-pricing-saving span {
+  font-size: 0.8rem;
+  color: var(--ink-500);
+}
+.bulk-pricing-muted { font-size: 0.85rem; color: var(--ink-500); }
+
+.bulk-pricing-summary {
+  padding: 0.85rem 1.1rem 1rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  color: var(--ink-700);
+}
+.bulk-pricing-summary p { margin: 0; }
+.bulk-pricing-summary strong { color: var(--heading); }
+.bulk-pricing-nudge strong,
+.bulk-pricing-best { color: var(--success); }
+
+.bulk-pricing-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 32px;
+}
+.bulk-pricing-link:hover { color: var(--accent-dark); }
+
+@media (max-width: 480px) {
+  .bulk-pricing-table thead th,
+  .bulk-pricing-table tbody th,
+  .bulk-pricing-table td { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .bulk-pricing-badge { display: block; width: fit-content; margin: 0.25rem 0 0; }
+}
