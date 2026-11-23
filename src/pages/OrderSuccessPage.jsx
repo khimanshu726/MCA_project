@@ -7,6 +7,7 @@ import { currencyFormatter } from "../components/ui/PriceDisplay";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useProducts } from "../hooks/useProducts";
 import { getCustomerOrder } from "../api/ordersApi";
+import { formatLeadTime } from "../utils/leadTime";
 
 function OrderSuccessPage() {
   const { orderId: orderIdParam } = useParams();
@@ -52,7 +53,7 @@ function OrderSuccessPage() {
 
   const deliveryEstimate = useMemo(() => {
     const leadTimes = lineItemProductIds.map((id) => productsById.get(id)?.leadTime).filter(Boolean);
-    return leadTimes[0] || null;
+    return leadTimes[0] ? formatLeadTime(leadTimes[0]) : null;
   }, [lineItemProductIds, productsById]);
 
   const handleDownloadInvoice = async () => {
