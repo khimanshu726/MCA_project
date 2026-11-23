@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { ShoppingBag, Menu, X, Heart } from "lucide-react";
 import { categoryMenu, navigationLinks } from "../data";
 import SearchAutocomplete from "./SearchAutocomplete";
@@ -70,12 +70,18 @@ function PrimaryNav() {
 }
 
 function CategoryNav({ onCloseMobile }) {
+  // The category being browsed is marked, so customers always see where they are.
+  const location = useLocation();
+  const activeCategory =
+    location.pathname === "/products" ? new URLSearchParams(location.search).get("category") : null;
+
   return (
     <nav id="mobile-category-menu" className="category-nav" aria-label="Category shortcuts">
       {categoryMenu.map((item) => (
         <Link
           key={item.label}
-          className="category-link"
+          className={`category-link ${item.category === activeCategory ? "active" : ""}`.trim()}
+          aria-current={item.category === activeCategory ? "page" : undefined}
           to={`/products?category=${encodeURIComponent(item.category)}`}
           // Close the mobile menu on selection. Same-page category changes only
           // alter the query string, so the route-change auto-close wouldn't fire.

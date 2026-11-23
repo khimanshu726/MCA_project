@@ -130,16 +130,69 @@ export const categories = [
   },
 ];
 
+// The one list of shop categories, with the names customers see. `category`
+// is the value products are saved with (admin-app/src/lib/catalogCategories.js);
+// `label` is what the header, footer and products page call it, so the same
+// category never shows up under two names.
 export const categoryMenu = [
-  { label: "Business Cards", category: "Visiting Cards" },
-  { label: "Marketing", category: "Marketing Materials" },
-  { label: "Packaging", category: "Labels & Packaging" },
-  { label: "Merchandise", category: "Clothing & Merchandise" },
-  { label: "Photo Gifts", category: "Photo Gifts" },
-  { label: "Invitations", category: "Invitations" },
-  { label: "Wedding Cards", category: "Wedding Cards" },
-  { label: "Institutions", category: "Institutional Supplies" },
+  {
+    label: "Business Cards",
+    category: "Visiting Cards",
+    description: "Premium business cards with matte, foil, and soft-touch finishes.",
+  },
+  {
+    label: "Marketing",
+    category: "Marketing Materials",
+    description: "Flyers, brochures, and posters for promotions and launches.",
+  },
+  {
+    label: "Banners",
+    category: "Banners",
+    description: "Large-format storefront and event banners designed for high visibility.",
+  },
+  {
+    label: "Packaging",
+    category: "Labels & Packaging",
+    description: "Boxes, sleeves, labels, and inserts for modern product presentation.",
+  },
+  {
+    label: "Merchandise",
+    category: "Clothing & Merchandise",
+    description: "T-shirts and branded gifts with print-ready customization.",
+  },
+  {
+    label: "Photo Gifts",
+    category: "Photo Gifts",
+    description: "Personalized mugs and keepsakes for gifting, events, and office branding.",
+  },
+  {
+    label: "Invitations",
+    category: "Invitations",
+    description: "Elegant event stationery with layered cards and envelopes.",
+  },
+  {
+    label: "Wedding Cards",
+    category: "Wedding Cards",
+    description: "Wedding invitation designs in every style, printed in your colours and wording.",
+  },
+  {
+    label: "Stationery",
+    category: "Stationery",
+    description: "Custom notebooks, registers, and office-ready print pieces.",
+  },
+  {
+    label: "Institutions",
+    category: "Institutional Supplies",
+    description: "Answer booklets, registers, and exam supplies for schools and colleges.",
+  },
 ];
+
+/** The customer-facing name of a saved product category ("Visiting Cards" → "Business Cards"). */
+export const categoryLabel = (category) =>
+  categoryMenu.find((item) => item.category === category)?.label || category;
+
+/** The menu entry for a saved product category, or null. */
+export const categoryInfo = (category) => categoryMenu.find((item) => item.category === category) || null;
 
 export const products = [
   {

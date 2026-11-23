@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
@@ -7,12 +7,21 @@ import CollectionCard from "../components/CollectionCard";
 import CollectionBanner from "../components/CollectionBanner";
 import { useProducts } from "../hooks/useProducts";
 import { useCollections } from "../hooks/useCollections";
+import { designTypeCounts } from "./CollectionPage";
+import { categoryInfo, categoryLabel, categoryMenu } from "../data";
 
 // Stable fallback so memoised values depending on the list don't recompute
 // on every render while the query is still loading.
 const EMPTY_LIST = [];
 
-const categoryOptionsFromItems = (items) => ["All", ...new Set(items.map((product) => product.category))];
+// Categories that have something to buy, in the header's order, each under
+// its customer-facing name. Anything not in the menu goes last.
+export const categoryOptionsFromItems = (items) => {
+  const present = new Set(items.map((product) => product.category).filter(Boolean));
+  const known = categoryMenu.filter((item) => present.has(item.category)).map((item) => item.category);
+  const extra = [...present].filter((category) => !known.includes(category)).sort();
+  return [...known, ...extra].map((category) => ({ value: category, label: categoryLabel(category) }));
+};
 const SEARCH_DEBOUNCE_MS = 300;
 
 function ProductsPage() {
@@ -20,6 +29,7 @@ function ProductsPage() {
   const category = searchParams.get("category") ?? "All";
   const query = searchParams.get("q") ?? "";
   const sort = searchParams.get("sort") ?? "featured";
+  const activeType = searchParams.get("type") ?? "All";
 
   // The search box updates its own local state on every keystroke (so
   // typing never feels laggy) but only pushes into the URL — and therefore
@@ -62,8 +72,13 @@ function ProductsPage() {
     [allProductsData],
   );
 
+  // A category page narrows by design type (Royal, Floral…) when its designs
+  // have more than one; the category itself is chosen in the header.
+  const typeChips = useMemo(() => (isCategoryView ? designTypeCounts(items) : EMPTY_LIST), [isCategoryView, items]);
+  const typeFilter = typeChips.length > 1 && activeType !== "All" ? activeType : null;
+
   const visibleProducts = useMemo(() => {
-    const sortedProducts = [...items];
+    const sortedProducts = typeFilter ? items.filter((item) => item.designType === typeFilter) : [...items];
 
     if (sort === "price-low") {
       sortedProducts.sort((first, second) => first.price - second.price);
@@ -74,7 +89,13 @@ function ProductsPage() {
     }
 
     return sortedProducts;
-  }, [items, sort]);
+  }, [items, sort, typeFilter]);
+
+  const isAll = category === "All";
+  const label = isAll ? "All products" : categoryLabel(category);
+  const intro = isAll
+    ? "Business cards, wedding cards, packaging and more: designed online, printed in Purnia, delivered across India."
+    : categoryInfo(category)?.description || `Custom ${label.toLowerCase()}, designed online and printed to order.`;
 
   const updateParams = (changes) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -101,8 +122,8 @@ function ProductsPage() {
     <main className="page-stack">
       {category && category !== "All" ? (
         <Seo
-          title={category}
-          description={`Shop custom ${category.toLowerCase()} at Elite Impressions — design online, order in bulk, and reorder fast.`}
+          title={label}
+          description={`Shop custom ${label.toLowerCase()} at Elite Impressions — design online, order in bulk, and reorder fast.`}
           path={`/products?category=${encodeURIComponent(category)}`}
         />
       ) : (
@@ -113,12 +134,28 @@ function ProductsPage() {
         />
       )}
       <section className="section-panel">
-        <div className="section-heading">
-          <p className="eyebrow">Product catalog</p>
-          <h1>Browse print products the way customers expect to shop them.</h1>
-          <p className="section-copy">
-            Search by product type, narrow by category, and sort the catalog by pricing or alphabetical order.
-          </p>
+        <div className="section-heading catalog-heading">
+          <nav aria-label="Breadcrumb" className="breadcrumb">
+            <ol>
+              <li>
+                <Link to="/">Home</Link>
+              </li>
+              <li>
+                {isAll ? (
+                  <span aria-current="page">Products</span>
+                ) : (
+                  <Link to="/products">Products</Link>
+                )}
+              </li>
+              {!isAll ? (
+                <li>
+                  <span aria-current="page">{label}</span>
+                </li>
+              ) : null}
+            </ol>
+          </nav>
+          <h1>{label}</h1>
+          <p className="section-copy">{intro}</p>
         </div>
 
         <div className="catalog-toolbar">
@@ -138,6 +175,26 @@ function ProductsPage() {
             </div>
           </div>
 
+          {isAll ? (
+            <div className="catalog-sort">
+              <label className="field-label" htmlFor="catalog-category">
+                Category
+              </label>
+              <select
+                id="catalog-category"
+                value="All"
+                onChange={(event) => updateParams({ category: event.target.value, type: "" })}
+              >
+                <option value="All">All categories</option>
+                {categoryOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div className="catalog-sort">
             <label className="field-label" htmlFor="catalog-sort">
               Sort by
@@ -151,22 +208,21 @@ function ProductsPage() {
           </div>
         </div>
 
-        <div className="category-chip-row" aria-label="Catalog categories">
-          {categoryOptions.map((option) => {
-            const isActive = option === category;
-
-            return (
+        {typeChips.length > 1 ? (
+          <div className="category-chip-row" role="group" aria-label="Design types">
+            {[{ type: "All", count: items.length }, ...typeChips].map(({ type, count }) => (
               <button
-                key={option}
+                key={type}
                 type="button"
-                className={`category-chip ${isActive ? "active" : ""}`}
-                onClick={() => updateParams({ category: option })}
+                aria-pressed={type === activeType}
+                className={`category-chip ${type === activeType ? "active" : ""}`}
+                onClick={() => updateParams({ type })}
               >
-                {option}
+                {type} <span className="chip-count">{count}</span>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : null}
 
         {isLoading ? (
           // Card-shaped skeletons that mirror the real .product-card (4/3 media +
@@ -202,7 +258,8 @@ function ProductsPage() {
             <div className="results-summary">
               <strong>{visibleProducts.length + visibleCollections.length}</strong>{" "}
               {visibleProducts.length + visibleCollections.length === 1 ? "result" : "results"}
-              {category !== "All" ? ` in ${category}` : ""}
+              {!isAll ? ` in ${label}` : ""}
+              {typeFilter ? ` · ${typeFilter}` : ""}
               {query ? ` for "${query}"` : ""}
             </div>
 

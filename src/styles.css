@@ -584,7 +584,7 @@ a { color: inherit; text-decoration: none; }
   padding: 0 var(--page-gutter) 0.85rem;
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.25rem;
   justify-content: space-between;
   border-top: 1px solid var(--stroke);
   padding-top: 0.85rem;
@@ -623,7 +623,7 @@ a { color: inherit; text-decoration: none; }
 
 .category-nav {
   display: flex;
-  gap: 0.15rem;
+  gap: 0.1rem;
   flex-wrap: wrap;
   align-items: center;
   background: var(--accent-tint);
@@ -634,13 +634,15 @@ a { color: inherit; text-decoration: none; }
 .category-link {
   font-size: 0.82rem;
   color: var(--ink-500);
-  padding: 0.45rem 0.75rem;
+  padding: 0.45rem 0.6rem;
+  white-space: nowrap;
   border-radius: var(--r-full);
   transition: color 0.25s var(--ease-out), background 0.25s var(--ease-out);
   font-weight: 500;
 }
 /* Warm chip hover to suit the terracotta pill (a cool grey would clash). */
 .category-link:hover { color: var(--ink-950); background: rgba(255, 255, 255, 0.7); }
+.category-link.active { color: var(--ink-950); background: #fff; box-shadow: var(--shadow-xs); }
 
 @media (max-width: 900px) {
   .header-main-row { grid-template-columns: auto auto; gap: 1rem; padding: 0.85rem var(--page-gutter); }
@@ -4278,3 +4280,26 @@ textarea {
   .collection-banner-media { width: 52px; }
   .collection-banner-cta { width: 100%; justify-content: flex-end; }
 }
+
+/* Breadcrumb above a page title (products / category pages). */
+.breadcrumb ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink-500);
+}
+.breadcrumb li + li::before {
+  content: "/";
+  margin-right: 0.35rem;
+  color: var(--ink-300);
+}
+.breadcrumb a { color: var(--ink-600); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.breadcrumb [aria-current="page"] { color: var(--ink-900); font-weight: 500; }
+.catalog-heading { gap: 0.5rem; }
+.catalog-heading h1 { margin: 0; }
+.catalog-heading .section-copy { margin: 0; }

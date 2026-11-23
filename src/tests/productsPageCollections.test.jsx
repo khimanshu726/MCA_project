@@ -84,3 +84,64 @@ describe("the products page with collections", () => {
     expect(screen.queryByRole("link", { name: /Browse collection/ })).not.toBeInTheDocument();
   });
 });
+
+describe("one category list", () => {
+  const typed = [
+    { id: "a", name: "Royal Red", category: "Wedding Cards", designType: "Royal" },
+    { id: "b", name: "Royal Gold", category: "Wedding Cards", designType: "Royal" },
+    { id: "c", name: "Floral Bloom", category: "Wedding Cards", designType: "Floral" },
+  ];
+
+  beforeEach(() => {
+    productCalls.length = 0;
+    designs.splice(0, designs.length, ...typed);
+  });
+
+  it("titles a category page with its customer-facing name and a breadcrumb, without a category chip row", () => {
+    renderAt("/products?category=Visiting%20Cards");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Business Cards");
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(crumbs).toHaveTextContent("HomeProductsBusiness Cards");
+    expect(screen.getByRole("link", { name: "Products" })).toHaveAttribute("href", "/products");
+    expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Catalog categories" })).not.toBeInTheDocument();
+  });
+
+  it("narrows a category by design type", async () => {
+    const { fireEvent } = await import("@testing-library/react");
+    renderAt("/products?category=Wedding%20Cards");
+    const types = screen.getByRole("group", { name: "Design types" });
+    expect(types).toHaveTextContent("All 3Royal 2Floral 1");
+
+    fireEvent.click(screen.getByRole("button", { name: /^Floral/ }));
+    expect(screen.getAllByTestId("design").map((card) => card.textContent)).toEqual(["Floral Bloom"]);
+    expect(document.querySelector(".results-summary")).toHaveTextContent("1 result in Wedding Cards · Floral");
+  });
+
+  it("offers a Category dropdown on All products, in the header's order and names", () => {
+    renderAt("/products");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("All products");
+    // The chip-row query returns nothing in this mock, so only "All categories" is listed.
+    expect(screen.getByLabelText("Category")).toHaveDisplayValue("All categories");
+  });
+});
+
+describe("categoryOptionsFromItems", () => {
+  it("lists categories that have products, in the header's order, under customer names", async () => {
+    const { categoryOptionsFromItems } = await import("../pages/ProductsPage");
+    expect(
+      categoryOptionsFromItems([
+        { category: "Institutional Supplies" },
+        { category: "Wedding Cards" },
+        { category: "Visiting Cards" },
+        { category: "Visiting Cards" },
+        { category: "Photo Frames" },
+      ]),
+    ).toEqual([
+      { value: "Visiting Cards", label: "Business Cards" },
+      { value: "Wedding Cards", label: "Wedding Cards" },
+      { value: "Institutional Supplies", label: "Institutions" },
+      { value: "Photo Frames", label: "Photo Frames" },
+    ]);
+  });
+});
