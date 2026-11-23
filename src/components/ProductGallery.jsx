@@ -23,6 +23,7 @@ function ProductGallery({ images, productName, activeImage, onSelect }) {
               alt={`${productName} thumbnail ${index + 1}`}
               className="thumb-image"
               aspectClassName="ratio-square"
+              fit="contain"
               width={82}
             />
           </button>
@@ -35,6 +36,7 @@ function ProductGallery({ images, productName, activeImage, onSelect }) {
           alt={`${productName} large preview`}
           className="gallery-image"
           aspectClassName="ratio-gallery"
+          fit="contain"
           priority
           width={800}
         />
