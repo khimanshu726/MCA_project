@@ -7,7 +7,8 @@ const collection = {
   slug: "wedding-invitation-suite",
   name: "Wedding Invitation Suite",
   description: "Every wedding card design.",
-  coverImage: "",
+  coverImage: "https://example.com/cover.jpg",
+  minPrice: 75,
   category: "Invitations",
   productCount: 3,
 };
@@ -81,4 +82,15 @@ describe("collection page", () => {
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "price-low" } });
     expect(shownDesigns()).toEqual(["Floral Bloom", "Royal Rose", "Royal Gold"]);
   });
+  it("opens with a compact header: breadcrumb, name, description and count, without a cover photo", () => {
+    renderAt("/collections/wedding-invitation-suite");
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    // Invitations is shown under its customer-facing name and links to its category page.
+    expect(crumbs).toHaveTextContent("HomeProductsInvitationsWedding Invitation Suite");
+    expect(within(crumbs).getByRole("link", { name: "Invitations" })).toHaveAttribute("href", "/products?category=Invitations");
+    expect(screen.getByText("Every wedding card design.")).toBeInTheDocument();
+    expect(document.querySelector(".collection-meta")).toHaveTextContent("3 designs · from ₹75");
+    expect(document.querySelector("img[src*=\"cover.jpg\"]")).toBeNull();
+  });
+
 });

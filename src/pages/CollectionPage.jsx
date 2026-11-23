@@ -2,9 +2,15 @@ import { useMemo } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
-import ResponsiveImage from "../components/ResponsiveImage";
 import { useCollection } from "../hooks/useCollections";
 import { useProducts } from "../hooks/useProducts";
+import { categoryLabel } from "../data";
+
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
 
 const EMPTY_LIST = [];
 
@@ -95,25 +101,36 @@ function CollectionPage() {
         image={collection.coverImage}
       />
 
-      <section className="section-panel collection-hero">
-        {collection.coverImage ? (
-          <div className="collection-hero-media">
-            <ResponsiveImage
-              src={collection.coverImage}
-              alt=""
-              className="card-image"
-              aspectClassName="ratio-product"
-              width={720}
-              priority
-            />
-          </div>
-        ) : null}
-        <div className="section-heading">
-          <Link className="eyebrow detail-category-link" to={`/products?category=${encodeURIComponent(collection.category)}`}>
-            {collection.category}
-          </Link>
+      {/* A compact header like the category pages: the designs below are
+          what customers came for, so no large cover photo above them. */}
+      <section className="section-panel">
+        <div className="section-heading catalog-heading">
+          <nav aria-label="Breadcrumb" className="breadcrumb">
+            <ol>
+              <li>
+                <Link to="/">Home</Link>
+              </li>
+              <li>
+                <Link to="/products">Products</Link>
+              </li>
+              <li>
+                <Link to={`/products?category=${encodeURIComponent(collection.category)}`}>
+                  {categoryLabel(collection.category)}
+                </Link>
+              </li>
+              <li>
+                <span aria-current="page">{collection.name}</span>
+              </li>
+            </ol>
+          </nav>
           <h1>{collection.name}</h1>
           {collection.description ? <p className="section-copy">{collection.description}</p> : null}
+          {collection.productCount ? (
+            <p className="collection-meta">
+              {collection.productCount} design{collection.productCount === 1 ? "" : "s"}
+              {collection.minPrice == null ? "" : ` · from ${currencyFormatter.format(collection.minPrice)}`}
+            </p>
+          ) : null}
         </div>
       </section>
 

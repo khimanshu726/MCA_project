@@ -4078,42 +4078,21 @@ textarea {
    Collections (e.g. Wedding Invitation Suite: many designs on one page)
    ========================================================================== */
 
-.collection-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: clamp(1.25rem, 2.5vw, 2rem);
-  align-items: center;
-}
-.collection-hero-media {
-  border-radius: var(--r-lg, 18px);
-  overflow: hidden;
+.collection-meta {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink-600);
 }
 .collection-toolbar {
   justify-content: flex-end;
 }
+/* Only a sort control here, so keep it small on the right. */
+.collection-toolbar .catalog-sort { flex: 0 1 240px; }
 .category-chip .chip-count {
   margin-left: 0.35rem;
   font-size: 0.8em;
   opacity: 0.7;
-}
-@media (max-width: 900px) {
-  .collection-hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1rem;
-  }
-  /* Title first and a short banner-shaped cover, so the designs start on the
-     first screen instead of below a full 4:3 photo. */
-  .collection-hero .section-heading {
-    order: -1;
-  }
-  .collection-hero-media .image-shell.ratio-product {
-    aspect-ratio: 16 / 7;
-  }
-  .collection-hero .detail-category-link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-  }
 }
 
 /* ==========================================================================
