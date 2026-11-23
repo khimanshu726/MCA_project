@@ -149,6 +149,8 @@ export const createOrder = async (req, res, next) => {
       const unitPrice = getUnitPrice(product, item.quantity);
       return {
         productId: item.productId,
+        // The readable product number at the time of the order (EI-0016).
+        productCode: product.code || "",
         name: product.name,
         quantity: item.quantity,
         unitPrice,

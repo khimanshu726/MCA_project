@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { Product } from "../models/Product.js";
 import { Collection } from "../models/Collection.js";
+import { nextProductCode } from "./productCodes.js";
 import { escapeRegExp } from "../utils/escapeRegExp.js";
 
 // The only fields an admin edit may write. `id`, `slug`, `source`, and the
@@ -113,6 +114,7 @@ export const listProducts = async ({
         { description: new RegExp(safe, "i") },
         { category: new RegExp(safe, "i") },
         { designType: new RegExp(safe, "i") },
+        { code: new RegExp("^" + safe + "$", "i") },
       ],
     });
   }
@@ -177,6 +179,7 @@ export const createProductRecord = async (payload) => {
   const product = new Product({
     slug: await uniqueSlugFor(payload.name),
     id: payload.id || crypto.randomUUID(),
+    code: await nextProductCode(),
     name: payload.name?.trim(),
     description: payload.description?.trim(),
     category: payload.category?.trim(),

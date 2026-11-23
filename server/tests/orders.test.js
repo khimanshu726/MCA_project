@@ -104,7 +104,7 @@ describe("Order API Routes", () => {
 
 describe("POST /api/orders — server-side price/stock validation", () => {
   it("resolves price and name from the live product, ignoring anything the client sends", async () => {
-    await seedProduct({ id: "cards-1", price: 50, mrp: 60, stock: 10 });
+    await seedProduct({ id: "cards-1", price: 50, mrp: 60, stock: 10, code: "EI-0042" });
 
     const res = await placeOrder([
       { productId: "cards-1", name: "Fake Name", quantity: 2, unitPrice: 0.01 },
@@ -113,6 +113,7 @@ describe("POST /api/orders — server-side price/stock validation", () => {
     expect(res.statusCode).toBe(201);
     expect(res.body.order.lineItems[0]).toMatchObject({
       productId: "cards-1",
+      productCode: "EI-0042",
       name: "Test Product cards-1",
       unitPrice: 50,
       totalPrice: 100,

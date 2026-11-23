@@ -4305,3 +4305,5 @@ textarea {
 .catalog-heading { gap: 0.5rem; }
 .catalog-heading h1 { margin: 0; }
 .catalog-heading .section-copy { margin: 0; }
+
+.detail-product-code { color: var(--ink-500); font-variant-numeric: tabular-nums; }

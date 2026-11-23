@@ -60,7 +60,7 @@ export async function generateInvoicePdf(order) {
 
   doc.setFont("helvetica", "normal");
   (order.lineItems || []).forEach((item) => {
-    doc.text(item.name, marginX, y, { maxWidth: 300 });
+    doc.text(item.productCode ? item.name + " (" + item.productCode + ")" : item.name, marginX, y, { maxWidth: 300 });
     doc.text(String(item.quantity), 380, y, { align: "right" });
     doc.text(currency(item.unitPrice), 460, y, { align: "right" });
     doc.text(currency(item.totalPrice), 547, y, { align: "right" });

@@ -127,21 +127,37 @@ export const buildNewDesignForm = (collection, template = null) => {
     status: "active",
   };
   if (!template) return base;
-  const copied = toForm(template);
+  return { ...base, ...sharedSettings(toForm(template)), description: toForm(template).description };
+};
+
+// The settings similar products share (pricing, stock, MOQ, HSN, finishes…),
+// copied when starting the next one. Name, photos, SKU, badge and design type
+// are always the new product's own.
+const sharedSettings = (copied) => ({
+  hsnCode: copied.hsnCode,
+  price: copied.price,
+  mrp: copied.mrp,
+  priceTiers: copied.priceTiers,
+  stock: copied.stock,
+  minimumOrderQty: copied.minimumOrderQty,
+  quantityStep: copied.quantityStep,
+  leadTime: copied.leadTime,
+  materials: copied.materials,
+  options: copied.options,
+  audience: copied.audience,
+});
+
+// After a product is created, the form starts the NEXT one: blank, so typing
+// can never change the product just saved, but keeping its category,
+// collection, status and shared settings for the common "add many alike" case.
+export const buildNextProductForm = (saved) => {
+  const copied = toForm(saved);
   return {
-    ...base,
-    description: copied.description,
-    hsnCode: copied.hsnCode,
-    price: copied.price,
-    mrp: copied.mrp,
-    priceTiers: copied.priceTiers,
-    stock: copied.stock,
-    minimumOrderQty: copied.minimumOrderQty,
-    quantityStep: copied.quantityStep,
-    leadTime: copied.leadTime,
-    materials: copied.materials,
-    options: copied.options,
-    audience: copied.audience,
+    ...EMPTY_FORM,
+    ...sharedSettings(copied),
+    category: copied.category,
+    collectionId: copied.collectionId,
+    status: copied.status,
   };
 };
 
@@ -162,7 +178,11 @@ export const quantityStepHint = (form) => {
 // on the shop inside its collection.
 export const savedMessage = ({ wasEditing, product, collection }) => {
   const base = wasEditing ? "Product updated." : "Product created.";
-  if (!collection) return base;
+  if (!collection) {
+    return product.status === "active"
+      ? `${base} It's live on the shop.`
+      : `${base} It's a ${product.status}, so customers won't see it until you set Status to active.`;
+  }
   if (product.status !== "active") {
     return `${base} It's a ${product.status}, so it won't show in “${collection.name}” on the shop until you set Status to active.`;
   }
@@ -270,6 +290,9 @@ function AdminProductsPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  // The product just created ({ id, name, code }), announced above the fresh
+  // form with a way back to it.
+  const [createdNote, setCreatedNote] = useState(null);
 
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
@@ -325,6 +348,7 @@ function AdminProductsPage() {
   // Whether the product, as saved, is outside any collection: only then can it
   // become one (the server works from the saved product).
   const savedProduct = editingId ? products.find((product) => product.id === editingId) : null;
+  const editingProduct = savedProduct;
   const canMakeCollection = Boolean(savedProduct && !savedProduct.collectionId && !form.collectionId);
 
   const handleCollectionDetailsSaved = (row) => {
@@ -401,6 +425,7 @@ function AdminProductsPage() {
     setForm(EMPTY_FORM);
     setFieldErrors({});
     setActionMessage("");
+    setCreatedNote(null);
     setIsAddingHsn(false);
     setIsAddingCollection(false);
     setIsEditingCollection(false);
@@ -417,6 +442,7 @@ function AdminProductsPage() {
       template = null;
     }
     setEditingId(null);
+    setCreatedNote(null);
     setForm(buildNewDesignForm(collection, template));
     setFieldErrors({});
     setActionMessage(
@@ -456,6 +482,7 @@ function AdminProductsPage() {
     setForm(toForm(product));
     setFieldErrors({});
     setActionMessage("");
+    setCreatedNote(null);
     setIsAddingHsn(false);
     setIsAddingCollection(false);
     setIsEditingCollection(false);
@@ -527,18 +554,30 @@ function AdminProductsPage() {
         : await createProduct(payload, token);
 
       const saved = response.product;
-      setActionMessage(
-        savedMessage({
-          wasEditing: Boolean(editingId),
-          product: saved,
-          collection: collections.find((row) => row.id === saved.collectionId) || null,
-        }),
-      );
+      const message = savedMessage({
+        wasEditing: Boolean(editingId),
+        product: saved,
+        collection: collections.find((row) => row.id === saved.collectionId) || null,
+      });
       await loadProducts();
 
-      // Stay on the freshly saved product so the admin can keep tuning stock.
-      setEditingId(saved.id);
-      setForm(toForm(saved));
+      if (editingId) {
+        // Editing: stay on the product so the admin can keep tuning it.
+        setActionMessage(message);
+        setForm(toForm(saved));
+      } else {
+        // Created: start the next product on a fresh form, so whatever is
+        // typed next can never overwrite the one just saved.
+        setForm(buildNextProductForm(saved));
+        setCreatedNote({
+          id: saved.id,
+          name: saved.name,
+          code: saved.code || "",
+          message: message.replace(/^Product created\.\s*/, ""),
+        });
+        setActionMessage("");
+        revealPanel();
+      }
     } catch (saveError) {
       if (saveError.payload?.errors) {
         setFieldErrors(saveError.payload.errors);
@@ -735,6 +774,7 @@ function AdminProductsPage() {
                     >
                       <td>
                         <strong>{product.name}</strong>
+                        {product.code ? <span className="admin-product-code">{product.code}</span> : null}
                         {collectionNameById.get(product.collectionId) ? (
                           <span>Design in {collectionNameById.get(product.collectionId)}</span>
                         ) : null}
@@ -779,6 +819,54 @@ function AdminProductsPage() {
                 Back to list
               </button>
             </div>
+
+            {editingId ? (
+              <div className="admin-edit-banner is-editing" role="status">
+                <span>
+                  Editing <strong>{editingProduct?.code || "this product"}</strong>
+                  {editingProduct?.name ? ` · ${editingProduct.name}` : ""}
+                </span>
+                <button type="button" className="secondary-button" onClick={startCreate}>
+                  + New product
+                </button>
+              </div>
+            ) : (
+              <div className="admin-edit-banner is-new" role="status">
+                <span>
+                  <strong>New product</strong>: saving creates a new product with its own number.
+                </span>
+              </div>
+            )}
+
+            {createdNote && !editingId ? (
+              <div className="admin-created-note" role="status">
+                <p>
+                  Created <strong>“{createdNote.name}”</strong>
+                  {createdNote.code ? <> · <strong>{createdNote.code}</strong></> : null}. {createdNote.message}
+                </p>
+                <p className="admin-created-actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => {
+                      const product = products.find((row) => row.id === createdNote.id);
+                      if (product) startEdit(product);
+                    }}
+                  >
+                    Edit it
+                  </button>
+                  <a
+                    className="ghost-button"
+                    href={`${STOREFRONT_URL}/products/${createdNote.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View on shop ↗
+                  </a>
+                </p>
+                <p className="section-copy">The form below is ready for the next product, with the same settings.</p>
+              </div>
+            ) : null}
 
             <form className="admin-product-form" onSubmit={handleSubmit}>
               <InputField label="Name" htmlFor="f-name" error={fieldErrors.name}>
@@ -1168,7 +1256,11 @@ function AdminProductsPage() {
 
               <div className="action-row">
                 <button type="submit" className="primary-button" disabled={isSaving}>
-                  {isSaving ? "Saving..." : editingId ? "Save changes" : "Create product"}
+                  {isSaving
+                    ? "Saving..."
+                    : editingId
+                      ? `Save changes${editingProduct?.code ? ` to ${editingProduct.code}` : ""}`
+                      : "Create product"}
                 </button>
                 {editingId ? (
                   <button type="button" className="secondary-button" onClick={handleDuplicate} disabled={isSaving}>
