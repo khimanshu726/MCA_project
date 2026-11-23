@@ -285,3 +285,42 @@ export const makeProductCollection = async (req, res, next) => {
     return next(error);
   }
 };
+
+// ── Retire a product into its collection ─────────────────────────────────
+
+/**
+ * Hides a product that a collection now stands for (typically the product the
+ * collection was made from): archives it, so it leaves every listing, and
+ * records it on the collection so its old link redirects there (see
+ * utils/spaRoutes.js). Nothing is deleted, so past orders keep their product.
+ * If the collection has no cover yet, the product's first photo becomes it.
+ */
+export const retireProductIntoCollection = async (req, res, next) => {
+  try {
+    const product = await Product.findOne({ id: req.params.id });
+    if (!product) return res.status(404).json({ message: "Product not found." });
+    if (!product.collectionId) {
+      return res.status(409).json({ message: "This product isn't in a collection." });
+    }
+    const collection = await Collection.findOne({ id: product.collectionId });
+    if (!collection) {
+      return res.status(409).json({ message: "This product's collection no longer exists." });
+    }
+
+    product.status = "archived";
+    await product.save();
+
+    if (!collection.legacyProductIds.includes(product.id)) {
+      collection.legacyProductIds = [...collection.legacyProductIds, product.id];
+    }
+    if (!collection.coverImage && product.images?.[0]) {
+      collection.coverImage = product.images[0];
+    }
+    await collection.save();
+
+    const stats = await statsByCollection({ collectionId: collection.id });
+    return res.json({ product: product.toObject(), collection: serialize(collection, stats.get(collection.id)) });
+  } catch (error) {
+    return next(error);
+  }
+};

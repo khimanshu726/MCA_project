@@ -25,7 +25,12 @@ import {
 // Same rules the server enforces on save, so problems show while typing.
 import { MAX_PRICE_TIERS, validatePriceTiers } from "../../../src/utils/tierPricing";
 import { formatLeadTime } from "../../../src/utils/leadTime";
-import { fetchAdminCollections, fetchHsnCodes, makeProductCollection } from "../lib/adminApi";
+import {
+  fetchAdminCollections,
+  fetchHsnCodes,
+  makeProductCollection,
+  retireProductIntoCollection,
+} from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
 import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
@@ -379,6 +384,43 @@ function AdminProductsPage() {
       setIsMakingCollection(false);
     }
   };
+
+  // Hides a product its collection now stands for (e.g. the product the
+  // collection was made from): archived, out of every listing, and its old
+  // link opens the collection. Nothing is deleted.
+  const [isRetiring, setIsRetiring] = useState(false);
+  const handleRetireIntoCollection = async () => {
+    if (!editingId || !selectedCollection) return;
+    const confirmed = window.confirm(
+      `“${form.name}” will be hidden from the shop and its old link will open “${selectedCollection.name}”. Its past orders are kept.`,
+    );
+    if (!confirmed) return;
+    setIsRetiring(true);
+    setActionMessage("");
+    try {
+      const data = await retireProductIntoCollection(editingId, token);
+      setCollections((current) =>
+        current.map((existing) => (existing.id === data.collection.id ? { ...existing, ...data.collection } : existing)),
+      );
+      setForm(toForm(data.product));
+      await loadProducts();
+      setActionMessage(`Hidden. Its link now opens “${data.collection.name}”.`);
+    } catch (retireError) {
+      setActionMessage(retireError.message || "Unable to hide this product.");
+    } finally {
+      setIsRetiring(false);
+    }
+  };
+  // The product the collection was made from carries the collection's name.
+  const isCollectionSource = Boolean(
+    selectedCollection &&
+      savedProduct &&
+      savedProduct.collectionId === selectedCollection.id &&
+      savedProduct.name.trim().toLowerCase() === selectedCollection.name.trim().toLowerCase(),
+  );
+  const canRetire = Boolean(
+    selectedCollection && savedProduct?.collectionId === selectedCollection.id && savedProduct.status !== "archived",
+  );
 
   // A collection created from the product form joins the list (and the list
   // filter) and this product is put in it.
@@ -1030,6 +1072,24 @@ function AdminProductsPage() {
                     >
                       View collection on the shop ↗
                     </a>
+                  ) : null}
+                  {canRetire ? (
+                    <>
+                      {isCollectionSource ? (
+                        <p className="section-copy">
+                          This is the product the collection was made from. Customers already see the collection, so
+                          you can hide this product: its link will open the collection instead.
+                        </p>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={handleRetireIntoCollection}
+                        disabled={isRetiring}
+                      >
+                        {isRetiring ? "Hiding…" : "Hide this product, keep the collection"}
+                      </button>
+                    </>
                   ) : null}
                 </div>
               ) : null}

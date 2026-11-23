@@ -19,6 +19,7 @@ import {
   deleteAdminCollection,
   listAdminCollections,
   makeProductCollection,
+  retireProductIntoCollection,
   updateCollectionDesigns,
   updateAdminCollection,
 } from "../controllers/collectionController.js";
@@ -61,5 +62,7 @@ router.delete("/collections/:id", deleteAdminCollection);
 router.post("/collections/:id/designs", updateCollectionDesigns);
 // Turn an existing product into a collection, keeping it inside as the first design.
 router.post("/products/:id/make-collection", makeProductCollection);
+// Hide a product its collection now stands for; its old link opens the collection.
+router.post("/products/:id/retire-into-collection", retireProductIntoCollection);
 
 export default router;
