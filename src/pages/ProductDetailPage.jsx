@@ -263,19 +263,6 @@ function ProductDetailPage() {
             />
           ) : null}
 
-          <p className="section-copy">{product.description}</p>
-
-          {product.materials?.length ? (
-            <div className="detail-specs">
-              <h2 className="detail-specs-heading">Finishes &amp; options</h2>
-              <ul className="detail-specs-list">
-                {product.materials.map((material) => (
-                  <li key={material}>{material}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
           {/* Quantity + the two purchase actions form one group. The stepper
               feeds both buttons, so it sits directly above them; they get their
               own equal-width row so neither reads as secondary to the other and
@@ -316,6 +303,21 @@ function ProductDetailPage() {
             </Link>
           </div>
 
+          {/* The reading comes after the purchase, so the buy buttons sit on
+              the first screen beside the photo. */}
+          <p className="section-copy detail-description">{product.description}</p>
+
+          {product.materials?.length ? (
+            <div className="detail-specs">
+              <h2 className="detail-specs-heading">Finishes &amp; options</h2>
+              <ul className="detail-specs-list">
+                {product.materials.map((material) => (
+                  <li key={material}>{material}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {/* Trust row — the real fulfilment facts, near the buy actions. */}
           <ul className="detail-trust">
             {TRUST.map(({ icon: Icon, label, detail }) => (
@@ -336,6 +338,7 @@ function ProductDetailPage() {
           <ProductRail
             title={collection ? `More designs in ${collection.name}` : `More in ${product.category}`}
             products={related}
+            className=""
           />
         </section>
       ) : null}

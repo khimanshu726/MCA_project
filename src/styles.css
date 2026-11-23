@@ -79,6 +79,14 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0.05, 0.36, 1);
 
+  /* Layout: one width and gutter for header, pages and footer, so their
+     edges line up; one gap between page sections and one inside them. */
+  --page-max: 1400px;
+  --page-gutter: clamp(1rem, 3vw, 2.5rem);
+  --section-gap: clamp(2rem, 3.5vw, 3rem);
+  --stack-gap: 1.25rem;
+  --page-top: 1.5rem;
+
   font-family: var(--font-sans);
   color: var(--ink-900);
   background: var(--bone);
@@ -171,17 +179,18 @@ a { color: inherit; text-decoration: none; }
 }
 
 .page-stack {
-  padding: 2.75rem 2rem 4.5rem;
+  padding: var(--page-top) var(--page-gutter) 3.5rem;
   margin: 0 auto;
-  max-width: 1240px;
+  max-width: var(--page-max);
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 3.75rem;
+  gap: var(--section-gap);
 }
 
 @media (max-width: 720px) {
-  .page-stack { padding: 1.5rem 1.15rem 3rem; gap: 2.75rem; }
+  :root { --page-top: 1.25rem; }
+  .page-stack { padding-bottom: 2.5rem; }
 }
 
 /* ==========================================================================
@@ -233,9 +242,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 .header-main-row {
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 1rem 2rem;
+  padding: 1rem var(--page-gutter);
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -570,9 +579,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 .header-nav-row {
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 0 2rem 0.85rem;
+  padding: 0 var(--page-gutter) 0.85rem;
   display: flex;
   align-items: center;
   gap: 2rem;
@@ -634,9 +643,9 @@ a { color: inherit; text-decoration: none; }
 .category-link:hover { color: var(--ink-950); background: rgba(255, 255, 255, 0.7); }
 
 @media (max-width: 900px) {
-  .header-main-row { grid-template-columns: auto auto; gap: 1rem; padding: 0.85rem 1.15rem; }
+  .header-main-row { grid-template-columns: auto auto; gap: 1rem; padding: 0.85rem var(--page-gutter); }
   .header-search { grid-column: 1 / -1; max-width: none; }
-  .header-nav-row { padding: 0.35rem 1.15rem 0.7rem; overflow-x: auto; gap: 0.75rem; scrollbar-width: none; }
+  .header-nav-row { padding: 0.35rem var(--page-gutter) 0.7rem; overflow-x: auto; gap: 0.75rem; scrollbar-width: none; }
   .header-nav-row::-webkit-scrollbar { display: none; }
   /* Categories are hidden on mobile until the hamburger opens the menu — then
      they drop down as a full-width "shop by category" list (the primary nav
@@ -839,7 +848,7 @@ a { color: inherit; text-decoration: none; }
   width: 100vw;
   margin-left: -50vw;
   margin-right: -50vw;
-  margin-top: -2.75rem; /* cancel page-stack top padding → flush under the header */
+  margin-top: calc(-1 * var(--page-top)); /* cancel page-stack top padding → flush under the header */
   min-height: min(88vh, 760px);
   display: flex;
   align-items: center;
@@ -908,9 +917,9 @@ a { color: inherit; text-decoration: none; }
   position: relative;
   z-index: 3;
   width: 100%;
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 5.5rem 2rem;
+  padding: 5rem var(--page-gutter);
 }
 .hero-cinematic-copy {
   display: flex;
@@ -946,7 +955,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   justify-content: center;
   height: 0;
-  margin: -3.75rem 0;
+  margin: calc(-1 * var(--section-gap)) 0;
   pointer-events: none;
 }
 .hero-divider-svg,
@@ -959,17 +968,14 @@ a { color: inherit; text-decoration: none; }
 .hero-divider-img { object-fit: contain; }
 
 @media (max-width: 900px) {
-  .hero-cinematic { min-height: auto; margin-top: -1.5rem; }
-  .hero-cinematic-inner { padding: 3.75rem 1.15rem; }
+  .hero-cinematic { min-height: auto; }
+  .hero-cinematic-inner { padding: 3.25rem var(--page-gutter); }
   .hero-cinematic-copy { max-width: none; }
   /* No autoplaying video on small screens — the animated gradient carries it. */
   .hero-video { display: none; }
   .hero-scrim {
     background: linear-gradient(0deg, rgba(250, 248, 244, 0.9), rgba(250, 248, 244, 0.5) 55%, rgba(250, 248, 244, 0.2));
   }
-}
-@media (max-width: 720px) {
-  .hero-divider { margin: -2.75rem 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-mesh { animation: none; }
@@ -1144,7 +1150,7 @@ a { color: inherit; text-decoration: none; }
 .section-panel {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--stack-gap);
 }
 
 .section-heading {
@@ -1376,14 +1382,31 @@ a { color: inherit; text-decoration: none; }
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: clamp(1rem, 1.6vw, 1.5rem);
 }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: clamp(1rem, 1.6vw, 1.5rem);
+}
+@media (max-width: 520px) {
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  /* Two to a row on phones, so each card shows the essentials: photo, name,
+     price and one action. Specs, description and stock pills are one tap away
+     on the product page. */
+  .product-grid .card-content { padding: 0.75rem 0.75rem 0.85rem; gap: 0.35rem; }
+  .product-grid .card-content h3 { font-size: 1rem; line-height: 1.25; }
+  .product-grid .card-topline { flex-wrap: wrap; gap: 0.25rem; }
+  .product-grid .product-badge { display: none; }
+  .product-grid .product-spec,
+  .product-grid .product-desc,
+  .product-grid .product-meta-list { display: none; }
+  .product-grid .product-card-footer { padding-top: 0.6rem; gap: 0.5rem; flex-direction: column; align-items: stretch; }
+  .product-grid .card-actions-inline { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+  .product-grid .card-actions-inline .mini-link:not(.mini-button) { display: none; }
+  .product-grid .card-actions-inline .mini-link { justify-content: center; text-align: center; }
 }
 
 .essentials-grid {
@@ -1429,7 +1452,7 @@ a { color: inherit; text-decoration: none; }
   background: #fff;
   border: 1px solid var(--stroke);
   border-radius: var(--r-lg);
-  padding: 1.25rem 1.5rem;
+  padding: 0.9rem 1.1rem;
   box-shadow: var(--shadow-sm);
 }
 .catalog-toolbar > * { flex: 1; min-width: 180px; }
@@ -1477,7 +1500,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .empty-state-card {
-  padding: 3rem 2rem;
+  padding: 2.25rem 1.5rem;
   background: #fff;
   border: 1px dashed var(--ink-200);
   border-radius: var(--r-lg);
@@ -1561,11 +1584,21 @@ a { color: inherit; text-decoration: none; }
 
 .detail-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: 3.5rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(1.75rem, 3vw, 3rem);
   align-items: flex-start;
 }
 @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; gap: 2rem; } }
+
+/* Desktop: the photo stays beside the details while they scroll, so the left
+   column never sits empty under a short gallery. Offset clears the sticky
+   header. */
+@media (min-width: 901px) {
+  .detail-layout > .gallery-panel {
+    position: sticky;
+    top: calc(var(--header-h, 10rem) + 1rem);
+  }
+}
 
 /* Gallery – vertical thumbnails on the left (desktop), horizontal below (mobile) */
 .gallery-panel {
@@ -1580,7 +1613,7 @@ a { color: inherit; text-decoration: none; }
   gap: 0.75rem;
   width: 76px;
   flex-shrink: 0;
-  max-height: 500px;
+  max-height: min(78vh, 680px);
   overflow-y: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -1647,7 +1680,13 @@ a { color: inherit; text-decoration: none; }
 
 /* The product name is the page <h1>; keep its size close to the former <h2>
    rather than inheriting the larger global h1. */
-.detail-panel h1 { font-size: clamp(1.75rem, 3vw, 2.5rem); letter-spacing: -0.018em; }
+.detail-panel h1 { font-size: clamp(1.75rem, 3vw, 2.5rem); letter-spacing: -0.018em; margin: 0; }
+
+/* One rhythm for the buy panel: the gap alone spaces its blocks, instead of
+   the section gap plus each block's own margins stacking up. */
+.detail-panel { gap: 0.85rem; }
+.detail-panel > .eyebrow { margin: 0 0 -0.4rem; }
+.detail-description { margin: 0; max-width: 65ch; }
 
 .detail-category-link {
   align-self: flex-start;
@@ -1660,9 +1699,9 @@ a { color: inherit; text-decoration: none; }
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.5rem 0.85rem;
-  padding: 1.1rem 0 0.4rem;
+  padding: 0.75rem 0 0;
   border-top: 1px solid var(--ink-100);
-  margin: 0.6rem 0 0;
+  margin: 0;
 }
 .detail-price {
   font-family: var(--font-display);
@@ -1680,7 +1719,7 @@ a { color: inherit; text-decoration: none; }
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  margin: 0.7rem 0 0.4rem;
+  margin: -0.35rem 0 0;
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -1689,7 +1728,7 @@ a { color: inherit; text-decoration: none; }
 .detail-availability.is-low { color: var(--accent-dark); }
 .detail-availability.is-out { color: var(--danger, #b3261e); }
 
-.detail-specs { margin: 1.1rem 0 0.25rem; }
+.detail-specs { margin: 0; }
 .detail-specs-heading {
   font-family: var(--font-sans);
   font-size: 0.72rem;
@@ -1718,7 +1757,7 @@ a { color: inherit; text-decoration: none; }
 
 /* Quantity + the two purchase buttons read as one group. */
 .detail-buy {
-  margin-top: 1.35rem;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -1739,17 +1778,20 @@ a { color: inherit; text-decoration: none; }
   color: var(--ink-500);
 }
 
-.detail-secondary-actions { margin-top: 0.9rem; }
+.detail-secondary-actions { margin: -0.25rem 0 0; }
 
+/* Three facts side by side, one row, rather than a tall stacked list. */
 .detail-trust {
   list-style: none;
-  margin: 1.4rem 0 0;
-  padding: 1.1rem 0 0;
+  margin: 0;
+  padding: 1rem 0 0;
   border-top: 1px solid var(--ink-100);
   display: grid;
-  gap: 0.9rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
 }
-.detail-trust li { display: flex; align-items: center; gap: 0.7rem; }
+@media (max-width: 520px) { .detail-trust { grid-template-columns: 1fr; } }
+.detail-trust li { display: flex; align-items: center; gap: 0.6rem; }
 .detail-trust svg { color: var(--accent); flex-shrink: 0; }
 .detail-trust span { display: flex; flex-direction: column; line-height: 1.3; }
 .detail-trust strong { font-size: 0.9rem; font-weight: 600; color: var(--ink-900); }
@@ -2651,7 +2693,7 @@ select {
 .account-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
+  gap: var(--stack-gap);
 }
 /* One rhythm for every row, so the card reads as a table of facts rather than
    a stack of loosely related lines. Hairlines between rows rather than extra
@@ -2724,19 +2766,20 @@ select {
 .site-footer {
   background: var(--ink-950);
   color: var(--ink-200);
-  padding: 3.5rem 2rem 2rem;
+  padding: 3rem var(--page-gutter) 1.75rem;
   margin-top: auto;
 }
 .site-footer a { color: var(--ink-300); transition: color 0.25s var(--ease-out); font-size: 0.9rem; }
 .site-footer a:hover { color: #fff; }
 
 .footer-grid {
-  max-width: 1240px;
+  /* The footer pads itself, so its content box is the page width minus gutters. */
+  max-width: calc(var(--page-max) - 2 * var(--page-gutter));
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr;
-  gap: 3rem;
-  padding-bottom: 2.25rem;
+  gap: 2rem;
+  padding-bottom: 2rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 @media (max-width: 780px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; } }
@@ -2771,9 +2814,10 @@ select {
 .footer-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.65rem; }
 
 .footer-bottom {
-  max-width: 1240px;
+  /* The footer pads itself, so its content box is the page width minus gutters. */
+  max-width: calc(var(--page-max) - 2 * var(--page-gutter));
   margin: 0 auto;
-  padding-top: 2rem;
+  padding-top: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2905,10 +2949,10 @@ select {
   background: var(--ink-950);
   color: #fff;
   border-radius: var(--r-xl);
-  padding: 3.25rem 3rem;
+  padding: 2.5rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 3rem;
+  gap: 2.5rem;
   align-items: center;
   position: relative;
   overflow: hidden;
@@ -4029,7 +4073,7 @@ textarea {
 .collection-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 2rem;
+  gap: clamp(1.25rem, 2.5vw, 2rem);
   align-items: center;
 }
 .collection-hero-media {
@@ -4076,7 +4120,7 @@ textarea {
 }
 
 .bulk-pricing-head {
-  padding: 1rem 1.1rem 0.75rem;
+  padding: 0.8rem 1.1rem 0.6rem;
   background: linear-gradient(135deg, var(--accent-tint), transparent 70%);
 }
 .bulk-pricing-head h2 {
@@ -4099,7 +4143,7 @@ textarea {
   font-size: 0.95rem;
 }
 .bulk-pricing-table thead th {
-  padding: 0.5rem 1.1rem;
+  padding: 0.4rem 1.1rem;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -4110,7 +4154,7 @@ textarea {
 }
 .bulk-pricing-table tbody th,
 .bulk-pricing-table td {
-  padding: 0.7rem 1.1rem;
+  padding: 0.5rem 1.1rem;
   text-align: left;
   vertical-align: middle;
   border-bottom: 1px solid var(--stroke);

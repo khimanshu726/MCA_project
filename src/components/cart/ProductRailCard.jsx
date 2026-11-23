@@ -11,7 +11,7 @@ import { currencyFormatter } from "../ui/PriceDisplay";
  */
 function ProductRailCard({ product }) {
   return (
-    <div className="w-[150px] shrink-0 snap-start">
+    <div className="w-[170px] shrink-0 snap-start sm:w-[190px]">
       <Link to={`/products/${product.id}`} className="group block">
         <div className="overflow-hidden rounded-xl border border-ink-100 bg-white">
           <ResponsiveImage
@@ -19,7 +19,7 @@ function ProductRailCard({ product }) {
             alt={product.name}
             aspectClassName="ratio-square"
             className="transition-transform duration-500 group-hover:scale-105"
-            width={160}
+            width={200}
           />
         </div>
         <p className="mt-2 line-clamp-2 text-sm leading-snug text-ink-800">{product.name}</p>
