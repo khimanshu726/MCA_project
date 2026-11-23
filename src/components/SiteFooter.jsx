@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Clock, Mail, MapPin, Phone, Star } from "lucide-react";
 import { getConfiguredSocialLinks } from "../config/socialLinks";
 import { BUSINESS } from "../config/business";
+import { categoryMenu } from "../data";
 
 /**
  * Brand glyphs for the social row, drawn inline.
@@ -67,10 +68,11 @@ const footerLinks = [
     title: "Shop",
     links: [
       { label: "All Products", to: "/products" },
-      { label: "Business Cards", to: "/products?category=Visiting%20Cards" },
-      { label: "Marketing", to: "/products?category=Marketing%20Materials" },
-      { label: "Packaging", to: "/products?category=Labels%20%26%20Packaging" },
-      { label: "Merchandise", to: "/products?category=Clothing%20%26%20Merchandise" },
+      // Same names as the header, from the one category list.
+      ...["Visiting Cards", "Wedding Cards", "Marketing Materials", "Labels & Packaging"].map((category) => {
+        const item = categoryMenu.find((entry) => entry.category === category);
+        return { label: item.label, to: `/products?category=${encodeURIComponent(item.category)}` };
+      }),
     ],
   },
   {
