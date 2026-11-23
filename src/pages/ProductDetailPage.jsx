@@ -247,7 +247,14 @@ function ProductDetailPage() {
             {product.minimumOrderQty ? ` · MOQ ${product.minimumOrderQty}` : ""}
           </p>
 
-          {showStepper ? <BulkPricingTable product={product} quantity={quantity} /> : null}
+          {showStepper ? (
+            <BulkPricingTable
+              product={product}
+              quantity={quantity}
+              onSelectQuantity={setQuantity}
+              maxQuantity={maxQty}
+            />
+          ) : null}
 
           <p className="section-copy">{product.description}</p>
 
