@@ -82,15 +82,14 @@ describe("collection page", () => {
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "price-low" } });
     expect(shownDesigns()).toEqual(["Floral Bloom", "Royal Rose", "Royal Gold"]);
   });
-  it("opens with a compact header: breadcrumb, name, description and count, without a cover photo", () => {
+  it("opens with a compact title line (name and facts), one line of description, no breadcrumb or cover photo", () => {
     renderAt("/collections/wedding-invitation-suite");
-    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
-    // Invitations is shown under its customer-facing name and links to its category page.
-    expect(crumbs).toHaveTextContent("HomeProductsInvitationsWedding Invitation Suite");
-    expect(within(crumbs).getByRole("link", { name: "Invitations" })).toHaveAttribute("href", "/products?category=Invitations");
-    expect(screen.getByText("Every wedding card design.")).toBeInTheDocument();
-    expect(document.querySelector(".collection-meta")).toHaveTextContent("3 designs · from ₹75");
-    expect(document.querySelector("img[src*=\"cover.jpg\"]")).toBeNull();
+    const titleRow = document.querySelector(".listing-title-row");
+    expect(within(titleRow).getByRole("heading", { level: 1 })).toHaveTextContent("Wedding Invitation Suite");
+    expect(titleRow.querySelector(".listing-facts")).toHaveTextContent("3 designs · from ₹75");
+    expect(document.querySelector(".listing-desc")).toHaveTextContent("Every wedding card design.");
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
+    expect(document.querySelector('img[src*="cover.jpg"]')).toBeNull();
   });
 
   it("keeps the type chips and a small sort control in one slim row", () => {

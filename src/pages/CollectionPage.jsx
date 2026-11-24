@@ -4,7 +4,6 @@ import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
 import { useCollection } from "../hooks/useCollections";
 import { useProducts } from "../hooks/useProducts";
-import { categoryLabel } from "../data";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -101,40 +100,23 @@ function CollectionPage() {
         image={collection.coverImage}
       />
 
-      {/* A compact header like the category pages: the designs below are
-          what customers came for, so no large cover photo above them. */}
-      <section className="section-panel">
-        <div className="section-heading catalog-heading">
-          <nav aria-label="Breadcrumb" className="breadcrumb">
-            <ol>
-              <li>
-                <Link to="/">Home</Link>
-              </li>
-              <li>
-                <Link to="/products">Products</Link>
-              </li>
-              <li>
-                <Link to={`/products?category=${encodeURIComponent(collection.category)}`}>
-                  {categoryLabel(collection.category)}
-                </Link>
-              </li>
-              <li>
-                <span aria-current="page">{collection.name}</span>
-              </li>
-            </ol>
-          </nav>
-          <h1>{collection.name}</h1>
-          {collection.description ? <p className="section-copy">{collection.description}</p> : null}
-          {collection.productCount ? (
-            <p className="collection-meta">
-              {collection.productCount} design{collection.productCount === 1 ? "" : "s"}
-              {collection.minPrice == null ? "" : ` · from ${currencyFormatter.format(collection.minPrice)}`}
-            </p>
-          ) : null}
+      {/* Heading, controls and designs in one block: a compact title line
+          with the facts beside it, one line of description, then the
+          designs, so they start on the first screen. */}
+      <section className="section-panel listing-page">
+        <div className="listing-head">
+          <div className="listing-title-row">
+            <h1>{collection.name}</h1>
+            {collection.productCount ? (
+              <span className="listing-facts">
+                {collection.productCount} design{collection.productCount === 1 ? "" : "s"}
+                {collection.minPrice == null ? "" : ` · from ${currencyFormatter.format(collection.minPrice)}`}
+              </span>
+            ) : null}
+          </div>
+          {collection.description ? <p className="listing-desc">{collection.description}</p> : null}
         </div>
-      </section>
 
-      <section className="section-panel">
         {/* One slim row above the designs: type chips (or the count) on the
             left, a small sort control on the right. */}
         <div className="listing-bar">
