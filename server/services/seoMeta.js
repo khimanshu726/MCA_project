@@ -10,7 +10,7 @@ import { BUSINESS } from "../../src/config/business.js";
 const SITE_URL = BUSINESS.url;
 const SITE_NAME = BUSINESS.name;
 const DEFAULT_DESCRIPTION =
-  "Elite Impressions is a premium print shop for custom business cards, brochures, banners, packaging, invitations, and institutional supplies — easy to customize, fast to reorder.";
+  "Elite Impressions is a premium print shop for custom business cards, banners, packaging, invitations, and institutional supplies — easy to customize, fast to reorder.";
 const DEFAULT_IMAGE =
   "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop";
 
@@ -21,7 +21,7 @@ const localBusinessJsonLd = {
   legalName: BUSINESS.legalName,
   alternateName: BUSINESS.legalName,
   description:
-    "Printing press in Purnia, Bihar for custom business cards, marketing materials, banners, invitations, packaging, merchandise, photo gifts, stationery, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
+    "Printing press in Purnia, Bihar for custom business cards, banners, invitations, wedding cards, packaging, merchandise, photo gifts, and institutional supplies. Pan-India shipping, local delivery, and store pickup.",
   url: SITE_URL,
   logo: `${SITE_URL}/favicon.svg`,
   image: DEFAULT_IMAGE,
@@ -105,7 +105,7 @@ export function resolveRouteMeta(pathname, category, product, collection = null)
       ...base,
       title: withBrand("Printing Press in Purnia, Bihar"),
       description:
-        "Bihar Press (Elite Impressions) is a printing press in Purnia, Bihar for custom business cards, flyers, banners, invitations, packaging, merchandise, and institutional supplies. Order online with pan-India shipping, local delivery in Purnia, and store pickup.",
+        "Bihar Press (Elite Impressions) is a printing press in Purnia, Bihar for custom business cards, banners, invitations, packaging, merchandise, and institutional supplies. Order online with pan-India shipping, local delivery in Purnia, and store pickup.",
       canonical: `${SITE_URL}/`,
       jsonLd: [localBusinessJsonLd],
     };
@@ -124,7 +124,7 @@ export function resolveRouteMeta(pathname, category, product, collection = null)
       ...base,
       title: withBrand("Shop All Print Products"),
       description:
-        "Browse Elite Impressions' full catalog — business cards, marketing materials, banners, invitations, packaging, merchandise, and institutional supplies.",
+        "Browse Elite Impressions' full catalog — business cards, banners, invitations, wedding cards, packaging, merchandise, and institutional supplies.",
       canonical: `${SITE_URL}/products`,
     };
   }

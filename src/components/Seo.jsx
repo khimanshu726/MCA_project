@@ -11,7 +11,7 @@ export const SITE_URL = "https://eliteimpressions.co.in";
 export const SITE_NAME = "Elite Impressions";
 
 const DEFAULT_DESCRIPTION =
-  "Elite Impressions is a premium print shop for custom business cards, brochures, banners, packaging, invitations, and institutional supplies — easy to customize, fast to reorder.";
+  "Elite Impressions is a premium print shop for custom business cards, banners, packaging, invitations, and institutional supplies — easy to customize, fast to reorder.";
 const DEFAULT_IMAGE =
   "https://images.pexels.com/photos/36412293/pexels-photo-36412293.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop";
 

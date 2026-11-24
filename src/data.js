@@ -7,7 +7,6 @@ export const navigationLinks = [
   { to: "/customize", label: "Customize" },
 ];
 
-export const promoMessage = "Buy more, save more on business cards, flyers, packaging, and event print essentials.";
 
 export const utilityLinks = [
   { label: "Help Center", detail: "Mon-Sat support" },
@@ -73,14 +72,6 @@ export const categories = [
     searchCategory: "Visiting Cards",
   },
   {
-    id: "marketing",
-    title: "Marketing Materials",
-    description: "Flyers, brochures, banners, and posters for promotions and launches.",
-    image: optimizeImage(stockImages.flyers, 900, 700),
-    productId: "launch-flyer",
-    searchCategory: "Marketing Materials",
-  },
-  {
     id: "packaging",
     title: "Labels & Packaging",
     description: "Boxes, sleeves, labels, and inserts for modern product presentation.",
@@ -107,18 +98,10 @@ export const categories = [
   {
     id: "invitations",
     title: "Invitations",
-    description: "Elegant wedding and event stationery with layered cards and envelopes.",
+    description: "Elegant wedding and event invitations with layered cards and envelopes.",
     image: optimizeImage(stockImages.invitations, 900, 700),
     productId: "wedding-suite",
     searchCategory: "Invitations",
-  },
-  {
-    id: "stationery",
-    title: "Stationery",
-    description: "Custom notebooks and office-ready print pieces for teams and studios.",
-    image: optimizeImage(stockImages.notebook, 900, 700),
-    productId: "studio-notebook",
-    searchCategory: "Stationery",
   },
   {
     id: "banners",
@@ -139,11 +122,6 @@ export const categoryMenu = [
     label: "Business Cards",
     category: "Visiting Cards",
     description: "Premium business cards with matte, foil, and soft-touch finishes.",
-  },
-  {
-    label: "Marketing",
-    category: "Marketing Materials",
-    description: "Flyers, brochures, and posters for promotions and launches.",
   },
   {
     label: "Banners",
@@ -168,12 +146,7 @@ export const categoryMenu = [
   {
     label: "Invitations",
     category: "Invitations",
-    description: "Elegant event stationery with layered cards and envelopes.",
-  },
-  {
-    label: "Stationery",
-    category: "Stationery",
-    description: "Custom notebooks, registers, and office-ready print pieces.",
+    description: "Elegant event invitations with layered cards and envelopes.",
   },
   {
     label: "Institutions",
@@ -227,19 +200,6 @@ export const products = [
     audience: "Small business essentials",
   },
   {
-    id: "launch-flyer",
-    name: "Launch Flyer Pack",
-    price: 35,
-    category: "Marketing Materials",
-    description: "A5 flyer pack for campaigns, openings, and promotional drops.",
-    images: createImageSet(stockImages.flyers),
-    badge: "Campaign Favorite",
-    leadTime: "Ready in 4-6 days",
-    materials: ["170 gsm Art Paper", "Double-sided", "A5"],
-    minimum: "MOQ 250",
-    audience: "Retail promotions",
-  },
-  {
     id: "mailer-box",
     name: "Mailer Box Sleeve",
     price: 66,
@@ -290,19 +250,6 @@ export const products = [
     materials: ["Layered cards", "Envelope add-ons", "Foil options"],
     minimum: "MOQ 50",
     audience: "Weddings and celebrations",
-  },
-  {
-    id: "studio-notebook",
-    name: "Studio Notebook Set",
-    price: 48,
-    category: "Stationery",
-    description: "Hardcover custom notebooks for teams, welcome kits, and premium office branding.",
-    images: createImageSet(stockImages.notebook),
-    badge: "Office Favorite",
-    leadTime: "Ready in 4-6 days",
-    materials: ["Hardcover", "Ruled pages", "Custom cover"],
-    minimum: "MOQ 25",
-    audience: "Brand kits and onboarding",
   },
   {
     id: "storefront-banner",
@@ -406,16 +353,16 @@ export const businessEssentials = [
   {
     id: "starter-kit",
     title: "Business starter kit",
-    description: "Visiting cards, flyers, notebooks, and branded merchandise for a polished launch.",
+    description: "Visiting cards, packaging, and branded merchandise for a polished launch.",
     ctaLabel: "Build your kit",
     ctaTo: "/products?category=Visiting%20Cards",
   },
   {
     id: "retail-promo",
     title: "Retail promotion set",
-    description: "Banners, flyers, and packaging sleeves built for storefront promotions and seasonal sales.",
+    description: "Banners and packaging sleeves built for storefront promotions and seasonal sales.",
     ctaLabel: "Shop promotion print",
-    ctaTo: "/products?category=Marketing%20Materials",
+    ctaTo: "/products?category=Banners",
   },
 ];
 

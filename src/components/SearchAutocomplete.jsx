@@ -222,7 +222,7 @@ function SearchAutocomplete({ searchTerm, onSearchTermChange }) {
         <input
           id="store-search"
           type="search"
-          placeholder="Search cards, flyers, banners, mugs..."
+          placeholder="Search cards, invitations, banners, mugs..."
           value={searchTerm}
           onChange={(event) => {
             onSearchTermChange(event.target.value);

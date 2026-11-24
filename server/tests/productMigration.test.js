@@ -121,13 +121,13 @@ describe("product seeding", () => {
     expect(unsellable).toEqual([]);
   });
 
-  it("gives the 250-MOQ flyer enough stock to actually sell", async () => {
+  it("gives a high-MOQ product (500) enough stock to actually sell", async () => {
     await ensureProductsSeeded();
 
-    const flyer = await Product.findOne({ id: "launch-flyer" }).lean();
-    expect(flyer.minimumOrderQty).toBe(250);
-    expect(flyer.stock).toBeGreaterThanOrEqual(250);
-    expect(isProductOutOfStock(flyer)).toBe(false);
+    const papers = await Product.findOne({ id: "question-papers" }).lean();
+    expect(papers.minimumOrderQty).toBe(500);
+    expect(papers.stock).toBeGreaterThanOrEqual(500);
+    expect(isProductOutOfStock(papers)).toBe(false);
   });
 
   it("repairs a row the seeder left unsellable", async () => {
@@ -309,10 +309,10 @@ describe("migrateLegacyProducts re-run", () => {
     // Reachable by ordinary selling: stock 300 against MOQ 250, one order of
     // 250, and 50 is left. It reads identically to the old seeding bug, so the
     // migration must not "repair" it — that would refill real inventory.
-    await Product.updateOne({ id: "launch-flyer" }, { stock: 50 });
+    await Product.updateOne({ id: "question-papers" }, { stock: 50 });
 
     await migrateLegacyProducts();
 
-    expect((await Product.findOne({ id: "launch-flyer" }).lean()).stock).toBe(50);
+    expect((await Product.findOne({ id: "question-papers" }).lean()).stock).toBe(50);
   });
 });

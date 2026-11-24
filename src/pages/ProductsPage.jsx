@@ -116,7 +116,7 @@ function ProductsPage() {
       ) : (
         <Seo
           title="Shop All Print Products"
-          description="Browse Elite Impressions' full catalog — business cards, marketing materials, banners, invitations, packaging, merchandise, and institutional supplies."
+          description="Browse Elite Impressions' full catalog — business cards, banners, invitations, wedding cards, packaging, merchandise, and institutional supplies."
           path="/products"
         />
       )}
