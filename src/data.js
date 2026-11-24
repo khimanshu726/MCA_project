@@ -171,11 +171,6 @@ export const categoryMenu = [
     description: "Elegant event stationery with layered cards and envelopes.",
   },
   {
-    label: "Wedding Cards",
-    category: "Wedding Cards",
-    description: "Wedding invitation designs in every style, printed in your colours and wording.",
-  },
-  {
     label: "Stationery",
     category: "Stationery",
     description: "Custom notebooks, registers, and office-ready print pieces.",
@@ -187,12 +182,35 @@ export const categoryMenu = [
   },
 ];
 
+// Categories that live under a header category rather than in the header bar
+// themselves: Wedding Cards are invitations. Their pages still work by URL.
+export const subCategories = [
+  {
+    label: "Wedding Cards",
+    category: "Wedding Cards",
+    parent: "Invitations",
+    description: "Wedding invitation designs in every style, printed in your colours and wording.",
+  },
+];
+
+const allCategoryEntries = () => [...categoryMenu, ...subCategories];
+
 /** The customer-facing name of a saved product category ("Visiting Cards" → "Business Cards"). */
 export const categoryLabel = (category) =>
-  categoryMenu.find((item) => item.category === category)?.label || category;
+  allCategoryEntries().find((item) => item.category === category)?.label || category;
 
 /** The menu entry for a saved product category, or null. */
-export const categoryInfo = (category) => categoryMenu.find((item) => item.category === category) || null;
+export const categoryInfo = (category) => allCategoryEntries().find((item) => item.category === category) || null;
+
+/** The header category a category sits under ("Wedding Cards" → "Invitations"); itself if top-level. */
+export const parentCategory = (category) =>
+  subCategories.find((item) => item.category === category)?.parent || category;
+
+/** A category and the ones under it ("Invitations" → ["Invitations", "Wedding Cards"]). */
+export const categoryFamily = (category) => [
+  category,
+  ...subCategories.filter((item) => item.parent === category).map((item) => item.category),
+];
 
 export const products = [
   {

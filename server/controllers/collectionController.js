@@ -118,8 +118,20 @@ export const deleteAdminCollection = async (req, res, next) => {
 export const listCollections = async (req, res, next) => {
   try {
     const filter = { status: "active" };
-    const { category } = req.query;
-    if (typeof category === "string" && category && category !== "All") {
+    const { category, categories } = req.query;
+    const categoryList =
+      typeof categories === "string"
+        ? categories.split(",").map((entry) => entry.trim()).filter(Boolean).slice(0, 20)
+        : [];
+    if (categoryList.length) {
+      // A header category and the ones under it (Invitations + Wedding Cards).
+      const viaDesigns = await Product.distinct("collectionId", {
+        category: { $in: categoryList },
+        status: "active",
+        collectionId: { $nin: ["", null] },
+      });
+      filter.$or = [{ category: { $in: categoryList } }, { id: { $in: viaDesigns } }];
+    } else if (typeof category === "string" && category && category !== "All") {
       // Listed under its own category, and also under any category its designs
       // are in: designs are hidden from category listings in favour of the
       // collection card, so the card must show wherever they would have.

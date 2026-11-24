@@ -101,10 +101,11 @@ describe("one category list", () => {
     renderAt("/products?category=Visiting%20Cards");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Business Cards");
     expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
-    // Search and sort share one slim row, with no toolbar card.
+    // Just a slim sort row: no toolbar card, and no second search box (the
+    // header's search does that).
     const bar = document.querySelector(".listing-bar");
-    expect(bar).toContainElement(screen.getByLabelText("Search catalog"));
     expect(bar).toContainElement(screen.getByLabelText("Sort by"));
+    expect(screen.queryByLabelText("Search catalog")).not.toBeInTheDocument();
     expect(document.querySelector(".catalog-toolbar")).toBeNull();
     expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Catalog categories" })).not.toBeInTheDocument();
@@ -142,9 +143,45 @@ describe("categoryOptionsFromItems", () => {
       ]),
     ).toEqual([
       { value: "Visiting Cards", label: "Business Cards" },
-      { value: "Wedding Cards", label: "Wedding Cards" },
+      // Wedding Cards sit under Invitations.
+      { value: "Invitations", label: "Invitations" },
       { value: "Institutional Supplies", label: "Institutions" },
       { value: "Photo Frames", label: "Photo Frames" },
     ]);
+  });
+});
+
+describe("Invitations, with Wedding Cards under it", () => {
+  beforeEach(() => {
+    productCalls.length = 0;
+  });
+
+  it("shows the Wedding Invitation Suite as one card, not its designs", () => {
+    renderAt("/products?category=Invitations");
+    expect(productCalls).toContainEqual(
+      expect.objectContaining({
+        category: "Invitations",
+        categories: ["Invitations", "Wedding Cards"],
+        excludeCollected: true,
+        withCollectionDesigns: false,
+      }),
+    );
+    expect(screen.getByTestId("collection-card")).toHaveTextContent("Wedding Invitation Suite");
+    expect(screen.queryAllByTestId("design")).toHaveLength(0);
+    expect(document.querySelector(".listing-facts")).toHaveTextContent("1 result");
+  });
+});
+
+describe("category structure", async () => {
+  const { categoryFamily, categoryLabel, categoryMenu, parentCategory } = await import("../data");
+
+  it("keeps Wedding Cards out of the header bar, under Invitations", () => {
+    expect(categoryMenu.map((item) => item.label)).not.toContain("Wedding Cards");
+    expect(categoryMenu.map((item) => item.label)).toContain("Invitations");
+    expect(parentCategory("Wedding Cards")).toBe("Invitations");
+    expect(parentCategory("Visiting Cards")).toBe("Visiting Cards");
+    expect(categoryFamily("Invitations")).toEqual(["Invitations", "Wedding Cards"]);
+    expect(categoryFamily("Banners")).toEqual(["Banners"]);
+    expect(categoryLabel("Wedding Cards")).toBe("Wedding Cards");
   });
 });

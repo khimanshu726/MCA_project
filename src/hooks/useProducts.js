@@ -13,13 +13,14 @@ export function useProducts(filters = {}) {
     collection,
     excludeCollected,
     withCollectionDesigns,
+    categories,
     enabled = true,
   } = filters;
 
   return useQuery({
     queryKey: [
       "products",
-      { category, q, sort, page, limit, featured, ids, collection, excludeCollected, withCollectionDesigns },
+      { category, q, sort, page, limit, featured, ids, collection, excludeCollected, withCollectionDesigns, categories },
     ],
     queryFn: () => listProducts(filters),
     enabled: enabled && (!Array.isArray(ids) || ids.length > 0),

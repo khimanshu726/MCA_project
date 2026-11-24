@@ -69,7 +69,7 @@ const footerLinks = [
     links: [
       { label: "All Products", to: "/products" },
       // Same names as the header, from the one category list.
-      ...["Visiting Cards", "Wedding Cards", "Marketing Materials", "Labels & Packaging"].map((category) => {
+      ...["Visiting Cards", "Invitations", "Marketing Materials", "Labels & Packaging"].map((category) => {
         const item = categoryMenu.find((entry) => entry.category === category);
         return { label: item.label, to: `/products?category=${encodeURIComponent(item.category)}` };
       }),

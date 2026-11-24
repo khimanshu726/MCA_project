@@ -489,3 +489,26 @@ describe("retiring a product into its collection", () => {
     expect((await Product.findOne({ id: loose.id })).status).toBe("active");
   });
 });
+
+describe("a header category and the categories under it", () => {
+  it("lists standalone products of several categories, without collection designs", async () => {
+    const suite = await createCollection({ category: "Wedding Cards" });
+    await seedDesign({ collectionId: suite.id, name: "Design In Suite", category: "Wedding Cards" });
+    await seedDesign({ name: "Birthday Invite", category: "Invitations" });
+    await seedDesign({ name: "Loose Wedding Card", category: "Wedding Cards" });
+    await seedDesign({ name: "Flyer", category: "Marketing Materials" });
+
+    const res = await request(app).get("/api/products?categories=Invitations,Wedding%20Cards&excludeCollected=true");
+    expect(res.body.items.map((item) => item.name).sort()).toEqual(["Birthday Invite", "Loose Wedding Card"]);
+  });
+
+  it("lists the collections of several categories", async () => {
+    const suite = await createCollection({ category: "Wedding Cards" });
+    await seedDesign({ collectionId: suite.id, category: "Wedding Cards" });
+    const banners = await createCollection({ name: "Banner Pack", category: "Banners" });
+    await seedDesign({ collectionId: banners.id, category: "Banners" });
+
+    const res = await request(app).get("/api/collections?categories=Invitations,Wedding%20Cards");
+    expect(res.body.collections.map((row) => row.name)).toEqual(["Wedding Invitation Suite"]);
+  });
+});

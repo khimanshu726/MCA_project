@@ -1,6 +1,6 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { ShoppingBag, Menu, X, Heart } from "lucide-react";
-import { categoryMenu, navigationLinks } from "../data";
+import { categoryMenu, navigationLinks, parentCategory } from "../data";
 import SearchAutocomplete from "./SearchAutocomplete";
 import AccountMenu from "./AccountMenu";
 
@@ -72,8 +72,9 @@ function PrimaryNav() {
 function CategoryNav({ onCloseMobile }) {
   // The category being browsed is marked, so customers always see where they are.
   const location = useLocation();
-  const activeCategory =
-    location.pathname === "/products" ? new URLSearchParams(location.search).get("category") : null;
+  // A sub-category (Wedding Cards) lights up the header category it sits under.
+  const browsing = location.pathname === "/products" ? new URLSearchParams(location.search).get("category") : null;
+  const activeCategory = browsing ? parentCategory(browsing) : null;
 
   return (
     <nav id="mobile-category-menu" className="category-nav" aria-label="Category shortcuts">
