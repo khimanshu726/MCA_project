@@ -4363,8 +4363,12 @@ textarea {
 @media (max-width: 720px) {
   .listing-search { flex-basis: 100%; max-width: none; }
   .listing-search + .listing-sort { margin-left: 0; }
-  /* On All products the header search already does this; skip the second box. */
-  .listing-bar.is-all .listing-search { display: none; }
+  /* The header search sits right above on phones, so no second search box
+     on any listing page; and no collection banner, so the designs start on
+     the first screen (each design links back to its collection). */
+  .listing-search { display: none; }
+  .collection-banner-list { display: none; }
+  .listing-bar .listing-sort { margin-left: auto; }
   /* Category and Sort share one line in two equal halves; their values
      ("All categories", "Featured") say what they are, and the labels stay
      for screen readers. */
