@@ -5,6 +5,8 @@ import Button from "./ui/Button";
 import { useUserAuth } from "../context/UserAuthContext";
 import { getDefaultOrderQty, isProductOutOfStock } from "../utils/productAvailability";
 import { storeBuyNowSession } from "../utils/buyNowSession";
+import { getPersonalPhoto } from "../utils/personalPhotos";
+import PhotoUploadDialog from "./PhotoUploadDialog";
 
 /**
  * Instant single-item purchase: skips the cart entirely and opens checkout on
@@ -27,6 +29,7 @@ function BuyNowButton({
   const { isAuthenticated } = useUserAuth();
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState("");
+  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   // Guards the window between click and route change. Without it, a double
   // click fires two navigations and (on a slow device) two session writes.
   const isNavigatingRef = useRef(false);
@@ -36,6 +39,12 @@ function BuyNowButton({
 
   const handleClick = () => {
     if (isNavigatingRef.current || isOutOfStock) {
+      return;
+    }
+
+    // A personalised product needs the customer's photo before checkout.
+    if (product.photoUpload && !getPersonalPhoto(product.id)) {
+      setIsPhotoDialogOpen(true);
       return;
     }
 
@@ -95,6 +104,18 @@ function BuyNowButton({
         {!isStarting ? <Zap size={16} aria-hidden="true" /> : null}
         {label}
       </Button>
+      {product.photoUpload ? (
+        <PhotoUploadDialog
+          open={isPhotoDialogOpen}
+          onClose={() => setIsPhotoDialogOpen(false)}
+          product={product}
+          confirmLabel="Use this photo & buy now"
+          onUploaded={() => {
+            setIsPhotoDialogOpen(false);
+            handleClick();
+          }}
+        />
+      ) : null}
       {error ? (
         <p role="alert" className="mt-1 text-xs text-danger-600">
           {error}

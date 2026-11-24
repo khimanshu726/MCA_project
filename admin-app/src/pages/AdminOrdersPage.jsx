@@ -391,9 +391,24 @@ function AdminOrdersPage() {
                 <div className="order-detail-block">
                   <strong>Line items</strong>
                   {selectedOrder.lineItems.map((item) => (
-                    <span key={item.productId}>
-                      {item.productCode ? item.productCode + " · " : ""}
-                      {item.name} x {item.quantity} ({formatMoney(item.totalPrice)})
+                    <span key={item.productId} className={item.photo?.url ? "order-line-with-photo" : undefined}>
+                      <span>
+                        {item.productCode ? item.productCode + " · " : ""}
+                        {item.name} x {item.quantity} ({formatMoney(item.totalPrice)})
+                      </span>
+                      {/* The customer's photo for a personalised product: open
+                          the full file to print it. */}
+                      {item.photo?.url ? (
+                        <a
+                          className="order-line-photo"
+                          href={buildFileLink(item.photo.url)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <img src={buildFileLink(item.photo.url)} alt={`Customer photo for ${item.name}`} />
+                          <span>Open customer photo</span>
+                        </a>
+                      ) : null}
                     </span>
                   ))}
                 </div>

@@ -894,3 +894,35 @@
 .feature-star.is-featured {
   color: #c98a15;
 }
+
+/* A personalised order line: the customer's photo under the line, opening
+   the full file for printing. */
+.order-detail-block .order-line-with-photo {
+  display: grid;
+  gap: 6px;
+}
+.order-line-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--line, rgba(28, 36, 49, 0.12));
+  border-radius: 999px;
+  color: var(--accent, #d86a3d);
+  font-weight: 600;
+  text-decoration: none;
+}
+.order-line-photo img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f3efe9;
+}
+.orders-table td .order-line-photo span,
+.order-line-photo span {
+  display: inline;
+  font-size: 0.82rem;
+  color: inherit;
+}

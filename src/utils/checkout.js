@@ -1,3 +1,5 @@
+import { getPersonalPhoto } from "./personalPhotos";
+
 /**
  * Builds a FormData payload for the order-create endpoints from the current
  * checkout state. Pulled out of CartPage to shrink its complexity budget.
@@ -40,6 +42,8 @@ export function buildOrderFormData({
         quantity: item.quantity,
         unitPrice: item.price,
         customizationText: item.customizationText || "",
+        // The customer's uploaded photo for a personalised product.
+        photoId: getPersonalPhoto(item.id)?.id || "",
       })),
     ),
   );

@@ -42,7 +42,8 @@ export const parseLineItems = (value) => {
   }
 };
 
-// Only productId/quantity/customizationText are trusted from the client.
+// Only productId/quantity/customizationText/photoId are taken from the client
+// (photoId is checked against CustomerPhoto in createOrder).
 // Anything price-related (name, unitPrice, totalPrice) the client sends is
 // ignored here — createOrder resolves those authoritatively from the live
 // Product record instead.
@@ -53,6 +54,7 @@ export const normalizeLineItems = (lineItems) =>
       productId: String(item.productId || item.id),
       quantity: Math.max(1, Number(item.quantity) || 1),
       customizationText: typeof item.customizationText === "string" ? item.customizationText.trim() : "",
+      photoId: typeof item.photoId === "string" ? item.photoId.trim().slice(0, 64) : "",
     }));
 
 export const validateOrderPayload = ({

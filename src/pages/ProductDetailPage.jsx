@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ShieldCheck, Truck, Store, Clock } from "lucide-react";
 import Seo, { SITE_URL } from "../components/Seo";
 import AddToCartButton from "../components/AddToCartButton";
+import PhotoCapsule from "../components/PhotoCapsule";
 import BuyNowButton from "../components/BuyNowButton";
 import ProductGallery from "../components/ProductGallery";
 import ProductRail from "../components/cart/ProductRail";
@@ -271,6 +272,16 @@ function ProductDetailPage() {
               own equal-width row so neither reads as secondary to the other and
               they stack cleanly on a phone. */}
           <div className="detail-buy" ref={buyButtonsRef}>
+            {/* A personalised product is printed with the customer's photo. */}
+            {product.photoUpload ? (
+              <div className="detail-photo-row">
+                <div>
+                  <span className="detail-qty-label">Your photo</span>
+                  <p className="detail-photo-hint">We print this product with your photo.</p>
+                </div>
+                <PhotoCapsule product={product} size="lg" />
+              </div>
+            ) : null}
             {showStepper ? (
               <div className="detail-qty-row">
                 <span className="detail-qty-label">Quantity</span>

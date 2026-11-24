@@ -4336,3 +4336,252 @@ textarea {
   }
 }
 
+
+/* ==========================================================================
+   Personalised products: the photo capsule and its upload dialog
+   ========================================================================== */
+
+/* The card's price, with the photo capsule beside it. */
+.product-price-row {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.photo-capsule {
+  position: relative;
+  z-index: 1; /* above the card's whole-card link */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.28rem 0.7rem 0.28rem 0.3rem;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: var(--r-full);
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-out), border-color 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+}
+.photo-capsule:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.photo-capsule:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-soft);
+}
+.photo-capsule-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+}
+.photo-capsule-thumb {
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--success);
+}
+.photo-capsule.has-photo {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, #fff);
+  color: var(--success);
+}
+.photo-capsule-text { overflow: hidden; text-overflow: ellipsis; }
+.photo-capsule-change { color: var(--ink-500); font-weight: 500; }
+
+.photo-capsule-lg {
+  padding: 0.4rem 1rem 0.4rem 0.4rem;
+  font-size: 0.88rem;
+}
+.photo-capsule-lg .photo-capsule-icon,
+.photo-capsule-lg .photo-capsule-thumb {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+/* Product page: "Your photo" row above the quantity and buy buttons. */
+.detail-photo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+}
+.detail-photo-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* The dialog itself, in the site's paper-and-ink style. */
+.photo-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 18, 22, 0.45);
+  backdrop-filter: blur(2px);
+}
+.photo-dialog {
+  width: min(100%, 30rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xl);
+  outline: none;
+}
+.photo-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.photo-dialog-head .eyebrow { margin: 0 0 0.2rem; }
+.photo-dialog-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1.25;
+  color: var(--heading);
+}
+.photo-dialog-close {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border: none;
+  border-radius: 50%;
+  background: var(--ink-50);
+  color: var(--ink-500);
+  cursor: pointer;
+}
+.photo-dialog-close:hover { background: var(--ink-100); color: var(--ink-950); }
+
+.photo-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 1.75rem 1rem;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--r-md);
+  background: var(--accent-tint);
+  color: var(--ink-700);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+.photo-dropzone:hover,
+.photo-dropzone.is-drag-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.photo-dropzone:focus-visible { outline: none; box-shadow: var(--ring-soft); }
+.photo-dropzone strong { font-size: 1rem; color: var(--heading); }
+.photo-dropzone-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.3rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.photo-dropzone-note {
+  margin-top: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+
+.photo-dialog-preview {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  border-radius: var(--r-md);
+  background: var(--ink-50);
+}
+.photo-dialog-preview img {
+  max-width: 100%;
+  max-height: min(46vh, 22rem);
+  border-radius: var(--r-sm);
+  object-fit: contain;
+  box-shadow: var(--shadow-sm);
+}
+
+.photo-dialog-tips {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  display: grid;
+  gap: 0.2rem;
+}
+.photo-dialog-warn,
+.photo-dialog-error {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--r-sm);
+  font-size: 0.82rem;
+}
+.photo-dialog-warn { background: color-mix(in srgb, var(--gold) 14%, #fff); color: #7a5a1c; }
+.photo-dialog-error { background: color-mix(in srgb, var(--danger) 10%, #fff); color: var(--danger); }
+
+.photo-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+.photo-dialog-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (max-width: 520px) {
+  /* Compact capsule on 2-up phone cards: the price above, the capsule under it. */
+  .product-grid .product-price-row { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+  .product-grid .photo-capsule { justify-content: center; font-size: 0.7rem; padding-right: 0.55rem; }
+  .product-grid .photo-capsule-long,
+  .product-grid .photo-capsule-change { display: none; }
+  .photo-dialog { padding: 1rem; }
+  .photo-dialog-actions { flex-direction: column-reverse; }
+  .photo-dialog-actions > * { width: 100%; justify-content: center; }
+}
