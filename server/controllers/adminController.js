@@ -182,6 +182,8 @@ export const getAdminProducts = async (req, res, next) => {
       collection: typeof req.query.collection === "string" ? req.query.collection : undefined,
       page: req.query.page,
       limit: req.query.limit,
+      // The admin list stays newest first; the shop shows Featured first.
+      sort: "newest",
       includeInactive: true,
     });
 

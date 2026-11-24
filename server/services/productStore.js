@@ -50,6 +50,15 @@ export const serializeProduct = (product) => {
   };
 };
 
+// Shop listings show products the admin marked Featured first, newest first
+// within each group. Only named orders are accepted: the sort used to be passed
+// straight from the query string to Mongo.
+const SORT_ORDERS = {
+  featured: { featured: -1, createdAt: -1, _id: -1 },
+  newest: { createdAt: -1, _id: -1 },
+};
+export const resolveProductSort = (sort) => SORT_ORDERS[sort] || SORT_ORDERS.featured;
+
 export const listProducts = async ({
   category,
   q,
@@ -62,7 +71,7 @@ export const listProducts = async ({
   categories,
   page = 1,
   limit = 24,
-  sort = "-createdAt",
+  sort = "featured",
   includeInactive = false,
 } = {}) => {
   const filter = {};
@@ -140,7 +149,7 @@ export const listProducts = async ({
 
   const [items, total] = await Promise.all([
     Product.find(filter)
-      .sort(sort)
+      .sort(resolveProductSort(sort))
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit),
     Product.countDocuments(filter),
