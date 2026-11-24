@@ -3,12 +3,10 @@
 // strings. Shared by the product and collection forms.
 export const CATEGORY_OPTIONS = [
   "Visiting Cards",
-  "Marketing Materials",
   "Banners",
   "Invitations",
   "Wedding Cards",
   "Photo Gifts",
-  "Stationery",
   "Clothing & Merchandise",
   "Labels & Packaging",
   "Institutional Supplies",

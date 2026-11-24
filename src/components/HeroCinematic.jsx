@@ -44,7 +44,7 @@ function HeroCinematic({ media = defaultHeroMedia }) {
           <p className="eyebrow">Premium Print Shop</p>
           <h1 className="hero-cinematic-title">Print products that feel launch-ready from the first click.</h1>
           <p className="section-copy hero-cinematic-sub">
-            Business cards, brochures, packaging, invitations, and custom gifts — designed to feel
+            Business cards, packaging, invitations, banners, and custom gifts — designed to feel
             premium, easy to customize, and fast to reorder.
           </p>
           <div className="hero-feature-row">

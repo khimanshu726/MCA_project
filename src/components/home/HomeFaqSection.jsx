@@ -18,14 +18,14 @@ const FAQS = [
     q: "What can I get printed or personalized?",
     a: (
       <>
-        A full range of print: business &amp; visiting cards, flyers and marketing materials, banners, wedding and
-        event invitations, packaging and labels, t-shirts and merchandise, photo gifts, stationery, and{" "}
+        A full range of print: business &amp; visiting cards, banners, wedding and event invitations, packaging
+        and labels, t-shirts and merchandise, photo gifts, and{" "}
         <Link to="/institutions">institutional supplies</Link>. Browse everything in the{" "}
         <Link to="/products">product catalog</Link>.
       </>
     ),
     text:
-      "A full range of print: business & visiting cards, flyers and marketing materials, banners, wedding and event invitations, packaging and labels, t-shirts and merchandise, photo gifts, stationery, and institutional supplies.",
+      "A full range of print: business & visiting cards, banners, wedding and event invitations, packaging and labels, t-shirts and merchandise, photo gifts, and institutional supplies.",
   },
   {
     q: "Can I upload my own design or photo?",

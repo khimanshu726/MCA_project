@@ -185,3 +185,20 @@ describe("category structure", async () => {
     expect(categoryLabel("Wedding Cards")).toBe("Wedding Cards");
   });
 });
+
+describe("Marketing and Stationery are gone everywhere", async () => {
+  const data = await import("../data");
+  const { CATEGORY_OPTIONS } = await import("../../admin-app/src/lib/catalogCategories");
+
+  it("aren't in the header, the home page tiles, the starter products or the admin list", () => {
+    const gone = ["Marketing Materials", "Stationery"];
+    expect(data.categoryMenu.map((item) => item.category)).not.toEqual(expect.arrayContaining([gone[0]]));
+    expect(data.categoryMenu.map((item) => item.category)).not.toContain("Stationery");
+    for (const category of gone) {
+      expect(data.categories.map((tile) => tile.searchCategory)).not.toContain(category);
+      expect(data.products.map((product) => product.category)).not.toContain(category);
+      expect(CATEGORY_OPTIONS).not.toContain(category);
+    }
+    expect(JSON.stringify(data.businessEssentials)).not.toMatch(/Marketing|flyer/i);
+  });
+});
