@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
 import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
 import CollectionCard from "../components/CollectionCard";
@@ -21,7 +20,6 @@ export const categoryOptionsFromItems = (items) => {
   const extra = [...present].filter((category) => !known.includes(category)).sort();
   return [...known, ...extra].map((category) => ({ value: category, label: categoryLabel(category) }));
 };
-const SEARCH_DEBOUNCE_MS = 300;
 
 function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,21 +28,7 @@ function ProductsPage() {
   const sort = searchParams.get("sort") ?? "featured";
   const activeType = searchParams.get("type") ?? "All";
 
-  // The search box updates its own local state on every keystroke (so
-  // typing never feels laggy) but only pushes into the URL — and therefore
-  // into useProducts' queryKey — after the user pauses. Without this, every
-  // keystroke fired a brand-new query; the product grid would re-diff by
-  // key on each response, unmounting/remounting any card not in both the
-  // old and new result sets and re-triggering its ResponsiveImage skeleton,
-  // which is what "images disappear/reload while searching" actually was.
-  const [searchInput, setSearchInput] = useState(query);
-  const searchDebounceRef = useRef(null);
-
-  useEffect(() => {
-    setSearchInput(query);
-  }, [query]);
-
-  useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
+  // Searching happens from the header's search box, which sets ?q=.
 
   // A category page (e.g. Wedding Cards) lists every design straight away,
   // including those inside its collections. "All products" keeps one card
@@ -112,13 +96,6 @@ function ProductsPage() {
     setSearchParams(nextParams);
   };
 
-  const handleSearchChange = (event) => {
-    const nextValue = event.target.value;
-    setSearchInput(nextValue);
-    clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => updateParams({ q: nextValue }), SEARCH_DEBOUNCE_MS);
-  };
-
   return (
     <main className="page-stack">
       {category && category !== "All" ? (
@@ -153,18 +130,22 @@ function ProductsPage() {
         </div>
 
         <div className={`listing-bar${isAll ? " is-all" : ""}`}>
-          <div className="listing-search">
-            <Search size={16} aria-hidden="true" />
-            <input
-              id="catalog-search"
-              type="search"
-              aria-label="Search catalog"
-              value={searchInput}
-              placeholder="Search visiting cards, banners, packaging..."
-              onChange={handleSearchChange}
-            />
-          </div>
-
+          {/* Design-type chips (category pages) share the row with Sort. */}
+          {typeChips.length > 1 ? (
+            <div className="category-chip-row" role="group" aria-label="Design types">
+              {[{ type: "All", count: items.length }, ...typeChips].map(({ type, count }) => (
+                <button
+                  key={type}
+                  type="button"
+                  aria-pressed={type === activeType}
+                  className={`category-chip ${type === activeType ? "active" : ""}`}
+                  onClick={() => updateParams({ type })}
+                >
+                  {type} <span className="chip-count">{count}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
           {isAll ? (
             <div className="listing-sort">
               <label htmlFor="catalog-category">Category</label>
@@ -193,22 +174,6 @@ function ProductsPage() {
             </select>
           </div>
         </div>
-
-        {typeChips.length > 1 ? (
-          <div className="category-chip-row" role="group" aria-label="Design types">
-            {[{ type: "All", count: items.length }, ...typeChips].map(({ type, count }) => (
-              <button
-                key={type}
-                type="button"
-                aria-pressed={type === activeType}
-                className={`category-chip ${type === activeType ? "active" : ""}`}
-                onClick={() => updateParams({ type })}
-              >
-                {type} <span className="chip-count">{count}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         {isLoading ? (
           // Card-shaped skeletons that mirror the real .product-card (4/3 media +

@@ -101,10 +101,11 @@ describe("one category list", () => {
     renderAt("/products?category=Visiting%20Cards");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Business Cards");
     expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
-    // Search and sort share one slim row, with no toolbar card.
+    // Just a slim sort row: no toolbar card, and no second search box (the
+    // header's search does that).
     const bar = document.querySelector(".listing-bar");
-    expect(bar).toContainElement(screen.getByLabelText("Search catalog"));
     expect(bar).toContainElement(screen.getByLabelText("Sort by"));
+    expect(screen.queryByLabelText("Search catalog")).not.toBeInTheDocument();
     expect(document.querySelector(".catalog-toolbar")).toBeNull();
     expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Catalog categories" })).not.toBeInTheDocument();
