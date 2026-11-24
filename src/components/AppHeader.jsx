@@ -108,21 +108,24 @@ function AppHeader({
 }) {
   return (
     <header className={`site-header ${isScrolled ? "is-scrolled" : ""} ${isHidden ? "is-hidden" : ""}`}>
-      <div className="header-main-row">
-        <BrandBlock />
+      {/* The dark top band: logo, search and account, full width. */}
+      <div className="header-top-band">
+        <div className="header-main-row">
+          <BrandBlock />
 
-        <SearchAutocomplete
-          searchTerm={searchTerm}
-          onSearchTermChange={onSearchTermChange}
-          onSubmit={onSearchSubmit}
-        />
+          <SearchAutocomplete
+            searchTerm={searchTerm}
+            onSearchTermChange={onSearchTermChange}
+            onSubmit={onSearchSubmit}
+          />
 
-        <AccountActions
-          cartCount={cartCount}
-          wishlistCount={wishlistCount}
-          mobileOpen={mobileOpen}
-          onToggleMobile={onToggleMobile}
-        />
+          <AccountActions
+            cartCount={cartCount}
+            wishlistCount={wishlistCount}
+            mobileOpen={mobileOpen}
+            onToggleMobile={onToggleMobile}
+          />
+        </div>
       </div>
 
       <div className={`header-nav-row ${mobileOpen ? "is-open" : ""}`}>

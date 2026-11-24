@@ -4,7 +4,6 @@ import { useWishlist } from "../hooks/useWishlist";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useHeaderSearch, useHideOnScroll, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
 import AppHeader from "./AppHeader";
-import PromoStrip from "./PromoStrip";
 import SiteFooter from "./SiteFooter";
 
 function AppLayout() {
@@ -21,8 +20,6 @@ function AppLayout() {
 
   return (
     <div className="app-shell">
-      <PromoStrip />
-
       <AppHeader
         isScrolled={isScrolled}
         // Phones only (see .site-header.is-hidden): never while the menu is open.
