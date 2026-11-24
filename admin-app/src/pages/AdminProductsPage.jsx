@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   createProduct,
@@ -33,6 +33,29 @@ import {
 } from "../lib/adminApi";
 import { CATEGORY_OPTIONS } from "../lib/catalogCategories";
 import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
+import { clearDraft, loadDraft, useFormDraft } from "../lib/useFormDraft";
+
+// Unsaved product form work, kept in this browser (see lib/useFormDraft.js).
+export const PRODUCT_DRAFT_KEY = "elite-admin-product-draft";
+
+/** Whether the form has changes that aren't saved yet. */
+export const isFormDirty = (form, baseline) => JSON.stringify(form) !== JSON.stringify(baseline);
+
+/**
+ * What to reopen from a saved draft: the product it was editing (if that
+ * still exists), or a new product with the draft's values. A product deleted
+ * meanwhile comes back as a new product, flagged so the admin is told.
+ */
+export const pickDraftToRestore = (draft, products) => {
+  if (!draft || typeof draft !== "object" || !draft.form || typeof draft.form !== "object") return null;
+  const form = { ...EMPTY_FORM, ...draft.form };
+  if (draft.editingId) {
+    const product = products.find((row) => row.id === draft.editingId);
+    if (product) return { editingId: product.id, baseline: toForm(product), form, savedAt: draft.savedAt, deleted: false };
+    return { editingId: null, baseline: EMPTY_FORM, form, savedAt: draft.savedAt, deleted: true };
+  }
+  return { editingId: null, baseline: EMPTY_FORM, form, savedAt: draft.savedAt, deleted: false };
+};
 
 const productCurrency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -292,6 +315,18 @@ function AdminProductsPage() {
   const [editingId, setEditingId] = useState(null); // null = creating
   const { panelRef, listRef, revealPanel, revealList } = useStackedReveal();
   const [form, setForm] = useState(EMPTY_FORM);
+  // The form as last opened or saved; anything different is unsaved work.
+  const [baseline, setBaseline] = useState(EMPTY_FORM);
+  const resetForm = (next) => {
+    setForm(next);
+    setBaseline(next);
+  };
+  const isDirty = isFormDirty(form, baseline);
+  // Becomes true once any saved draft has been put back, so the empty form on
+  // first load can't wipe it before then.
+  const [draftReady, setDraftReady] = useState(false);
+  const [restoredNote, setRestoredNote] = useState(null);
+  useFormDraft(PRODUCT_DRAFT_KEY, { editingId, form }, draftReady ? isDirty : null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
@@ -374,6 +409,7 @@ function AdminProductsPage() {
       const data = await makeProductCollection(editingId, token);
       setCollections((current) => [...current, data.collection].sort((a, b) => a.name.localeCompare(b.name)));
       setForm((current) => ({ ...current, collectionId: data.collection.id }));
+      setBaseline((current) => ({ ...current, collectionId: data.collection.id }));
       await loadProducts();
       setActionMessage(
         `“${data.collection.name}” is now a collection, with this product as its first design. Add more designs with Duplicate, or pick this collection on new products.`,
@@ -402,7 +438,7 @@ function AdminProductsPage() {
       setCollections((current) =>
         current.map((existing) => (existing.id === data.collection.id ? { ...existing, ...data.collection } : existing)),
       );
-      setForm(toForm(data.product));
+      resetForm(toForm(data.product));
       await loadProducts();
       setActionMessage(`Hidden. Its link now opens “${data.collection.name}”.`);
     } catch (retireError) {
@@ -462,9 +498,11 @@ function AdminProductsPage() {
     return { total: products.length, active: active.length, unsellable: unsellable.length };
   }, [products]);
 
-  const startCreate = () => {
+  const startCreate = ({ force = false } = {}) => {
+    if (!force && !confirmLeave()) return;
+    setRestoredNote(null);
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    resetForm(EMPTY_FORM);
     setFieldErrors({});
     setActionMessage("");
     setCreatedNote(null);
@@ -475,6 +513,7 @@ function AdminProductsPage() {
   };
 
   const startAddDesign = async (collection) => {
+    if (!confirmLeave()) return;
     // Start from the newest design already in the collection, when there is one.
     let template = null;
     try {
@@ -485,7 +524,8 @@ function AdminProductsPage() {
     }
     setEditingId(null);
     setCreatedNote(null);
-    setForm(buildNewDesignForm(collection, template));
+    setRestoredNote(null);
+    resetForm(buildNewDesignForm(collection, template));
     setFieldErrors({});
     setActionMessage(
       template
@@ -498,30 +538,66 @@ function AdminProductsPage() {
     revealPanel();
   };
 
+  // Put back unsaved work (e.g. after a sign-in expired mid-edit), once the
+  // products it may belong to have loaded. Runs once.
+  const restoredDraftRef = useRef(false);
+  useEffect(() => {
+    // Not while the list failed to load: a draft for an existing product would
+    // wrongly look deleted. It stays saved for the next successful load.
+    if (draftReady || isLoading || error) return;
+    const restore = pickDraftToRestore(loadDraft(PRODUCT_DRAFT_KEY), products);
+    if (restore) {
+      restoredDraftRef.current = true;
+      setEditingId(restore.editingId);
+      setBaseline(restore.baseline);
+      setForm(restore.form);
+      setRestoredNote({ savedAt: restore.savedAt, deleted: restore.deleted });
+      revealPanel();
+    }
+    setDraftReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, draftReady, error]);
+
+  const discardDraft = () => {
+    setForm(baseline);
+    clearDraft(PRODUCT_DRAFT_KEY);
+    setRestoredNote(null);
+  };
+
+  // Switching away from unsaved changes asks first.
+  const confirmLeave = () =>
+    !isDirty || window.confirm(`You have unsaved changes${form.name ? ` to “${form.name}”` : ""}. Discard them?`);
+
   // Links from the Collections page: ?addTo=<collection id> starts a new
   // design in it, ?edit=<product id> opens that product. Handled once the
   // data they need has loaded, then dropped from the address.
   const addTo = searchParams.get("addTo");
   const editParam = searchParams.get("edit");
   useEffect(() => {
-    if (!addTo) return;
+    if (!addTo || !draftReady) return;
+    if (restoredDraftRef.current) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
     const collection = collections.find((row) => row.id === addTo);
     if (!collection) return;
     startAddDesign(collection);
     setSearchParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addTo, collections]);
+  }, [addTo, collections, draftReady]);
   useEffect(() => {
-    if (!editParam || isLoading) return;
+    if (!editParam || isLoading || !draftReady) return;
     const product = products.find((row) => row.id === editParam);
-    if (product) startEdit(product);
+    if (product && !restoredDraftRef.current) startEdit(product, { force: true });
     setSearchParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editParam, isLoading, products]);
+  }, [editParam, isLoading, products, draftReady]);
 
-  const startEdit = (product) => {
+  const startEdit = (product, { force = false } = {}) => {
+    if (!force && product.id !== editingId && !confirmLeave()) return;
+    setRestoredNote(null);
     setEditingId(product.id);
-    setForm(toForm(product));
+    resetForm(toForm(product));
     setFieldErrors({});
     setActionMessage("");
     setCreatedNote(null);
@@ -606,11 +682,13 @@ function AdminProductsPage() {
       if (editingId) {
         // Editing: stay on the product so the admin can keep tuning it.
         setActionMessage(message);
-        setForm(toForm(saved));
+        resetForm(toForm(saved));
+        setRestoredNote(null);
       } else {
         // Created: start the next product on a fresh form, so whatever is
         // typed next can never overwrite the one just saved.
-        setForm(buildNextProductForm(saved));
+        resetForm(buildNextProductForm(saved));
+        setRestoredNote(null);
         setCreatedNote({
           id: saved.id,
           name: saved.name,
@@ -644,7 +722,7 @@ function AdminProductsPage() {
       const response = await createProduct(buildDuplicatePayload(form), token);
       await loadProducts();
       setEditingId(response.product.id);
-      setForm(toForm(response.product));
+      resetForm(toForm(response.product));
       setActionMessage("Copy created as a draft. Change its name, photos and price, then set it to active.");
       revealPanel();
     } catch (duplicateError) {
@@ -660,8 +738,8 @@ function AdminProductsPage() {
     }
     try {
       await deleteProduct(editingId, token);
+      startCreate({ force: true });
       setActionMessage("Product deleted.");
-      startCreate();
       await loadProducts();
     } catch (deleteError) {
       setActionMessage(deleteError.message || "Unable to delete the product.");
@@ -773,7 +851,7 @@ function AdminProductsPage() {
               />
             </div>
             <div className="input-field full-span">
-              <button type="button" className="primary-button" onClick={startCreate}>
+              <button type="button" className="primary-button" onClick={() => startCreate()}>
                 + New product
               </button>
             </div>
@@ -862,13 +940,31 @@ function AdminProductsPage() {
               </button>
             </div>
 
+            {restoredNote && isDirty ? (
+              <div className="admin-restored-note" role="status">
+                <p>
+                  <strong>We kept your unsaved changes</strong>
+                  {restoredNote.savedAt
+                    ? ` from ${new Date(restoredNote.savedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}`
+                    : ""}{" "}
+                  (your sign-in had expired or the page was closed).{" "}
+                  {restoredNote.deleted
+                    ? "The product you were editing has since been deleted, so they're on a new product."
+                    : "Save to keep them."}
+                </p>
+                <button type="button" className="ghost-button" onClick={discardDraft}>
+                  Discard changes
+                </button>
+              </div>
+            ) : null}
+
             {editingId ? (
               <div className="admin-edit-banner is-editing" role="status">
                 <span>
                   Editing <strong>{editingProduct?.code || "this product"}</strong>
                   {editingProduct?.name ? ` · ${editingProduct.name}` : ""}
                 </span>
-                <button type="button" className="secondary-button" onClick={startCreate}>
+                <button type="button" className="secondary-button" onClick={() => startCreate()}>
                   + New product
                 </button>
               </div>
