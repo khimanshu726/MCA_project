@@ -4,7 +4,6 @@ import { Search } from "lucide-react";
 import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
 import CollectionCard from "../components/CollectionCard";
-import CollectionBanner from "../components/CollectionBanner";
 import { useProducts } from "../hooks/useProducts";
 import { useCollections } from "../hooks/useCollections";
 import { designTypeCounts } from "./CollectionPage";
@@ -48,9 +47,9 @@ function ProductsPage() {
   useEffect(() => () => clearTimeout(searchDebounceRef.current), []);
 
   // A category page (e.g. Wedding Cards) lists every design straight away,
-  // including those inside its collections, and offers each collection as a
-  // banner above them. "All products" keeps one card per collection so fifty
-  // wedding cards don't flood it. A search finds designs one by one.
+  // including those inside its collections. "All products" keeps one card
+  // per collection so fifty wedding cards don't flood it. A search finds
+  // designs one by one.
   const isCategoryView = category !== "All" && !query;
   const { data, isLoading, isError, refetch } = useProducts({
     category,
@@ -60,8 +59,9 @@ function ProductsPage() {
     withCollectionDesigns: isCategoryView,
   });
   const items = data?.items ?? EMPTY_LIST;
-  const { data: collections = EMPTY_LIST } = useCollections({ category, enabled: !query });
-  const bannerCollections = isCategoryView ? collections : EMPTY_LIST;
+  // Collections appear as one card each on All products only; a category page
+  // simply lists every design (each design links back to its collection).
+  const { data: collections = EMPTY_LIST } = useCollections({ category, enabled: !query && !isCategoryView });
   const visibleCollections = query || isCategoryView ? EMPTY_LIST : collections;
 
   // Fetched independently of the active category filter so the chip row
@@ -241,14 +241,6 @@ function ProductsPage() {
           </div>
         ) : (
           <>
-            {bannerCollections.length > 0 ? (
-              <div className="collection-banner-list" aria-label="Collections in this category">
-                {bannerCollections.map((collection) => (
-                  <CollectionBanner key={collection.id} collection={collection} />
-                ))}
-              </div>
-            ) : null}
-
             <div className="product-grid">
               {visibleCollections.map((collection) => (
                 <CollectionCard key={`collection-${collection.id}`} collection={collection} />

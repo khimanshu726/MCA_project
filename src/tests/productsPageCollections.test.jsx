@@ -26,7 +26,7 @@ vi.mock("../hooks/useProducts", () => ({
   },
 }));
 vi.mock("../hooks/useCollections", () => ({
-  useCollections: () => ({ data: [suite] }),
+  useCollections: ({ enabled } = {}) => ({ data: enabled === false ? undefined : [suite] }),
 }));
 vi.mock("../components/ProductCard", () => ({
   default: ({ product }) => <article data-testid="design">{product.name}</article>,
@@ -50,7 +50,7 @@ describe("the products page with collections", () => {
     productCalls.length = 0;
   });
 
-  it("lists every design on a category page, with the collection as a banner above them", () => {
+  it("lists every design on a category page, with no collection banner or card", () => {
     renderAt("/products?category=Wedding%20Cards");
 
     expect(productCalls).toContainEqual(
@@ -62,9 +62,8 @@ describe("the products page with collections", () => {
     ]);
     expect(screen.queryByTestId("collection-card")).not.toBeInTheDocument();
 
-    const banner = screen.getByRole("link", { name: /Wedding Invitation Suite/ });
-    expect(banner).toHaveAttribute("href", "/collections/wedding-invitation-suite");
-    expect(banner).toHaveTextContent("2 designs · from ₹32");
+    expect(screen.queryByRole("link", { name: /Wedding Invitation Suite/ })).not.toBeInTheDocument();
+    expect(document.querySelector(".collection-banner-list")).toBeNull();
     expect(document.querySelector(".listing-facts")).toHaveTextContent("2 results");
     expect(document.querySelector(".results-summary")).toBeNull();
   });
