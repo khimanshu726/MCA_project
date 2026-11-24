@@ -143,9 +143,45 @@ describe("categoryOptionsFromItems", () => {
       ]),
     ).toEqual([
       { value: "Visiting Cards", label: "Business Cards" },
-      { value: "Wedding Cards", label: "Wedding Cards" },
+      // Wedding Cards sit under Invitations.
+      { value: "Invitations", label: "Invitations" },
       { value: "Institutional Supplies", label: "Institutions" },
       { value: "Photo Frames", label: "Photo Frames" },
     ]);
+  });
+});
+
+describe("Invitations, with Wedding Cards under it", () => {
+  beforeEach(() => {
+    productCalls.length = 0;
+  });
+
+  it("shows the Wedding Invitation Suite as one card, not its designs", () => {
+    renderAt("/products?category=Invitations");
+    expect(productCalls).toContainEqual(
+      expect.objectContaining({
+        category: "Invitations",
+        categories: ["Invitations", "Wedding Cards"],
+        excludeCollected: true,
+        withCollectionDesigns: false,
+      }),
+    );
+    expect(screen.getByTestId("collection-card")).toHaveTextContent("Wedding Invitation Suite");
+    expect(screen.queryAllByTestId("design")).toHaveLength(0);
+    expect(document.querySelector(".listing-facts")).toHaveTextContent("1 result");
+  });
+});
+
+describe("category structure", async () => {
+  const { categoryFamily, categoryLabel, categoryMenu, parentCategory } = await import("../data");
+
+  it("keeps Wedding Cards out of the header bar, under Invitations", () => {
+    expect(categoryMenu.map((item) => item.label)).not.toContain("Wedding Cards");
+    expect(categoryMenu.map((item) => item.label)).toContain("Invitations");
+    expect(parentCategory("Wedding Cards")).toBe("Invitations");
+    expect(parentCategory("Visiting Cards")).toBe("Visiting Cards");
+    expect(categoryFamily("Invitations")).toEqual(["Invitations", "Wedding Cards"]);
+    expect(categoryFamily("Banners")).toEqual(["Banners"]);
+    expect(categoryLabel("Wedding Cards")).toBe("Wedding Cards");
   });
 });

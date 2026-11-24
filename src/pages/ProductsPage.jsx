@@ -6,16 +6,17 @@ import CollectionCard from "../components/CollectionCard";
 import { useProducts } from "../hooks/useProducts";
 import { useCollections } from "../hooks/useCollections";
 import { designTypeCounts } from "./CollectionPage";
-import { categoryInfo, categoryLabel, categoryMenu } from "../data";
+import { categoryFamily, categoryInfo, categoryLabel, categoryMenu, parentCategory } from "../data";
 
 // Stable fallback so memoised values depending on the list don't recompute
 // on every render while the query is still loading.
 const EMPTY_LIST = [];
 
 // Categories that have something to buy, in the header's order, each under
-// its customer-facing name. Anything not in the menu goes last.
+// its customer-facing name; a sub-category (Wedding Cards) counts under the
+// header category it belongs to (Invitations). Anything not in the menu goes last.
 export const categoryOptionsFromItems = (items) => {
-  const present = new Set(items.map((product) => product.category).filter(Boolean));
+  const present = new Set(items.map((product) => parentCategory(product.category)).filter(Boolean));
   const known = categoryMenu.filter((item) => present.has(item.category)).map((item) => item.category);
   const extra = [...present].filter((category) => !known.includes(category)).sort();
   return [...known, ...extra].map((category) => ({ value: category, label: categoryLabel(category) }));
@@ -30,22 +31,30 @@ function ProductsPage() {
 
   // Searching happens from the header's search box, which sets ?q=.
 
-  // A category page (e.g. Wedding Cards) lists every design straight away,
-  // including those inside its collections. "All products" keeps one card
-  // per collection so fifty wedding cards don't flood it. A search finds
-  // designs one by one.
-  const isCategoryView = category !== "All" && !query;
+  // Three ways to show a listing:
+  // - A header category with categories under it (Invitations, which holds
+  //   Wedding Cards) shows its own products plus each collection in it as ONE
+  //   card: the Wedding Invitation Suite, not its fifty designs.
+  // - Any other category page (e.g. Business Cards, or Wedding Cards by URL)
+  //   lists every design straight away, including those inside collections.
+  // - All products keeps one card per collection. A search finds designs one by one.
+  const family = category === "All" ? [category] : categoryFamily(category);
+  const isFamilyView = category !== "All" && !query && family.length > 1;
+  const isCategoryView = category !== "All" && !query && !isFamilyView;
   const { data, isLoading, isError, refetch } = useProducts({
     category,
+    categories: isFamilyView ? family : undefined,
     q: query,
     limit: 100,
     excludeCollected: !isCategoryView,
     withCollectionDesigns: isCategoryView,
   });
   const items = data?.items ?? EMPTY_LIST;
-  // Collections appear as one card each on All products only; a category page
-  // simply lists every design (each design links back to its collection).
-  const { data: collections = EMPTY_LIST } = useCollections({ category, enabled: !query && !isCategoryView });
+  const { data: collections = EMPTY_LIST } = useCollections({
+    category,
+    categories: isFamilyView ? family : undefined,
+    enabled: !query && !isCategoryView,
+  });
   const visibleCollections = query || isCategoryView ? EMPTY_LIST : collections;
 
   // Fetched independently of the active category filter so the chip row

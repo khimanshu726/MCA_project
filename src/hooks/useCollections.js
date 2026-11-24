@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { getCollection, listCollections } from "../api/collectionsApi";
 
-export function useCollections({ category, enabled = true } = {}) {
+export function useCollections({ category, categories, enabled = true } = {}) {
   return useQuery({
-    queryKey: ["collections", { category }],
-    queryFn: () => listCollections({ category }),
+    queryKey: ["collections", { category, categories }],
+    queryFn: () => listCollections({ category, categories }),
     select: (data) => data.collections ?? [],
     enabled,
     placeholderData: (previousData) => previousData,

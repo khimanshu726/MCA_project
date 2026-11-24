@@ -59,6 +59,7 @@ export const listProducts = async ({
   collection,
   excludeCollected = false,
   withCollectionDesigns = false,
+  categories,
   page = 1,
   limit = 24,
   sort = "-createdAt",
@@ -76,7 +77,16 @@ export const listProducts = async ({
   // designs, search) are combined here so neither overwrites the other.
   const allOf = [];
 
-  if (category && category !== "All") {
+  // Several categories at once (a header category and the ones under it).
+  const categoryList = Array.isArray(categories) && categories.length ? categories : null;
+  if (categoryList) {
+    if (withCollectionDesigns) {
+      const collectionIds = await Collection.find({ category: { $in: categoryList }, status: "active" }).distinct("id");
+      allOf.push({ $or: [{ category: { $in: categoryList } }, { collectionId: { $in: collectionIds } }] });
+    } else {
+      filter.category = { $in: categoryList };
+    }
+  } else if (category && category !== "All") {
     if (withCollectionDesigns) {
       // A category page lists every design of the collections shown under
       // it too, even a design still tagged with another category.

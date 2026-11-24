@@ -11,6 +11,7 @@ export const listProducts = ({
   collection,
   excludeCollected,
   withCollectionDesigns,
+  categories,
 } = {}) => {
   const params = new URLSearchParams();
 
@@ -24,6 +25,7 @@ export const listProducts = ({
   if (collection) params.set("collection", collection);
   if (excludeCollected) params.set("excludeCollected", "true");
   if (withCollectionDesigns) params.set("withCollectionDesigns", "true");
+  if (Array.isArray(categories) && categories.length) params.set("categories", categories.join(","));
 
   const query = params.toString();
   return request(`/products${query ? `?${query}` : ""}`);
