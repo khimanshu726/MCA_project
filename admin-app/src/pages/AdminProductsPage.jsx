@@ -104,6 +104,7 @@ const EMPTY_FORM = {
   audience: "",
   status: "draft",
   featured: false,
+  photoUpload: false,
 };
 
 const toForm = (product) => ({
@@ -131,6 +132,7 @@ const toForm = (product) => ({
   audience: product.audience || "",
   status: product.status || "draft",
   featured: Boolean(product.featured),
+  photoUpload: Boolean(product.photoUpload),
 });
 
 const splitList = (value) =>
@@ -256,6 +258,7 @@ const toPayload = (form) => ({
   audience: form.audience.trim(),
   status: form.status,
   featured: form.featured,
+  photoUpload: Boolean(form.photoUpload),
 });
 
 // The exact state that spawned this whole feature: stock that can't satisfy the
@@ -1433,6 +1436,20 @@ function AdminProductsPage() {
                   <label className="checkbox-row">
                     <input id="f-featured" type="checkbox" checked={form.featured} onChange={setField("featured")} />
                     <span>Show first in the shop (and on the home page)</span>
+                  </label>
+                </div>
+                <div className="input-field">
+                  <label className="field-label strong-label" htmlFor="f-photo-upload">
+                    Customer photo
+                  </label>
+                  <label className="checkbox-row">
+                    <input
+                      id="f-photo-upload"
+                      type="checkbox"
+                      checked={Boolean(form.photoUpload)}
+                      onChange={setField("photoUpload")}
+                    />
+                    <span>Customer uploads a photo (shows the upload capsule; required before adding to cart)</span>
                   </label>
                 </div>
               </div>

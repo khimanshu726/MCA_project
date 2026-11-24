@@ -16,13 +16,15 @@ import { useUserAuth } from "../context/UserAuthContext";
 import { useToast } from "../hooks/useToast";
 import { createOrder, createRazorpayOrder } from "../lib/api";
 import { buildOrderFormData } from "../utils/checkout";
+import { usePersonalPhotoMap } from "../utils/personalPhotos";
+import PhotoCapsule from "../components/PhotoCapsule";
 import { openRazorpayCheckout } from "../utils/razorpayCheckout";
 import { validateCheckoutFile } from "../utils/orderValidation";
 import { clearPendingDesign, loadPendingDesign, pendingDesignToFile } from "../customizer/pendingDesign";
 
-function ReviewLineItem({ item }) {
+function ReviewLineItem({ item, photoProduct }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-ink-100 bg-white p-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-ink-100 bg-white p-3">
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-ink-50">
         <ResponsiveImage src={item.images?.[0]} alt={item.name} aspectClassName="ratio-square" width={56} />
       </div>
@@ -31,6 +33,12 @@ function ReviewLineItem({ item }) {
         <p className="text-xs text-ink-500">Qty {item.quantity}</p>
       </div>
       <p className="text-sm font-semibold text-ink-900">{currencyFormatter.format(item.price * item.quantity)}</p>
+      {/* A personalised line shows its photo and lets the customer add or change it here. */}
+      {photoProduct ? (
+        <div className="flex w-full justify-end">
+          <PhotoCapsule product={photoProduct} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -119,6 +127,19 @@ function CheckoutReviewPage() {
     [cartItems, activeItems],
   );
 
+  // Personalised lines need the customer's photo before the order can be placed.
+  const personalPhotos = usePersonalPhotoMap();
+  const photoProductsById = useMemo(
+    () =>
+      new Map(
+        activeItems.filter((entry) => entry.product?.photoUpload).map((entry) => [entry.productId, entry.product]),
+      ),
+    [activeItems],
+  );
+  const missingPhotoNames = purchasableCartItems
+    .filter((item) => photoProductsById.has(item.id) && !personalPhotos[item.id])
+    .map((item) => item.name);
+
   const shipping = pricing.shipping;
   const effectiveAddress = addressState.effectiveAddress;
 
@@ -206,6 +227,11 @@ function CheckoutReviewPage() {
   };
 
   const handlePlaceOrder = async () => {
+    if (missingPhotoNames.length) {
+      setOrderMessage(`Add your photo for ${missingPhotoNames.join(", ")} before placing the order.`);
+      return;
+    }
+
     const nextFileError = validateCheckoutFile(designFile);
     if (nextFileError) {
       setFileError(nextFileError);
@@ -305,7 +331,7 @@ function CheckoutReviewPage() {
               </h3>
               <div className="flex flex-col gap-2">
                 {purchasableCartItems.map((item) => (
-                  <ReviewLineItem key={item.id} item={item} />
+                  <ReviewLineItem key={item.id} item={item} photoProduct={photoProductsById.get(item.id)} />
                 ))}
               </div>
 

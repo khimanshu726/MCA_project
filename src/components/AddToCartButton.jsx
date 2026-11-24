@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "./ui/Button";
+import PhotoUploadDialog from "./PhotoUploadDialog";
 import { useCart } from "../hooks/useCart";
+import { getPersonalPhoto } from "../utils/personalPhotos";
 import { getMinimumOrderQty, isProductOutOfStock } from "../utils/productAvailability";
 
 /**
@@ -27,6 +29,7 @@ function AddToCartButton({
   const [isLocked, setIsLocked] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [error, setError] = useState("");
+  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   const lockTimerRef = useRef(null);
   const feedbackTimerRef = useRef(null);
   const isInCart = cartItemIds.has(product.id);
@@ -44,11 +47,7 @@ function AddToCartButton({
     };
   }, []);
 
-  const handleClick = async () => {
-    if (isLocked || isOutOfStock) {
-      return;
-    }
-
+  const addNow = async () => {
     setIsLocked(true);
     setError("");
 
@@ -66,19 +65,50 @@ function AddToCartButton({
     }
   };
 
+  const handleClick = async () => {
+    if (isLocked || isOutOfStock) {
+      return;
+    }
+
+    // A personalised product needs the customer's photo first: ask for it,
+    // then add once it's uploaded.
+    if (product.photoUpload && !getPersonalPhoto(product.id)) {
+      setIsPhotoDialogOpen(true);
+      return;
+    }
+
+    await addNow();
+  };
+
+  const photoDialog = product.photoUpload ? (
+    <PhotoUploadDialog
+      open={isPhotoDialogOpen}
+      onClose={() => setIsPhotoDialogOpen(false)}
+      product={product}
+      confirmLabel="Use this photo & add to cart"
+      onUploaded={() => {
+        setIsPhotoDialogOpen(false);
+        addNow();
+      }}
+    />
+  ) : null;
+
   if (variant) {
     return (
-      <Button
-        type="button"
-        variant={variant}
-        size={size}
-        className={className}
-        onClick={handleClick}
-        disabled={isLocked || isOutOfStock}
-        aria-label={isOutOfStock ? undefined : `Add ${product.name} to cart`}
-      >
-        {isOutOfStock ? "Out of stock" : error || (isAdded ? addedLabel : idleLabel)}
-      </Button>
+      <>
+        <Button
+          type="button"
+          variant={variant}
+          size={size}
+          className={className}
+          onClick={handleClick}
+          disabled={isLocked || isOutOfStock}
+          aria-label={isOutOfStock ? undefined : `Add ${product.name} to cart`}
+        >
+          {isOutOfStock ? "Out of stock" : error || (isAdded ? addedLabel : idleLabel)}
+        </Button>
+        {photoDialog}
+      </>
     );
   }
 
@@ -91,14 +121,17 @@ function AddToCartButton({
   }
 
   return (
-    <button
-      type="button"
-      className={`${className} ${isInCart ? "in-cart-button" : ""} ${isAdded ? "added-button" : ""}`.trim()}
-      onClick={handleClick}
-      disabled={isLocked}
-    >
-      {error || (isAdded ? addedLabel : idleLabel)}
-    </button>
+    <>
+      <button
+        type="button"
+        className={`${className} ${isInCart ? "in-cart-button" : ""} ${isAdded ? "added-button" : ""}`.trim()}
+        onClick={handleClick}
+        disabled={isLocked}
+      >
+        {error || (isAdded ? addedLabel : idleLabel)}
+      </button>
+      {photoDialog}
+    </>
   );
 }
 

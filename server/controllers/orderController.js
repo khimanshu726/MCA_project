@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import cloudinary from "../config/cloudinary.js";
 import razorpayInstance from "../config/razorpay.js";
+import { CustomerPhoto } from "../models/CustomerPhoto.js";
 import {
   createOrderRecord,
   deleteOrderRecord,
@@ -89,6 +90,27 @@ export const createOrder = async (req, res, next) => {
     });
   }
 
+  // A personalised product needs the customer's photo, uploaded beforehand
+  // (POST /api/customer-photos). The line only names the photo; its URL comes
+  // from our own record, and it must be a photo for that same product.
+  const photosByProductId = new Map();
+  for (const item of requestedLineItems) {
+    const product = productsById.get(item.productId);
+    if (!product.photoUpload) continue;
+    const photo = item.photoId
+      ? await CustomerPhoto.findOne({ id: item.photoId, productId: item.productId }).lean()
+      : null;
+    if (!photo) {
+      await deleteUploadedFile(req.file?.path);
+      return res.status(400).json({
+        code: "PHOTO_REQUIRED",
+        message: `Add your photo for ${product.name} before ordering.`,
+        productIds: [item.productId],
+      });
+    }
+    photosByProductId.set(item.productId, photo);
+  }
+
   // Coupon (if any) is re-validated independently server-side — the
   // discount amount is never trusted from the client, only the code hint.
   // Validated before stock is touched so an invalid coupon fails fast.
@@ -156,6 +178,9 @@ export const createOrder = async (req, res, next) => {
         unitPrice,
         totalPrice: unitPrice * item.quantity,
         customizationText: item.customizationText,
+        ...(photosByProductId.has(item.productId)
+          ? { photo: { id: photosByProductId.get(item.productId).id, url: photosByProductId.get(item.productId).url } }
+          : {}),
       };
     });
 
@@ -247,6 +272,14 @@ export const createOrder = async (req, res, next) => {
     }
 
     const savedOrder = await createOrderRecord(order);
+
+    if (photosByProductId.size) {
+      // Ordered photos are kept with the order (never cleaned up as abandoned).
+      await CustomerPhoto.updateMany(
+        { id: { $in: [...photosByProductId.values()].map((photo) => photo.id) } },
+        { orderId: savedOrder.orderId },
+      ).catch((error) => console.error(`Couldn't link photos to order ${savedOrder.orderId}:`, error));
+    }
 
     if (coupon) {
       // Awaited (not fire-and-forget) so usage-limit enforcement is

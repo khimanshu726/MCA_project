@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import AddToCartButton from "./AddToCartButton";
+import PhotoCapsule from "./PhotoCapsule";
 import ResponsiveImage from "./ResponsiveImage";
 import WishlistButton from "./ui/WishlistButton";
 import { warmImageCache } from "../utils/imageUrl";
@@ -65,9 +66,13 @@ function ProductCard({ product, className = "" }) {
           {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
         </div>
         <div className="product-card-footer">
-          <div className="product-price-block">
-            <span>Starting at</span>
-            <strong>{currencyFormatter.format(product.price)}</strong>
+          <div className="product-price-row">
+            <div className="product-price-block">
+              <span>Starting at</span>
+              <strong>{currencyFormatter.format(product.price)}</strong>
+            </div>
+            {/* A personalised product takes the customer's photo. */}
+            {product.photoUpload ? <PhotoCapsule product={product} /> : null}
           </div>
           <div className="card-actions-inline">
             <AddToCartButton product={product} className="mini-link mini-button" />

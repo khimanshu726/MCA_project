@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { AlertTriangle, Bookmark, BookmarkCheck, PackageX, Trash2 } from "lucide-react";
+import PhotoCapsule from "../PhotoCapsule";
 import ResponsiveImage from "../ResponsiveImage";
 import Badge from "../ui/Badge";
 import PriceDisplay, { currencyFormatter } from "../ui/PriceDisplay";
@@ -106,6 +107,13 @@ function CartItemCard({
             <Badge tone="success">In stock</Badge>
           )}
         </div>
+
+        {/* A personalised product is printed with the customer's photo. */}
+        {product.photoUpload ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-600">
+            <PhotoCapsule product={product} />
+          </div>
+        ) : null}
 
         {isBulkPrice || nextTier ? (
           <p className="text-xs text-ink-600">

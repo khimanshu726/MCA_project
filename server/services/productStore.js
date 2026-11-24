@@ -31,6 +31,7 @@ export const EDITABLE_PRODUCT_FIELDS = [
   "options",
   "audience",
   "featured",
+  "photoUpload",
 ];
 
 const computeDiscountPercent = (price, mrp) => {
@@ -221,6 +222,7 @@ export const createProductRecord = async (payload) => {
     options: payload.options || [],
     audience: payload.audience || "",
     featured: Boolean(payload.featured),
+    photoUpload: Boolean(payload.photoUpload),
     source: payload.source || "admin",
   });
 

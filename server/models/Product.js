@@ -77,6 +77,9 @@ const productSchema = new mongoose.Schema(
     options: { type: [productOptionSchema], default: [] },
     audience: { type: String, default: "" },
     featured: { type: Boolean, default: false },
+    // Personalised product: the customer uploads one photo for it before it
+    // can go in the cart (see CustomerPhoto).
+    photoUpload: { type: Boolean, default: false },
     source: {
       type: String,
       enum: ["data-js-seed", "admin-json-seed", "admin", "migration"],
