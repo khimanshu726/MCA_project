@@ -4065,12 +4065,6 @@ textarea {
    Collections (e.g. Wedding Invitation Suite: many designs on one page)
    ========================================================================== */
 
-.collection-meta {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--ink-600);
-}
 /* A slim row above a grid: filters or the count on the left, a compact
    "Sort by" control on the right. No card around it. */
 .listing-bar {
@@ -4284,28 +4278,7 @@ textarea {
   .collection-banner-cta { width: 100%; justify-content: flex-end; }
 }
 
-/* Breadcrumb above a page title (products / category pages). */
-.breadcrumb ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--ink-500);
-}
-.breadcrumb li + li::before {
-  content: "/";
-  margin-right: 0.35rem;
-  color: var(--ink-300);
-}
-.breadcrumb a { color: var(--ink-600); text-decoration: none; }
-.breadcrumb a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.breadcrumb [aria-current="page"] { color: var(--ink-900); font-weight: 500; }
-.catalog-heading { gap: 0.5rem; }
-.catalog-heading h1 { margin: 0; }
-.catalog-heading .section-copy { margin: 0; }
+
 
 .detail-product-code { color: var(--ink-500); font-variant-numeric: tabular-nums; }
 
@@ -4317,3 +4290,98 @@ textarea {
   .header-top-band .utility-link,
   .header-top-band .nav-link.utility-link { padding: 0.5rem 0.55rem; min-width: 40px; justify-content: center; }
 }
+
+/* ==========================================================================
+   Listing pages (products, categories, collections): compact heading and
+   one slim control row, so products start on the first screen.
+   ========================================================================== */
+
+.listing-page { gap: 1rem; }
+.listing-head { display: grid; gap: 0.3rem; }
+.listing-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+.listing-title-row h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.listing-facts {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink-500);
+  white-space: nowrap;
+}
+.listing-desc {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink-600);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.listing-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 280px;
+  min-width: 0;
+  max-width: 560px;
+}
+.listing-search svg {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--ink-400);
+  pointer-events: none;
+}
+.listing-search input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.4rem 0.9rem 0.4rem 2.3rem;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  font-size: 0.9rem;
+  color: var(--ink-900);
+}
+.listing-search input:focus {
+  outline: none;
+  border-color: var(--ink-800);
+  box-shadow: 0 0 0 3px rgba(23, 24, 27, 0.08);
+}
+.listing-search + .listing-sort { margin-left: auto; }
+.listing-sort + .listing-sort { margin-left: 0; }
+
+@media (max-width: 720px) {
+  .listing-search { flex-basis: 100%; max-width: none; }
+  .listing-search + .listing-sort { margin-left: 0; }
+  /* On All products the header search already does this; skip the second box. */
+  .listing-bar.is-all .listing-search { display: none; }
+  /* Category and Sort share one line in two equal halves; their values
+     ("All categories", "Featured") say what they are, and the labels stay
+     for screen readers. */
+  .listing-bar.is-all { display: grid; grid-template-columns: 1fr 1fr; }
+  .listing-bar.is-all .listing-sort { margin: 0; min-width: 0; }
+  .listing-bar.is-all .listing-sort label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .listing-bar.is-all .listing-sort select { width: 100%; min-width: 0; }
+  .listing-bar { gap: 0.6rem 0.75rem; }
+  .listing-sort { gap: 0.4rem; }
+  .listing-sort select {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.7rem;
+    padding-right: 1.9rem !important;
+    background-position: right 0.55rem center;
+    background-size: 14px;
+  }
+}
+

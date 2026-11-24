@@ -65,7 +65,8 @@ describe("the products page with collections", () => {
     const banner = screen.getByRole("link", { name: /Wedding Invitation Suite/ });
     expect(banner).toHaveAttribute("href", "/collections/wedding-invitation-suite");
     expect(banner).toHaveTextContent("2 designs · from ₹32");
-    expect(document.querySelector(".results-summary")).toHaveTextContent("2 results in Wedding Cards");
+    expect(document.querySelector(".listing-facts")).toHaveTextContent("2 results");
+    expect(document.querySelector(".results-summary")).toBeNull();
   });
 
   it("keeps one card per collection on All products", () => {
@@ -97,12 +98,15 @@ describe("one category list", () => {
     designs.splice(0, designs.length, ...typed);
   });
 
-  it("titles a category page with its customer-facing name and a breadcrumb, without a category chip row", () => {
+  it("titles a category page with its customer-facing name, compactly, without a breadcrumb or category chips", () => {
     renderAt("/products?category=Visiting%20Cards");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Business Cards");
-    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
-    expect(crumbs).toHaveTextContent("HomeProductsBusiness Cards");
-    expect(screen.getByRole("link", { name: "Products" })).toHaveAttribute("href", "/products");
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
+    // Search and sort share one slim row, with no toolbar card.
+    const bar = document.querySelector(".listing-bar");
+    expect(bar).toContainElement(screen.getByLabelText("Search catalog"));
+    expect(bar).toContainElement(screen.getByLabelText("Sort by"));
+    expect(document.querySelector(".catalog-toolbar")).toBeNull();
     expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Catalog categories" })).not.toBeInTheDocument();
   });
@@ -115,7 +119,7 @@ describe("one category list", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Floral/ }));
     expect(screen.getAllByTestId("design").map((card) => card.textContent)).toEqual(["Floral Bloom"]);
-    expect(document.querySelector(".results-summary")).toHaveTextContent("1 result in Wedding Cards · Floral");
+    expect(document.querySelector(".listing-facts")).toHaveTextContent("1 result · Floral");
   });
 
   it("offers a Category dropdown on All products, in the header's order and names", () => {

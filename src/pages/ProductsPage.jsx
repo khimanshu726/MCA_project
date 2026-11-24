@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import Seo from "../components/Seo";
 import ProductCard from "../components/ProductCard";
@@ -91,6 +91,7 @@ function ProductsPage() {
     return sortedProducts;
   }, [items, sort, typeFilter]);
 
+  const resultCount = visibleProducts.length + visibleCollections.length;
   const isAll = category === "All";
   const label = isAll ? "All products" : categoryLabel(category);
   const intro = isAll
@@ -133,53 +134,40 @@ function ProductsPage() {
           path="/products"
         />
       )}
-      <section className="section-panel">
-        <div className="section-heading catalog-heading">
-          <nav aria-label="Breadcrumb" className="breadcrumb">
-            <ol>
-              <li>
-                <Link to="/">Home</Link>
-              </li>
-              <li>
-                {isAll ? (
-                  <span aria-current="page">Products</span>
-                ) : (
-                  <Link to="/products">Products</Link>
-                )}
-              </li>
-              {!isAll ? (
-                <li>
-                  <span aria-current="page">{label}</span>
-                </li>
-              ) : null}
-            </ol>
-          </nav>
-          <h1>{label}</h1>
-          <p className="section-copy">{intro}</p>
+      <section className="section-panel listing-page">
+        {/* A compact title line with the result count beside it, one line of
+            description, then one slim row of controls, so products start on
+            the first screen. */}
+        <div className="listing-head">
+          <div className="listing-title-row">
+            <h1>{label}</h1>
+            {!isLoading && !isError ? (
+              <span className="listing-facts">
+                {resultCount} {resultCount === 1 ? "result" : "results"}
+                {typeFilter ? ` · ${typeFilter}` : ""}
+                {query ? ` for "${query}"` : ""}
+              </span>
+            ) : null}
+          </div>
+          <p className="listing-desc">{intro}</p>
         </div>
 
-        <div className="catalog-toolbar">
-          <div className="catalog-search">
-            <label className="field-label" htmlFor="catalog-search">
-              Search catalog
-            </label>
-            <div className="catalog-search-field">
-              <Search size={16} className="catalog-search-icon" aria-hidden="true" />
-              <input
-                id="catalog-search"
-                type="search"
-                value={searchInput}
-                placeholder="Search visiting cards, banners, packaging..."
-                onChange={handleSearchChange}
-              />
-            </div>
+        <div className={`listing-bar${isAll ? " is-all" : ""}`}>
+          <div className="listing-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              id="catalog-search"
+              type="search"
+              aria-label="Search catalog"
+              value={searchInput}
+              placeholder="Search visiting cards, banners, packaging..."
+              onChange={handleSearchChange}
+            />
           </div>
 
           {isAll ? (
-            <div className="catalog-sort">
-              <label className="field-label" htmlFor="catalog-category">
-                Category
-              </label>
+            <div className="listing-sort">
+              <label htmlFor="catalog-category">Category</label>
               <select
                 id="catalog-category"
                 value="All"
@@ -195,10 +183,8 @@ function ProductsPage() {
             </div>
           ) : null}
 
-          <div className="catalog-sort">
-            <label className="field-label" htmlFor="catalog-sort">
-              Sort by
-            </label>
+          <div className="listing-sort">
+            <label htmlFor="catalog-sort">Sort by</label>
             <select id="catalog-sort" value={sort} onChange={(event) => updateParams({ sort: event.target.value })}>
               <option value="featured">Featured</option>
               <option value="price-low">Price: low to high</option>
@@ -255,14 +241,6 @@ function ProductsPage() {
           </div>
         ) : (
           <>
-            <div className="results-summary">
-              <strong>{visibleProducts.length + visibleCollections.length}</strong>{" "}
-              {visibleProducts.length + visibleCollections.length === 1 ? "result" : "results"}
-              {!isAll ? ` in ${label}` : ""}
-              {typeFilter ? ` · ${typeFilter}` : ""}
-              {query ? ` for "${query}"` : ""}
-            </div>
-
             {bannerCollections.length > 0 ? (
               <div className="collection-banner-list" aria-label="Collections in this category">
                 {bannerCollections.map((collection) => (
