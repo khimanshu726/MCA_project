@@ -2785,8 +2785,17 @@ select {
   padding-bottom: 2rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
-@media (max-width: 780px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; } }
-@media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; } }
+/* Tablets and phones: one column, and each section’s links wrap across the
+   width in short rows instead of one link per line, so the footer is a
+   quick scan rather than a long scroll. */
+@media (max-width: 780px) {
+  .site-footer { padding-top: 2rem; }
+  .footer-grid { grid-template-columns: 1fr; gap: 1.4rem; padding-bottom: 1.5rem; }
+  .site-footer .footer-brand p { margin-bottom: 0.75rem; }
+  .site-footer .footer-col h4 { margin-bottom: 0.4rem; }
+  .site-footer .footer-col ul { flex-direction: row; flex-wrap: wrap; gap: 0 1.25rem; }
+  .footer-col a { display: inline-flex; align-items: center; min-height: 40px; }
+}
 
 .footer-brand h3 {
   font-family: var(--font-display);
@@ -3582,7 +3591,7 @@ textarea {
 }
 
 .footer-contact-list {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
