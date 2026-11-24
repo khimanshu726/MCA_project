@@ -56,7 +56,12 @@ function ProductCard({ product, className = "" }) {
           ) : (
             <span className="status-pill in">In stock</span>
           )}
-          {product.leadTime ? <span className="meta-pill">{formatLeadTime(product.leadTime)}</span> : null}
+          {product.leadTime ? (
+            <span className="meta-pill meta-pill-lead" title={formatLeadTime(product.leadTime)}>
+              <span className="lead-long">{formatLeadTime(product.leadTime)}</span>
+              <span className="lead-short">{formatLeadTime(product.leadTime).replace(/^Ready in\s+/i, "")}</span>
+            </span>
+          ) : null}
           {product.minimumOrderQty ? <span className="meta-pill">MOQ {product.minimumOrderQty}</span> : null}
         </div>
         <div className="product-card-footer">

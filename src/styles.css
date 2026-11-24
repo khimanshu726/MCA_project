@@ -1275,7 +1275,35 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
 }
 
-.product-meta-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+/* Stock, lead time and MOQ on ONE line on every product card: slightly
+   smaller pills that never wrap; a long lead time shortens with an ellipsis
+   (its full text is in the tooltip) rather than pushing to a second line. */
+.product-meta-list {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+  margin-top: 0.35rem;
+}
+.product-meta-list .status-pill,
+.product-meta-list .meta-pill {
+  flex: none;
+  white-space: nowrap;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  padding: 0.24rem 0.42rem;
+}
+.product-meta-list .status-pill { gap: 0.25rem; }
+.lead-short { display: none; }
+.product-meta-list .meta-pill-lead {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .product-card-footer {
   margin-top: auto;
@@ -1404,8 +1432,22 @@ a { color: inherit; text-decoration: none; }
   .product-grid .card-topline { flex-wrap: wrap; gap: 0.25rem; }
   .product-grid .product-badge { display: none; }
   .product-grid .product-spec,
-  .product-grid .product-desc,
-  .product-grid .product-meta-list { display: none; }
+  .product-grid .product-desc { display: none; }
+  /* One compact line: lead time and MOQ (stock shows only when low or sold
+     out), in plain small text so it fits two cards to a row. */
+  .product-grid .product-meta-list { display: flex; gap: 0.25rem; margin-top: 0.15rem; }
+  .product-grid .product-meta-list .status-pill.in { display: none; }
+  .product-grid .product-meta-list .status-pill,
+  .product-grid .product-meta-list .meta-pill {
+    font-family: var(--font-sans);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.66rem;
+    padding: 0.2rem 0.4rem;
+  }
+  /* "3-5 days" instead of "Ready in 3-5 days", so it fits a phone card. */
+  .product-grid .lead-long { display: none; }
+  .product-grid .lead-short { display: inline; }
   .product-grid .product-card-footer { padding-top: 0.6rem; gap: 0.5rem; flex-direction: column; align-items: stretch; }
   .product-grid .card-actions-inline { flex-direction: column; align-items: stretch; gap: 0.35rem; }
   .product-grid .card-actions-inline .mini-link:not(.mini-button) { display: none; }
