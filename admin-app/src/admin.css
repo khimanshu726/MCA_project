@@ -863,3 +863,34 @@
   font-size: 0.92rem;
 }
 .admin-restored-note p { margin: 0; }
+
+/* One-click Featured star before the product name in the list. */
+.orders-table td .admin-product-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: inherit;
+}
+.feature-star {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted, #6d655d);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.feature-star:hover,
+.feature-star:focus-visible {
+  border-color: rgba(201, 138, 21, 0.45);
+  color: #c98a15;
+}
+.feature-star.is-featured {
+  color: #c98a15;
+}

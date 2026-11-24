@@ -9,6 +9,7 @@ import {
 } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import InputField from "../components/InputField";
+import FeatureStar from "../components/FeatureStar";
 import ProductImageUploader from "../components/ProductImageUploader";
 import NewHsnCodePanel from "../components/NewHsnCodePanel";
 import NewCollectionPanel from "../components/NewCollectionPanel";
@@ -330,6 +331,7 @@ function AdminProductsPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const [listNotice, setListNotice] = useState("");
   // The product just created ({ id, name, code }), announced above the fresh
   // form with a way back to it.
   const [createdNote, setCreatedNote] = useState(null);
@@ -710,6 +712,30 @@ function AdminProductsPage() {
     }
   };
 
+  // The ★ in the list features a product in one click: featured products are
+  // shown first in the shop. Updates the row at once and puts it back if the
+  // save fails; an open editor for that product follows along.
+  const handleToggleFeatured = async (product) => {
+    const featured = !product.featured;
+    const setRowFeatured = (value) =>
+      setProducts((rows) => rows.map((row) => (row.id === product.id ? { ...row, featured: value } : row)));
+    const setEditorFeatured = (value) => {
+      if (editingId !== product.id) return;
+      setForm((current) => ({ ...current, featured: value }));
+      setBaseline((current) => ({ ...current, featured: value }));
+    };
+    setListNotice("");
+    setRowFeatured(featured);
+    setEditorFeatured(featured);
+    try {
+      await updateProduct(product.id, { featured }, token);
+    } catch (toggleError) {
+      setRowFeatured(product.featured);
+      setEditorFeatured(Boolean(product.featured));
+      setListNotice(`Couldn’t update “${product.name}”: ${toggleError.message || "please try again."}`);
+    }
+  };
+
   // Adding many similar designs (e.g. 50 wedding cards) is mostly the same
   // price, MOQ, HSN and collection each time. Duplicate copies the product as
   // a draft "(copy)" and opens it, so only the name, photos and price change.
@@ -858,6 +884,11 @@ function AdminProductsPage() {
           </div>
 
           <div className="orders-table-shell">
+            {listNotice ? (
+              <p className="field-error" role="alert">
+                {listNotice}
+              </p>
+            ) : null}
             {isLoading ? (
               <div className="summary-card">
                 <p className="section-copy">Loading products...</p>
@@ -893,7 +924,10 @@ function AdminProductsPage() {
                       onKeyDown={rowKeyHandler(() => startEdit(product))}
                     >
                       <td>
-                        <strong>{product.name}</strong>
+                        <span className="admin-product-name">
+                          <FeatureStar product={product} onToggle={handleToggleFeatured} />
+                          <strong>{product.name}</strong>
+                        </span>
                         {product.code ? <span className="admin-product-code">{product.code}</span> : null}
                         {collectionNameById.get(product.collectionId) ? (
                           <span>Design in {collectionNameById.get(product.collectionId)}</span>
@@ -1398,7 +1432,7 @@ function AdminProductsPage() {
                   </label>
                   <label className="checkbox-row">
                     <input id="f-featured" type="checkbox" checked={form.featured} onChange={setField("featured")} />
-                    <span>Show in featured rails</span>
+                    <span>Show first in the shop (and on the home page)</span>
                   </label>
                 </div>
               </div>

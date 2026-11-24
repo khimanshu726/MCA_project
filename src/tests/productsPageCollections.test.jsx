@@ -17,11 +17,13 @@ const designs = [
 ];
 
 const productCalls = [];
+// Standalone products returned to the main listing on All products / Invitations.
+let catalogItems = [];
 vi.mock("../hooks/useProducts", () => ({
   useProducts: (filters) => {
     productCalls.push(filters);
     // The page's main listing asks for limit 100 with a category; the chip-row query has neither.
-    const items = filters.withCollectionDesigns ? designs : [];
+    const items = filters.withCollectionDesigns ? designs : filters.excludeCollected ? catalogItems : [];
     return { data: { items }, isLoading: false, isError: false, refetch: vi.fn() };
   },
 }));
@@ -200,5 +202,29 @@ describe("Marketing and Stationery are gone everywhere", async () => {
       expect(CATEGORY_OPTIONS).not.toContain(category);
     }
     expect(JSON.stringify(data.businessEssentials)).not.toMatch(/Marketing|flyer/i);
+  });
+});
+
+describe("featured products first", () => {
+  beforeEach(() => {
+    productCalls.length = 0;
+    // The server returns featured products first.
+    catalogItems = [
+      { id: "f1", name: "Krishna Artwork", category: "Photo Gifts", featured: true, price: 650 },
+      { id: "p1", name: "Wall Clock", category: "Photo Gifts", price: 300 },
+    ];
+  });
+
+  it("puts featured products before collection cards, then the rest", () => {
+    renderAt("/products");
+    const order = [...document.querySelectorAll(".product-grid > article")].map((card) => card.textContent);
+    expect(order).toEqual(["Krishna Artwork", "Wedding Invitation Suite", "Wall Clock"]);
+    expect(document.querySelector(".listing-facts")).toHaveTextContent("3 results");
+  });
+
+  it("keeps collections first when sorting by price", () => {
+    renderAt("/products?sort=price-high");
+    const order = [...document.querySelectorAll(".product-grid > article")].map((card) => card.textContent);
+    expect(order).toEqual(["Wedding Invitation Suite", "Krishna Artwork", "Wall Clock"]);
   });
 });

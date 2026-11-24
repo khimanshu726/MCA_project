@@ -512,3 +512,43 @@ describe("a header category and the categories under it", () => {
     expect(res.body.collections.map((row) => row.name)).toEqual(["Wedding Invitation Suite"]);
   });
 });
+
+describe("featured products first", () => {
+  const seedAt = (name, minutesAgo, featured = false) =>
+    seedDesign({ name, category: "Photo Gifts", featured, createdAt: new Date(Date.now() - minutesAgo * 60000) });
+
+  it("shows featured products first in the shop, newest first within each group", async () => {
+    await seedAt("Old featured", 30, true);
+    await seedAt("Old plain", 20);
+    await seedAt("New featured", 10, true);
+    await seedAt("New plain", 1);
+
+    const res = await request(app).get("/api/products?category=Photo%20Gifts");
+    expect(res.body.items.map((item) => item.name)).toEqual(["New featured", "Old featured", "New plain", "Old plain"]);
+  });
+
+  it("ignores an unknown sort instead of passing it to the database", async () => {
+    await seedAt("Plain", 1);
+    await seedAt("Featured", 5, true);
+
+    const res = await request(app).get("/api/products?category=Photo%20Gifts&sort=-price%20name");
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((item) => item.name)).toEqual(["Featured", "Plain"]);
+  });
+
+  it("keeps the admin list newest first, and features a product with a one-field update", async () => {
+    const older = await seedAt("Older", 10);
+    await seedAt("Newer", 1);
+
+    // The admin list's star sends only { featured }.
+    const update = await asAdmin(request(app).put(`/api/admin/products/${older.id}`)).send({ featured: true });
+    expect(update.status).toBe(200);
+    expect(update.body.product).toMatchObject({ name: "Older", featured: true, price: 90 });
+
+    const shop = await request(app).get("/api/products?category=Photo%20Gifts");
+    expect(shop.body.items.map((item) => item.name)).toEqual(["Older", "Newer"]);
+
+    const adminList = await asAdmin(request(app).get("/api/admin/products?category=Photo%20Gifts"));
+    expect(adminList.body.items.map((item) => item.name)).toEqual(["Newer", "Older"]);
+  });
+});

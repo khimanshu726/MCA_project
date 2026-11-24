@@ -84,6 +84,14 @@ function ProductsPage() {
     return sortedProducts;
   }, [items, sort, typeFilter]);
 
+  // On the default Featured order, products the admin marked Featured lead the
+  // grid, then collection cards, then the rest (the server already returns
+  // featured products first). Other sorts keep collections at the front.
+  const leadingProducts = sort === "featured" ? visibleProducts.filter((product) => product.featured) : EMPTY_LIST;
+  const trailingProducts = leadingProducts.length
+    ? visibleProducts.filter((product) => !product.featured)
+    : visibleProducts;
+
   const resultCount = visibleProducts.length + visibleCollections.length;
   const isAll = category === "All";
   const label = isAll ? "All products" : categoryLabel(category);
@@ -216,10 +224,13 @@ function ProductsPage() {
         ) : (
           <>
             <div className="product-grid">
+              {leadingProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
               {visibleCollections.map((collection) => (
                 <CollectionCard key={`collection-${collection.id}`} collection={collection} />
               ))}
-              {visibleProducts.map((product) => (
+              {trailingProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
