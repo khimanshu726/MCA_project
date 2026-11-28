@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Product } from "../models/Product.js";
 import { products as storefrontProducts } from "../../src/data.js";
+import { CATALOG_BATCH_ID, catalogAdditions } from "../../src/catalogAdditions.js";
+import { Counter } from "../models/Counter.js";
 import { getMinimumOrderQty, isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
 const legacyProductsPath = path.resolve(process.cwd(), "server", "data", "products.json");
@@ -291,6 +293,51 @@ const backfillInstitutionalOptions = async () => {
 // still run: insert-if-missing for the Institutional Supplies category (so the
 // new institutional products appear without wiping or resurrecting the rest of
 // the catalog) and the stock repair.
+/**
+ * Adds a batch of new catalogue products once (src/catalogAdditions.js).
+ *
+ * A Counter row marks the batch as done, so it never runs again: a product
+ * the owner later deletes or edits stays that way, unlike the
+ * insert-if-missing passes above. Products already present (same id) are
+ * skipped.
+ */
+export const ensureCatalogBatch = async ({ batchId = CATALOG_BATCH_ID, products = catalogAdditions } = {}) => {
+  const marker = `seed-batch:${batchId}`;
+  if (await Counter.exists({ _id: marker })) {
+    return { catalogAdded: 0 };
+  }
+
+  let catalogAdded = 0;
+  for (const product of products) {
+    if (await Product.exists({ id: product.id })) continue;
+    // create() (not an upsert) so the schema's checks run: slug, price tiers.
+    await Product.create({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      images: product.images,
+      price: product.price,
+      mrp: product.price,
+      priceTiers: product.priceTiers || [],
+      stock: seedStockFor(product.minimumOrderQty),
+      status: "active",
+      leadTime: product.leadTime || "",
+      minimumOrderQty: product.minimumOrderQty || 1,
+      quantityStep: product.quantityStep || 1,
+      materials: product.materials || [],
+      audience: product.audience || "",
+      badge: product.badge || "",
+      source: "data-js-seed",
+    });
+    catalogAdded += 1;
+    console.log(`[seed:batch] added ${product.id} (${product.category})`);
+  }
+
+  await Counter.updateOne({ _id: marker }, { $set: { seq: 1 } }, { upsert: true });
+  return { catalogAdded };
+};
+
 export const ensureProductsSeeded = async () => {
   const existingCount = await Product.countDocuments();
 
@@ -299,7 +346,8 @@ export const ensureProductsSeeded = async () => {
       const added = await ensureInstitutionalProducts();
       const options = await backfillInstitutionalOptions();
       const repair = await repairUnsellableSeedStock();
-      return { seeded: false, ...added, ...options, ...repair };
+      const batch = await ensureCatalogBatch();
+      return { seeded: false, ...added, ...options, ...repair, ...batch };
     } catch (error) {
       // Never fatal. startServer() exits the process if this rejects, and
       // taking the whole storefront down over a stock-tidying task would be a
@@ -310,5 +358,6 @@ export const ensureProductsSeeded = async () => {
   }
 
   const result = await migrateLegacyProducts();
-  return { seeded: true, ...result };
+  const batch = await ensureCatalogBatch();
+  return { seeded: true, ...result, ...batch };
 };

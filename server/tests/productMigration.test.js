@@ -2,7 +2,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Product } from "../models/Product.js";
-import { ensureProductsSeeded, migrateLegacyProducts } from "../services/productMigration.js";
+import { ensureCatalogBatch, ensureProductsSeeded, migrateLegacyProducts } from "../services/productMigration.js";
+import { Counter } from "../models/Counter.js";
+import { catalogAdditions } from "../../src/catalogAdditions.js";
 import { isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
 /**
@@ -29,6 +31,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   await Product.deleteMany({});
+  await Counter.deleteMany({});
 });
 
 /**
@@ -225,7 +228,73 @@ describe("product seeding", () => {
     expect(await Product.findOne({ id: "classic-card" }).lean()).toBeNull();
     const institutional = await Product.find({ category: "Institutional Supplies" }).lean();
     expect(institutional.length).toBeGreaterThanOrEqual(5);
-    expect(await Product.countDocuments()).toBe(1 + institutional.length);
+    expect(await Product.countDocuments()).toBe(1 + institutional.length + catalogAdditions.length);
+  });
+});
+
+describe("the catalogue batch (Nov 2026)", () => {
+  it("adds every new product once, live, with its MOQ, step and bulk prices", async () => {
+    await Product.create({
+      id: "admin-made",
+      name: "Admin Made",
+      description: "d",
+      category: "Banners",
+      images: ["https://example.com/i.jpg"],
+      price: 10,
+      mrp: 10,
+      stock: 5,
+      status: "active",
+    });
+
+    const result = await ensureProductsSeeded();
+
+    expect(result.catalogAdded).toBe(24);
+    const added = await Product.find({ id: { $in: catalogAdditions.map((p) => p.id) } }).lean();
+    expect(added).toHaveLength(24);
+    for (const product of added) {
+      expect(product.status).toBe("active");
+      expect(isProductOutOfStock(product)).toBe(false);
+      expect(product.images[0]).toMatch(/^\/images\/catalog\/[a-z0-9-]+\.jpg$/);
+    }
+    const tees = added.find((p) => p.id === "round-neck-tshirt");
+    expect(tees).toMatchObject({ price: 299, minimumOrderQty: 10, quantityStep: 5, category: "Clothing & Merchandise" });
+    expect(tees.priceTiers).toEqual([
+      { minQty: 25, price: 269 },
+      { minQty: 50, price: 249 },
+    ]);
+    // The admin's own product is untouched.
+    expect((await Product.findOne({ id: "admin-made" }).lean()).stock).toBe(5);
+  });
+
+  it("never runs again, so a product the owner deleted stays deleted", async () => {
+    await ensureCatalogBatch();
+    await Product.deleteOne({ id: "hang-tags" });
+    await Product.updateOne({ id: "embroidered-cap" }, { price: 199 });
+
+    const again = await ensureCatalogBatch();
+
+    expect(again.catalogAdded).toBe(0);
+    expect(await Product.findOne({ id: "hang-tags" })).toBeNull();
+    expect((await Product.findOne({ id: "embroidered-cap" }).lean()).price).toBe(199);
+  });
+
+  it("skips a product id that already exists", async () => {
+    await Product.create({
+      id: "kraft-mailer-boxes",
+      name: "My Mailer Boxes",
+      description: "mine",
+      category: "Labels & Packaging",
+      images: ["https://example.com/i.jpg"],
+      price: 50,
+      mrp: 50,
+      stock: 100,
+      status: "draft",
+    });
+
+    const result = await ensureCatalogBatch();
+
+    expect(result.catalogAdded).toBe(23);
+    expect((await Product.findOne({ id: "kraft-mailer-boxes" }).lean()).name).toBe("My Mailer Boxes");
   });
 });
 
