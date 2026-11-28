@@ -4670,3 +4670,4 @@ textarea {
 
 /* Product page: "Ask about this on WhatsApp" under the availability line. */
 .detail-whatsapp { margin-top: -0.25rem; font-size: 0.9rem; width: fit-content; }
+.photo-capsule-done { background: var(--success); }

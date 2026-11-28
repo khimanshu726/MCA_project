@@ -172,6 +172,10 @@ export const updateProduct = (id, payload, token) =>
     token,
   });
 
+// A time-limited link to a customer's private photo on an order.
+export const fetchCustomerPhotoLink = (id, token) =>
+  request(`/admin/customer-photos/${encodeURIComponent(id)}/link`, { token });
+
 export const deleteProduct = (id, token) =>
   request(`/admin/products/${id}`, {
     method: "DELETE",

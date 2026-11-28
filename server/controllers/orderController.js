@@ -179,7 +179,13 @@ export const createOrder = async (req, res, next) => {
         totalPrice: unitPrice * item.quantity,
         customizationText: item.customizationText,
         ...(photosByProductId.has(item.productId)
-          ? { photo: { id: photosByProductId.get(item.productId).id, url: photosByProductId.get(item.productId).url } }
+          ? {
+              // Only the id: the photo is private, opened from the admin through a time-limited link.
+              photo: {
+                id: photosByProductId.get(item.productId).id,
+                name: photosByProductId.get(item.productId).originalName,
+              },
+            }
           : {}),
       };
     });

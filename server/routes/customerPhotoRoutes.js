@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { postCustomerPhoto } from "../controllers/customerPhotoController.js";
+import { postCustomerPhoto, viewCustomerPhoto } from "../controllers/customerPhotoController.js";
 import { uploadCustomerPhoto } from "../middleware/customerPhotoUpload.js";
 import { requireDurableStorage } from "../config/uploadStorage.js";
 import { optionalAuthenticateCustomer } from "../middleware/authenticateCustomer.js";
@@ -28,5 +28,9 @@ router.post(
   uploadCustomerPhoto,
   postCustomerPhoto,
 );
+
+// Opens a photo from a signed, expiring link (made for the admin by
+// GET /api/admin/customer-photos/:id/link).
+router.get("/:id/view", viewCustomerPhoto);
 
 export default router;

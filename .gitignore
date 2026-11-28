@@ -22,6 +22,8 @@ dev-full.stderr.log
 
 uploads/*
 !uploads/.gitkeep
+# Customer photos in local development (never served publicly).
+private-uploads/
 superpowers/
 
 __pycache__/

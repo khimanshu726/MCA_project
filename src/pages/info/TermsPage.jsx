@@ -63,6 +63,15 @@ function TermsPage() {
         mind.
       </p>
 
+      <h2 id="copyright">Our photos and content</h2>
+      <p>
+        The product photos, designs, templates and text on this site belong to {BUSINESS.name} ({BUSINESS.legalName})
+        unless marked otherwise. Please don&rsquo;t copy, download for reuse, or publish them on another website,
+        marketplace or social media page without our written permission. If you see our photos used somewhere else,
+        tell us at <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>.
+      </p>
+      <p>Your own artwork and photos stay yours; you let us use them only to make your order.</p>
+
       <h2>Contact</h2>
       <p>
         Questions about these terms: <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a> · {BUSINESS.phoneDisplay}{" "}

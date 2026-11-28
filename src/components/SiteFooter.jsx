@@ -185,7 +185,10 @@ function SiteFooter() {
       </div>
 
       <div className="footer-bottom">
-        <span>&copy; {new Date().getFullYear()} Elite Impressions. All rights reserved.</span>
+        <span>
+          &copy; {new Date().getFullYear()} Elite Impressions. All rights reserved. Product photos and designs on this
+          site are ours; please don&rsquo;t reuse them without permission.
+        </span>
         <nav className="footer-bottom-links" aria-label="Policies">
           <Link to="/privacy">Privacy policy</Link>
           <Link to="/terms">Terms of service</Link>

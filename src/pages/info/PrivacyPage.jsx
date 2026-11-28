@@ -54,7 +54,7 @@ function PrivacyPage() {
       <ul>
         <li>Google Firebase, for signing in.</li>
         <li>Razorpay, for online payments.</li>
-        <li>Cloudinary, for storing uploaded artwork and photos.</li>
+        <li>Cloudinary, for storing uploaded artwork and photos (customers&rsquo; photos are stored privately).</li>
         <li>Our email provider, for order emails.</li>
         <li>Courier partners, who receive your name, address and phone number to deliver.</li>
         <li>Our website hosting and database providers.</li>
@@ -62,8 +62,10 @@ function PrivacyPage() {
 
       <h2>Your files and photos</h2>
       <p>
-        We use the artwork and photos you upload only to make your order. They&rsquo;re kept with the order record so we
-        can reprint or answer questions about it. Ask us and we&rsquo;ll delete them once your order is complete.
+        We use the artwork and photos you upload only to make your order. Photos for personalised products are stored
+        privately: they aren&rsquo;t published on the site, and only our staff can open them, through links that stop
+        working after a few minutes. They&rsquo;re kept with the order record so we can reprint or answer questions
+        about it. Ask us and we&rsquo;ll delete them once your order is complete.
       </p>
 
       <h2>Your browser</h2>

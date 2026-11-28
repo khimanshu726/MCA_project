@@ -10,6 +10,43 @@ import { getPersonalPhoto, setPersonalPhoto } from "../utils/personalPhotos";
 const SMALL_PHOTO_PX = 1200;
 
 /**
+ * A tiny square preview of the picked photo as a data URL (a few KB), for the
+ * capsule, cart and checkout. Empty if the browser can't draw it.
+ */
+export const makeThumbnail = (src, size = 96) =>
+  new Promise((resolve) => {
+    try {
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext?.("2d");
+      if (!context) return resolve("");
+      canvas.width = size;
+      canvas.height = size;
+      const image = new Image();
+      // Never hold up the upload for a preview.
+      const giveUp = setTimeout(() => resolve(""), 3000);
+      image.onload = () => {
+        clearTimeout(giveUp);
+        try {
+          const side = Math.min(image.naturalWidth, image.naturalHeight);
+          const sx = (image.naturalWidth - side) / 2;
+          const sy = (image.naturalHeight - side) / 2;
+          context.drawImage(image, sx, sy, side, side, 0, 0, size, size);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        } catch {
+          resolve("");
+        }
+      };
+      image.onerror = () => {
+        clearTimeout(giveUp);
+        resolve("");
+      };
+      image.src = src;
+    } catch {
+      resolve("");
+    }
+  });
+
+/**
  * The upload dialog for a personalised product: pick, drop or paste a photo,
  * see it, then upload it. Rendered into <body> so a card's hover transform
  * can't trap the fixed overlay inside the card.
@@ -71,7 +108,10 @@ function PhotoUploadDialog({ open, onClose, product, onUploaded, confirmLabel = 
     setError("");
     try {
       const { photo } = await uploadCustomerPhoto({ productId: product.id, file: picked.file, token });
-      setPersonalPhoto(product.id, photo);
+      // The stored photo is private (no public link), so the capsule, cart and
+      // checkout show a small preview kept in this browser instead.
+      const thumb = await makeThumbnail(picked.src);
+      setPersonalPhoto(product.id, { ...photo, thumb });
       setIsUploading(false);
       onUploaded?.(photo);
     } catch (uploadError) {
