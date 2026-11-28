@@ -11,6 +11,11 @@ const STATIC_ROUTES = [
   { path: "/products", priority: "0.9" },
   { path: "/institutions", priority: "0.8" },
   { path: "/customize", priority: "0.6" },
+  { path: "/contact", priority: "0.6" },
+  { path: "/about", priority: "0.5" },
+  { path: "/faq", priority: "0.5" },
+  { path: "/privacy", priority: "0.2" },
+  { path: "/terms", priority: "0.2" },
 ];
 
 const escapeXml = (value) =>

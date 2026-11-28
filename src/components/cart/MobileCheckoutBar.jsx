@@ -10,7 +10,7 @@ import { currencyFormatter } from "../ui/PriceDisplay";
 function MobileCheckoutBar({ total, itemCount, canCheckout, onCheckout, disabledReason }) {
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 pt-3 backdrop-blur lg:hidden"
+      className="mobile-checkout-bar fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 pt-3 backdrop-blur lg:hidden"
       style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       <div className="mx-auto flex max-w-2xl items-center gap-3">

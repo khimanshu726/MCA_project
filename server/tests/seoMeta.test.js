@@ -73,3 +73,12 @@ describe("injectMeta", () => {
     expect(html).not.toContain("</script></script>");
   });
 });
+
+describe("information pages", () => {
+  it("gives each its own title and canonical URL instead of the home page's", () => {
+    const privacy = resolveRouteMeta("/privacy", null, null);
+    expect(privacy.title).toMatch(/^Privacy Policy/);
+    expect(privacy.canonical).toBe("https://eliteimpressions.co.in/privacy");
+    expect(resolveRouteMeta("/contact", null, null).description).toMatch(/WhatsApp/);
+  });
+});

@@ -70,6 +70,34 @@ const withBrand = (title) => (title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} 
  * Resolve head metadata for a path. `category` is the ?category= value (products
  * page); `product` is the resolved product doc for /products/:id (or null).
  */
+// The shop's information pages (src/pages/info), for crawlers and link previews.
+const INFO_PAGES = {
+  "/about": {
+    title: "About Us",
+    description:
+      "Elite Impressions is the online shop of Bihar Press, a printing press in Purnia, Bihar: business cards, wedding invitations, banners, packaging, merchandise, photo gifts and school supplies.",
+  },
+  "/contact": {
+    title: "Contact Us",
+    description:
+      "Contact Elite Impressions (Bihar Press, Purnia): WhatsApp, phone, email and shop address for print orders, bulk quotes and rush printing.",
+  },
+  "/faq": {
+    title: "Frequently Asked Questions",
+    description:
+      "Answers about ordering print from Elite Impressions: customization, uploads, lead times, bulk orders, delivery and contact.",
+  },
+  "/privacy": {
+    title: "Privacy Policy",
+    description: "How Elite Impressions collects, uses and protects your details, uploaded artwork and photos.",
+  },
+  "/terms": {
+    title: "Terms of Service",
+    description:
+      "Terms for ordering custom print from Elite Impressions: orders, your artwork, payment, cancellations and returns.",
+  },
+};
+
 export function resolveRouteMeta(pathname, category, product, collection = null) {
   const base = { image: DEFAULT_IMAGE, type: "website", jsonLd: [] };
 
@@ -146,6 +174,16 @@ export function resolveRouteMeta(pathname, category, product, collection = null)
       description:
         "Design your print online: start from a template, upload your own artwork, and see a live preview before you order.",
       canonical: `${SITE_URL}/customize`,
+    };
+  }
+
+  const infoPage = INFO_PAGES[pathname];
+  if (infoPage) {
+    return {
+      ...base,
+      title: withBrand(infoPage.title),
+      description: infoPage.description,
+      canonical: `${SITE_URL}${pathname}`,
     };
   }
 

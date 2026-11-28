@@ -25,6 +25,9 @@ export const BUSINESS = {
   email: "eliteimpressions8@gmail.com",
   phone: "+919288675153",
   phoneDisplay: "+91 92886 75153",
+  // WhatsApp number in international form without "+" (wa.me format). Most
+  // print orders in India start on WhatsApp, so it's offered on every page.
+  whatsapp: "919288675153",
   address: {
     street: "Bihar Press, Manjhili Chowk",
     locality: "Purnia",
@@ -45,3 +48,7 @@ export const BUSINESS = {
   googleMapsUrl: "https://maps.google.com/?cid=6410261252108927573",
   googleReviewUrl: "https://g.page/r/CVVCZ1Gl0vVYEBM/review",
 };
+
+/** A WhatsApp chat with the shop, with the message typed in for the customer. */
+export const whatsappUrl = (message = "") =>
+  `https://wa.me/${BUSINESS.whatsapp}${message ? `?text=${encodeURIComponent(message)}` : ""}`;

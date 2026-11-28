@@ -48,6 +48,9 @@ describe("GET /sitemap.xml", () => {
     expect(res.text).toContain("https://eliteimpressions.co.in/</loc>");
     expect(res.text).toContain("https://eliteimpressions.co.in/products</loc>");
     expect(res.text).toContain("https://eliteimpressions.co.in/institutions</loc>");
+    for (const page of ["about", "contact", "faq", "privacy", "terms"]) {
+      expect(res.text).toContain(`https://eliteimpressions.co.in/${page}</loc>`);
+    }
   });
 
   it("includes a URL for each active product but excludes drafts", async () => {
