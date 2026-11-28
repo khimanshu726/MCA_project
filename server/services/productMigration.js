@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Product } from "../models/Product.js";
 import { products as storefrontProducts } from "../../src/data.js";
-import { CATALOG_BATCH_ID, catalogAdditions } from "../../src/catalogAdditions.js";
+import { CATALOG_BATCHES, CATALOG_BATCH_ID, catalogAdditions } from "../../src/catalogAdditions.js";
 import { Counter } from "../models/Counter.js";
 import { getMinimumOrderQty, isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
@@ -338,6 +338,16 @@ export const ensureCatalogBatch = async ({ batchId = CATALOG_BATCH_ID, products 
   return { catalogAdded };
 };
 
+/** Runs every catalogue batch (each one once), adding up what was added. */
+export const ensureCatalogBatches = async (batches = CATALOG_BATCHES) => {
+  let catalogAdded = 0;
+  for (const batch of batches) {
+    const result = await ensureCatalogBatch({ batchId: batch.id, products: batch.products });
+    catalogAdded += result.catalogAdded;
+  }
+  return { catalogAdded };
+};
+
 export const ensureProductsSeeded = async () => {
   const existingCount = await Product.countDocuments();
 
@@ -346,7 +356,7 @@ export const ensureProductsSeeded = async () => {
       const added = await ensureInstitutionalProducts();
       const options = await backfillInstitutionalOptions();
       const repair = await repairUnsellableSeedStock();
-      const batch = await ensureCatalogBatch();
+      const batch = await ensureCatalogBatches();
       return { seeded: false, ...added, ...options, ...repair, ...batch };
     } catch (error) {
       // Never fatal. startServer() exits the process if this rejects, and
@@ -358,6 +368,6 @@ export const ensureProductsSeeded = async () => {
   }
 
   const result = await migrateLegacyProducts();
-  const batch = await ensureCatalogBatch();
+  const batch = await ensureCatalogBatches();
   return { seeded: true, ...result, ...batch };
 };

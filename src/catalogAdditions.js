@@ -425,3 +425,188 @@ export const catalogAdditions = [
     images: image("printed-apron"),
   },
 ];
+
+/**
+ * Institutional supplies for schools and colleges, added in a batch of their
+ * own. Mockups are built by `node scripts/buildCatalogMockups.mjs <photos>
+ * institutions` for an invented school, "Kosi Valley Public School".
+ */
+export const INSTITUTIONS_BATCH_ID = "institutions-2026-11";
+
+const institutional = (product) => ({
+  category: "Institutional Supplies",
+  audience: "Schools, colleges & universities",
+  images: image(product.id),
+  ...product,
+});
+
+export const institutionAdditions = [
+  institutional({
+    id: "student-id-cards",
+    name: "Student ID Cards with Lanyard",
+    price: 45,
+    priceTiers: [
+      { minQty: 200, price: 40 },
+      { minQty: 500, price: 35 },
+    ],
+    minimumOrderQty: 50,
+    quantityStep: 10,
+    leadTime: "5-6",
+    description:
+      "Photo ID cards for students and staff with the school crest, name, class, roll number and blood group, in a holder with a printed lanyard. We work from your student list and photos.",
+    materials: ["PVC card", "Card holder", "Printed lanyard", "Data from your list"],
+  }),
+  institutional({
+    id: "merit-certificates",
+    name: "Merit & Participation Certificates",
+    price: 12,
+    priceTiers: [
+      { minQty: 200, price: 10 },
+      { minQty: 500, price: 8 },
+    ],
+    minimumOrderQty: 50,
+    quantityStep: 50,
+    leadTime: "3-4",
+    description:
+      "Certificates for toppers, sports day, competitions and events, on thick textured paper with an optional gold-foil seal. Names can be printed for you from a list.",
+    materials: ["250 gsm textured", "Optional gold-foil seal", "A4", "Names printed on request"],
+  }),
+  institutional({
+    id: "progress-report-cards",
+    name: "Progress Report Cards",
+    price: 15,
+    priceTiers: [
+      { minQty: 500, price: 12 },
+      { minQty: 1000, price: 10 },
+    ],
+    minimumOrderQty: 100,
+    quantityStep: 50,
+    leadTime: "4-5",
+    description:
+      "Report cards in your school's format: subjects, terms, grades, attendance, remarks and signatures. Single sheets or folded booklets for the whole session.",
+    materials: ["Your format", "Single sheet or folded", "Term-wise columns"],
+  }),
+  institutional({
+    id: "omr-answer-sheets",
+    name: "OMR Answer Sheets",
+    price: 4,
+    priceTiers: [{ minQty: 2000, price: 3 }],
+    minimumOrderQty: 500,
+    quantityStep: 500,
+    leadTime: "3-4",
+    description:
+      "Machine-readable OMR sheets with timing marks, a roll-number grid and answer bubbles, printed precisely for scanning. Ideal for unit tests, mock tests and entrance exams.",
+    materials: ["100 gsm", "Scanner-accurate print", "Roll number grid", "Up to 200 questions"],
+  }),
+  institutional({
+    id: "school-diary",
+    name: "School Diary (Student Almanac)",
+    price: 120,
+    priceTiers: [
+      { minQty: 200, price: 105 },
+      { minQty: 500, price: 95 },
+    ],
+    minimumOrderQty: 50,
+    quantityStep: 25,
+    leadTime: "10-12",
+    description:
+      "Hardbound student diaries with your crest in gold foil, school rules, calendar, timetable, homework and parent-teacher note pages for the whole session.",
+    materials: ["Hardbound", "Gold foil cover", "Custom inner pages", "A5"],
+  }),
+  institutional({
+    id: "exercise-notebooks",
+    name: "Exercise Notebooks with School Cover",
+    price: 45,
+    priceTiers: [
+      { minQty: 500, price: 40 },
+      { minQty: 1000, price: 36 },
+    ],
+    minimumOrderQty: 100,
+    quantityStep: 50,
+    leadTime: "7-8",
+    description:
+      "Ruled, plain or square notebooks with the school's own cover: crest, school name and a label for name, class and subject.",
+    materials: ["172 pages", "Ruled, plain or square", "Branded cover", "Name label"],
+  }),
+  institutional({
+    id: "school-letterheads",
+    name: "School Letterheads",
+    price: 3,
+    priceTiers: [{ minQty: 2000, price: 2 }],
+    minimumOrderQty: 500,
+    quantityStep: 500,
+    leadTime: "3-4",
+    description:
+      "Official letterheads with the crest, school name, address and contact details, on quality paper that also prints well in office printers.",
+    materials: ["90 gsm", "A4", "Full colour", "Printer-friendly"],
+  }),
+  institutional({
+    id: "official-envelopes",
+    name: "Official Envelopes",
+    price: 6,
+    priceTiers: [{ minQty: 2000, price: 5 }],
+    minimumOrderQty: 500,
+    quantityStep: 500,
+    leadTime: "4-5",
+    description:
+      "Printed envelopes for letters, circulars and result dispatch, with the school crest and return address. DL, A5 and A4 sizes, white or kraft.",
+    materials: ["DL, A5 or A4", "White or kraft", "Crest and return address"],
+  }),
+  institutional({
+    id: "admit-cards",
+    name: "Admit Cards & Hall Tickets",
+    price: 2,
+    priceTiers: [{ minQty: 2000, price: 1 }],
+    minimumOrderQty: 500,
+    quantityStep: 500,
+    leadTime: "2-3",
+    description:
+      "Admit cards for practice, annual and entrance exams with student details, a photo box, the exam timetable and a signature, printed from your list in time for exams.",
+    materials: ["200 gsm card", "Photo box", "Exam timetable", "Data from your list"],
+  }),
+  institutional({
+    id: "exam-document-folders",
+    name: "Exam & Document Folders",
+    price: 35,
+    priceTiers: [{ minQty: 500, price: 30 }],
+    minimumOrderQty: 100,
+    quantityStep: 50,
+    leadTime: "6-7",
+    description:
+      "Sturdy board folders printed with the school crest, for answer scripts, admission files and certificates, with a printed label for class and subject.",
+    materials: ["Kraft or white board", "Elastic closure", "Printed label", "Foolscap size"],
+  }),
+  institutional({
+    id: "school-prospectus",
+    name: "School Prospectus & Brochures",
+    price: 45,
+    priceTiers: [
+      { minQty: 500, price: 38 },
+      { minQty: 1000, price: 32 },
+    ],
+    minimumOrderQty: 100,
+    quantityStep: 50,
+    leadTime: "7-8",
+    description:
+      "Admission prospectus and brochures that show parents your campus, results, facilities and fees. We can help with the layout from your photos and text.",
+    materials: ["Full colour", "8 to 24 pages", "Glossy or matte", "Design help available"],
+  }),
+  institutional({
+    id: "desk-calendars",
+    name: "School Desk Calendars",
+    price: 110,
+    priceTiers: [{ minQty: 200, price: 95 }],
+    minimumOrderQty: 50,
+    quantityStep: 25,
+    leadTime: "7-8",
+    description:
+      "Spiral desk calendars for the session with the school's holidays, exam dates and events on every month: a gift parents and staff keep on their desks.",
+    materials: ["12 or 13 months", "Spiral bound", "Board stand", "Holidays and exams marked"],
+  }),
+];
+
+/** Every catalogue batch, each added once (see ensureCatalogBatches). */
+export const CATALOG_BATCHES = [
+  { id: CATALOG_BATCH_ID, products: catalogAdditions },
+  { id: INSTITUTIONS_BATCH_ID, products: institutionAdditions },
+];
