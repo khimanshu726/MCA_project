@@ -24,6 +24,11 @@ import UserLoginPage from "./pages/UserLoginPage";
 
 import AuthActionPage from "./pages/AuthActionPage";
 import WishlistPage from "./pages/WishlistPage";
+import AboutPage from "./pages/info/AboutPage";
+import ContactPage from "./pages/info/ContactPage";
+import FaqPage from "./pages/info/FaqPage";
+import PrivacyPage from "./pages/info/PrivacyPage";
+import TermsPage from "./pages/info/TermsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
@@ -68,6 +73,11 @@ function App() {
           <Route path="/products/:productId" element={<ProductDetailPage />} />
           <Route path="/collections/:slug" element={<CollectionPage />} />
           <Route path="/institutions" element={<InstitutionsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/cart" element={<CartPage />} />
           {/* Checkout now requires a signed-in customer (guest checkout is
               retired): a guest who reaches /checkout gets the auth modal over

@@ -5,6 +5,7 @@ import { useUserAuth } from "../context/UserAuthContext";
 import { useHeaderSearch, useHideOnScroll, useMobileMenu, useScrolled } from "../hooks/useLayoutState";
 import AppHeader from "./AppHeader";
 import SiteFooter from "./SiteFooter";
+import WhatsAppButton from "./WhatsAppButton";
 
 function AppLayout() {
   const { cartCount } = useCart();
@@ -39,6 +40,7 @@ function AppLayout() {
       <Outlet />
 
       <SiteFooter />
+      <WhatsAppButton />
     </div>
   );
 }

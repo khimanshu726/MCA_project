@@ -20,6 +20,10 @@ const PNG_1X1 = Buffer.from(
 );
 const envSnapshot = {};
 let mongoServer;
+// Photo files already in ./uploads (e.g. from local development) are left
+// alone: the test only counts and removes the ones it wrote itself.
+let preexistingPhotoFiles = new Set();
+const allPhotoFiles = () => readdirSync(uploadsDir).filter((name) => name.startsWith("photo-"));
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -28,6 +32,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  preexistingPhotoFiles = new Set(allPhotoFiles());
   for (const key of ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]) {
     envSnapshot[key] = process.env[key];
     delete process.env[key];
@@ -53,9 +58,7 @@ afterEach(async () => {
     else process.env[key] = value;
   }
   await Promise.all([Product.deleteMany({}), Order.deleteMany({}), CustomerPhoto.deleteMany({})]);
-  for (const name of readdirSync(uploadsDir)) {
-    if (name.startsWith("photo-")) unlinkSync(path.join(uploadsDir, name));
-  }
+  for (const name of storedPhotoFiles()) unlinkSync(path.join(uploadsDir, name));
 });
 
 afterAll(async () => {
@@ -81,7 +84,7 @@ const placeOrder = (lineItems) =>
     })
     .field("lineItems", JSON.stringify(lineItems));
 
-const storedPhotoFiles = () => readdirSync(uploadsDir).filter((name) => name.startsWith("photo-"));
+const storedPhotoFiles = () => allPhotoFiles().filter((name) => !preexistingPhotoFiles.has(name));
 
 describe("uploading a customer photo", () => {
   it("stores the photo for a personalised product and returns its id and URL", async () => {

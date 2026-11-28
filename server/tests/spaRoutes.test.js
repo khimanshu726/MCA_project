@@ -174,3 +174,11 @@ describe("storefront HTML responses", () => {
     expect(res.text).toContain('<meta name="robots" content="index, follow" />');
   });
 });
+
+describe("information pages", () => {
+  it("answers 200 for About, Contact, FAQ, Privacy and Terms", () => {
+    for (const path of ["/about", "/contact", "/faq", "/privacy", "/terms"]) {
+      expect(isKnownStorefrontPath(path)).toBe(true);
+    }
+  });
+});

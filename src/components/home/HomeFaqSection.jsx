@@ -109,11 +109,12 @@ const FAQS = [
     q: "How can I get in touch?",
     a: (
       <>
-        Email us at <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> and we&rsquo;ll help with quotes,
-        artwork checks, or bulk orders.
+        WhatsApp or call <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phoneDisplay}</a>, or email{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>, and we&rsquo;ll help with quotes, artwork checks,
+        or bulk orders. All the ways to reach us are on the <Link to="/contact">contact page</Link>.
       </>
     ),
-    text: `Email us at ${SUPPORT_EMAIL} and we'll help with quotes, artwork checks, or bulk orders.`,
+    text: `WhatsApp or call ${BUSINESS.phoneDisplay}, or email ${SUPPORT_EMAIL}, and we'll help with quotes, artwork checks, or bulk orders.`,
   },
 ];
 
@@ -127,6 +128,20 @@ const faqJsonLd = {
   })),
 };
 
+/** The questions themselves, shared by the home page and /faq. */
+export function FaqList() {
+  return (
+    <div className="faq-list">
+      {FAQS.map((item) => (
+        <details key={item.q} className="faq-item">
+          <summary>{item.q}</summary>
+          <div className="faq-answer section-copy">{item.a}</div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
 function HomeFaqSection() {
   return (
     <section className="section-panel" aria-labelledby="home-faq-heading">
@@ -134,14 +149,7 @@ function HomeFaqSection() {
         <p className="eyebrow">FAQ</p>
         <h2 id="home-faq-heading">Frequently asked questions.</h2>
       </div>
-      <div className="faq-list">
-        {FAQS.map((item) => (
-          <details key={item.q} className="faq-item">
-            <summary>{item.q}</summary>
-            <div className="faq-answer section-copy">{item.a}</div>
-          </details>
-        ))}
-      </div>
+      <FaqList />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
     </section>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ShieldCheck, Truck, Store, Clock } from "lucide-react";
+import { ShieldCheck, Truck, Store, Clock, MessageCircle } from "lucide-react";
+import { whatsappUrl } from "../config/business";
 import Seo, { SITE_URL } from "../components/Seo";
 import AddToCartButton from "../components/AddToCartButton";
 import PhotoCapsule from "../components/PhotoCapsule";
@@ -257,6 +258,18 @@ function ProductDetailPage() {
             {/* The number customers can quote on a call or WhatsApp. */}
             {product.code ? <span className="detail-product-code"> · Product no. {product.code}</span> : null}
           </p>
+          {/* Questions about this product go straight to WhatsApp, with the
+              product named so the shop knows which one. */}
+          <a
+            className="whatsapp-link detail-whatsapp"
+            href={whatsappUrl(
+              `Hi Elite Impressions, I have a question about ${product.name}${product.code ? ` (${product.code})` : ""}.`,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <MessageCircle size={16} strokeWidth={2} aria-hidden="true" /> Ask about this on WhatsApp
+          </a>
 
           {showStepper ? (
             <BulkPricingTable

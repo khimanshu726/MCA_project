@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { Clock, Mail, MapPin, Phone, Star } from "lucide-react";
+import { Clock, Mail, MapPin, MessageCircle, Phone, Star } from "lucide-react";
 import { getConfiguredSocialLinks } from "../config/socialLinks";
-import { BUSINESS } from "../config/business";
+import { BUSINESS, whatsappUrl } from "../config/business";
 import { categoryMenu } from "../data";
 
 /**
@@ -79,19 +79,19 @@ const footerLinks = [
     title: "Services",
     links: [
       { label: "Customize", to: "/customize" },
-      { label: "Bulk Orders", to: "/products" },
+      { label: "Bulk Orders", to: "/contact#bulk" },
       { label: "Design Support", to: "/customize" },
-      { label: "Rush Print", to: "/products" },
+      { label: "Rush Print", to: "/contact#rush" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About", to: "/" },
-      { label: "Contact", to: "/" },
-      { label: "FAQ", to: "/" },
-      { label: "Privacy", to: "/" },
-      { label: "Terms", to: "/" },
+      { label: "About", to: "/about" },
+      { label: "Contact", to: "/contact" },
+      { label: "FAQ", to: "/faq" },
+      { label: "Privacy", to: "/privacy" },
+      { label: "Terms", to: "/terms" },
     ],
   },
 ];
@@ -140,6 +140,17 @@ function SiteFooter() {
               <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phoneDisplay}</a>
             </span>
             <span>
+              <MessageCircle size={14} strokeWidth={1.6} />{" "}
+              <a
+                className="whatsapp-link"
+                href={whatsappUrl("Hi Elite Impressions, I'd like to know about a print order.")}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WhatsApp us
+              </a>
+            </span>
+            <span>
               <Mail size={14} strokeWidth={1.6} />{" "}
               <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
             </span>
@@ -175,12 +186,10 @@ function SiteFooter() {
 
       <div className="footer-bottom">
         <span>&copy; {new Date().getFullYear()} Elite Impressions. All rights reserved.</span>
-        {/* Privacy Policy / Terms of Service / Cookies used to sit here as
-            `href="#"` — links that consumed a click and did nothing, because
-            no such pages exist. They are omitted rather than faked: the one
-            thing worse than a missing policy link is one that pretends to be
-            a policy. Restore them here once the real pages exist; that is a
-            content and legal task, not a markup one. */}
+        <nav className="footer-bottom-links" aria-label="Policies">
+          <Link to="/privacy">Privacy policy</Link>
+          <Link to="/terms">Terms of service</Link>
+        </nav>
       </div>
     </footer>
   );

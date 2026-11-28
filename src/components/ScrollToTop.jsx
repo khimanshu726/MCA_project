@@ -23,7 +23,7 @@ import { useLocation, useNavigationType } from "react-router-dom";
  * below for why smooth was tried, measured, and rejected here.
  */
 function ScrollToTop() {
-  const { pathname, search } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const navigationType = useNavigationType();
   const isFirstRenderRef = useRef(true);
 
@@ -64,11 +64,17 @@ function ScrollToTop() {
     // "instant", not "auto": "auto" defers to the CSS `scroll-behavior` (i.e.
     // smooth), which is the ~4s animated jump measured and rejected above;
     // only "instant" forces the immediate jump this fix depends on.
+    // A link to a section (/contact#bulk) lands on that section instead.
+    const target = hash ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+    if (target) {
+      target.scrollIntoView({ block: "start", behavior: "instant" });
+      return;
+    }
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     // `search` is included so filtering the catalog (?category=…) also returns
     // the customer to the top of the results rather than leaving them halfway
     // down the previous, longer list.
-  }, [pathname, search, navigationType]);
+  }, [pathname, search, hash, navigationType]);
 
   return null;
 }
