@@ -3,7 +3,7 @@
  * Pexels licence) with a sample customer logo printed on them, written to
  * public/images/catalog/<id>.jpg.
  *
- *   node scripts/buildCatalogMockups.mjs <folder with the base photos>
+ *   node scripts/buildCatalogMockups.mjs <folder with the base photos> [catalog|institutions]
  *
  * The base photos are not committed; their Pexels ids are listed in BASES so
  * they can be downloaded again (?w=1600). The brands are invented samples.
@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
-const [, , baseDir] = process.argv;
+const [, , baseDir, set = "catalog"] = process.argv;
 if (!baseDir) {
   console.error("Usage: node scripts/buildCatalogMockups.mjs <base photo folder>");
   process.exit(1);
@@ -53,7 +53,7 @@ const FILES = {
   cardsKraft: "cardsKraft2.jpg",
   stickers: "cardsKraft.jpg",
 };
-const baseFile = (key) => path.join(baseDir, FILES[key] || `${key}.jpg`);
+const baseFile = (key) => path.join(baseDir, (set === "catalog" && FILES[key]) || `${key}.jpg`);
 
 /* ------------------------------------------------------------------ */
 /* Sample brands (invented)                                            */
@@ -760,7 +760,9 @@ const tissueLayer = ({ polygon, brand }) => {
   };
 };
 
-for (const mock of MOCKUPS) {
+const { INSTITUTION_MOCKUPS } = await import("./institutionMockups.mjs");
+
+for (const mock of set === "institutions" ? INSTITUTION_MOCKUPS : MOCKUPS) {
   const src = baseFile(mock.base);
   const layers = [...mock.layers];
   if (mock.stickers) for (const s of mock.stickers) layers.push(...(await stickerLayer(s)));
@@ -787,3 +789,4 @@ for (const mock of MOCKUPS) {
     .toFile(path.join(outDir, `${mock.id}.jpg`));
   console.log("wrote", mock.id);
 }
+

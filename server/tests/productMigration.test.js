@@ -2,9 +2,14 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Product } from "../models/Product.js";
-import { ensureCatalogBatch, ensureProductsSeeded, migrateLegacyProducts } from "../services/productMigration.js";
+import {
+  ensureCatalogBatch,
+  ensureCatalogBatches,
+  ensureProductsSeeded,
+  migrateLegacyProducts,
+} from "../services/productMigration.js";
 import { Counter } from "../models/Counter.js";
-import { catalogAdditions } from "../../src/catalogAdditions.js";
+import { catalogAdditions, institutionAdditions } from "../../src/catalogAdditions.js";
 import { isProductOutOfStock } from "../../src/utils/productAvailability.js";
 
 /**
@@ -248,9 +253,14 @@ describe("the catalogue batch (Nov 2026)", () => {
 
     const result = await ensureProductsSeeded();
 
-    expect(result.catalogAdded).toBe(24);
-    const added = await Product.find({ id: { $in: catalogAdditions.map((p) => p.id) } }).lean();
-    expect(added).toHaveLength(24);
+    // 24 for cards, packaging and merch, plus 12 institutional supplies.
+    expect(result.catalogAdded).toBe(36);
+    const added = await Product.find({
+      id: { $in: [...catalogAdditions, ...institutionAdditions].map((p) => p.id) },
+    }).lean();
+    expect(added).toHaveLength(36);
+    const omr = added.find((p) => p.id === "omr-answer-sheets");
+    expect(omr).toMatchObject({ category: "Institutional Supplies", minimumOrderQty: 500, quantityStep: 500 });
     for (const product of added) {
       expect(product.status).toBe("active");
       expect(isProductOutOfStock(product)).toBe(false);
@@ -264,6 +274,17 @@ describe("the catalogue batch (Nov 2026)", () => {
     ]);
     // The admin's own product is untouched.
     expect((await Product.findOne({ id: "admin-made" }).lean()).stock).toBe(5);
+  });
+
+  it("runs each batch once on its own: a deleted institutional product stays deleted", async () => {
+    await ensureCatalogBatches();
+    await Product.deleteOne({ id: "desk-calendars" });
+
+    const again = await ensureCatalogBatches();
+
+    expect(again.catalogAdded).toBe(0);
+    expect(await Product.findOne({ id: "desk-calendars" })).toBeNull();
+    expect(await Product.countDocuments({ category: "Institutional Supplies" })).toBe(11);
   });
 
   it("never runs again, so a product the owner deleted stays deleted", async () => {
