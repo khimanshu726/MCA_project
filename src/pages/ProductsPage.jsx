@@ -31,19 +31,17 @@ function ProductsPage() {
 
   // Searching happens from the header's search box, which sets ?q=.
 
-  // Three ways to show a listing:
-  // - A header category with categories under it (Invitations, which holds
-  //   Wedding Cards) shows its own products plus each collection in it as ONE
-  //   card: the Wedding Invitation Suite, not its fifty designs.
-  // - Any other category page (e.g. Business Cards, or Wedding Cards by URL)
-  //   lists every design straight away, including those inside collections.
+  // Two ways to show a listing:
+  // - A category page lists every design straight away, including those
+  //   inside collections (Photo Gifts' frames, Invitations' wedding cards). A
+  //   header category with categories under it (Invitations, which holds
+  //   Wedding Cards) lists them all together.
   // - All products keeps one card per collection. A search finds designs one by one.
   const family = category === "All" ? [category] : categoryFamily(category);
-  const isFamilyView = category !== "All" && !query && family.length > 1;
-  const isCategoryView = category !== "All" && !query && !isFamilyView;
+  const isCategoryView = category !== "All" && !query;
   const { data, isLoading, isError, refetch } = useProducts({
     category,
-    categories: isFamilyView ? family : undefined,
+    categories: isCategoryView && family.length > 1 ? family : undefined,
     q: query,
     limit: 100,
     excludeCollected: !isCategoryView,
@@ -52,7 +50,6 @@ function ProductsPage() {
   const items = data?.items ?? EMPTY_LIST;
   const { data: collections = EMPTY_LIST } = useCollections({
     category,
-    categories: isFamilyView ? family : undefined,
     enabled: !query && !isCategoryView,
   });
   const visibleCollections = query || isCategoryView ? EMPTY_LIST : collections;

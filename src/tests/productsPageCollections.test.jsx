@@ -158,19 +158,25 @@ describe("Invitations, with Wedding Cards under it", () => {
     productCalls.length = 0;
   });
 
-  it("shows the Wedding Invitation Suite as one card, not its designs", () => {
+  it("lists every wedding card design directly, like Photo Gifts, with no collection card", () => {
     renderAt("/products?category=Invitations");
     expect(productCalls).toContainEqual(
       expect.objectContaining({
         category: "Invitations",
         categories: ["Invitations", "Wedding Cards"],
-        excludeCollected: true,
-        withCollectionDesigns: false,
+        excludeCollected: false,
+        withCollectionDesigns: true,
       }),
     );
+    // Every design the category query returns is a card of its own.
+    expect(screen.getAllByTestId("design").map((card) => card.textContent)).toEqual(designs.map((d) => d.name));
+    expect(screen.queryByTestId("collection-card")).not.toBeInTheDocument();
+    expect(document.querySelector(".listing-facts")).toHaveTextContent(`${designs.length} results`);
+  });
+
+  it("still shows the suite as one card on All products", () => {
+    renderAt("/products");
     expect(screen.getByTestId("collection-card")).toHaveTextContent("Wedding Invitation Suite");
-    expect(screen.queryAllByTestId("design")).toHaveLength(0);
-    expect(document.querySelector(".listing-facts")).toHaveTextContent("1 result");
   });
 });
 

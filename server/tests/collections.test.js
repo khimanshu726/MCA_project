@@ -502,6 +502,24 @@ describe("a header category and the categories under it", () => {
     expect(res.body.items.map((item) => item.name).sort()).toEqual(["Birthday Invite", "Loose Wedding Card"]);
   });
 
+  it("lists every design of the family on the Invitations page, collection designs included", async () => {
+    const suite = await createCollection({ category: "Wedding Cards" });
+    await seedDesign({ collectionId: suite.id, name: "Design In Suite", category: "Wedding Cards" });
+    // Tagged with another category, but in a collection shown under the family.
+    await seedDesign({ collectionId: suite.id, name: "Odd Tag Design", category: "Banners" });
+    await seedDesign({ name: "Birthday Invite", category: "Invitations" });
+    await seedDesign({ name: "Banner", category: "Banners" });
+
+    const res = await request(app).get(
+      "/api/products?categories=Invitations,Wedding%20Cards&withCollectionDesigns=true",
+    );
+    expect(res.body.items.map((item) => item.name).sort()).toEqual([
+      "Birthday Invite",
+      "Design In Suite",
+      "Odd Tag Design",
+    ]);
+  });
+
   it("lists the collections of several categories", async () => {
     const suite = await createCollection({ category: "Wedding Cards" });
     await seedDesign({ collectionId: suite.id, category: "Wedding Cards" });
