@@ -926,3 +926,4 @@
   font-size: 0.82rem;
   color: inherit;
 }
+.order-line-photo.is-loading { padding: 6px 10px; color: var(--muted, #6d655d); font-weight: 500; }

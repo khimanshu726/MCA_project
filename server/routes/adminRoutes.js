@@ -23,6 +23,7 @@ import {
   updateCollectionDesigns,
   updateAdminCollection,
 } from "../controllers/collectionController.js";
+import { getCustomerPhotoLink } from "../controllers/customerPhotoController.js";
 import { authenticateRequest } from "../middleware/authenticateRequest.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 import { uploadProductImages } from "../middleware/productImageUpload.js";
@@ -64,5 +65,8 @@ router.post("/collections/:id/designs", updateCollectionDesigns);
 router.post("/products/:id/make-collection", makeProductCollection);
 // Hide a product its collection now stands for; its old link opens the collection.
 router.post("/products/:id/retire-into-collection", retireProductIntoCollection);
+
+// A time-limited link to a customer's photo on an order.
+router.get("/customer-photos/:id/link", getCustomerPhotoLink);
 
 export default router;

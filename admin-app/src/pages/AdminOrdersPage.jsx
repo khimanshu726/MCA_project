@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_ASSET_BASE_URL, deleteOrder, fetchOrder, fetchOrders, updateOrder } from "../lib/adminApi";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import ShipmentPanel from "../components/ShipmentPanel";
+import OrderLinePhoto from "../components/OrderLinePhoto";
 import { rowKeyHandler, useStackedReveal } from "../lib/useStackedReveal";
 
 const statusOptions = [
@@ -391,24 +392,14 @@ function AdminOrdersPage() {
                 <div className="order-detail-block">
                   <strong>Line items</strong>
                   {selectedOrder.lineItems.map((item) => (
-                    <span key={item.productId} className={item.photo?.url ? "order-line-with-photo" : undefined}>
+                    <span key={item.productId} className={item.photo?.id ? "order-line-with-photo" : undefined}>
                       <span>
                         {item.productCode ? item.productCode + " · " : ""}
                         {item.name} x {item.quantity} ({formatMoney(item.totalPrice)})
                       </span>
-                      {/* The customer's photo for a personalised product: open
-                          the full file to print it. */}
-                      {item.photo?.url ? (
-                        <a
-                          className="order-line-photo"
-                          href={buildFileLink(item.photo.url)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <img src={buildFileLink(item.photo.url)} alt={`Customer photo for ${item.name}`} />
-                          <span>Open customer photo</span>
-                        </a>
-                      ) : null}
+                      {/* The customer's photo for a personalised product, opened
+                          through a time-limited link: open the full file to print it. */}
+                      {item.photo?.id ? <OrderLinePhoto photo={item.photo} productName={item.name} token={token} /> : null}
                     </span>
                   ))}
                 </div>

@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "node:path";
+import { mkdirSync } from "node:fs";
 import { unlink } from "node:fs/promises";
 import cloudinary from "./cloudinary.js";
 
@@ -131,7 +132,13 @@ export const createCloudinaryStorage = (getParams) => ({
             done(error);
             return;
           }
-          done(null, { path: result.secure_url, filename: result.public_id, size: result.bytes });
+          done(null, {
+            path: result.secure_url,
+            filename: result.public_id,
+            size: result.bytes,
+            format: result.format,
+            deliveryType: result.type,
+          });
         });
         file.stream.on("error", done);
         file.stream.pipe(upload);
@@ -153,8 +160,22 @@ export const createCloudinaryStorage = (getParams) => ({
   },
 });
 
-/** Builds a multer instance for one upload purpose. */
-export const createUploader = ({ folder, diskPrefix, allowedTypes, typeLabel, maxBytes = 10 * 1024 * 1024 }) => {
+/**
+ * Builds a multer instance for one upload purpose.
+ *
+ * `deliveryType: "private"` keeps the Cloudinary original off the public CDN
+ * (only a signed, expiring download link opens it), and `diskDir` puts local
+ * development files somewhere the /uploads static route doesn't serve.
+ */
+export const createUploader = ({
+  folder,
+  diskPrefix,
+  allowedTypes,
+  typeLabel,
+  maxBytes = 10 * 1024 * 1024,
+  deliveryType = "upload",
+  diskDir = "uploads",
+}) => {
   const fileFilter = buildFileFilter(allowedTypes, typeLabel);
 
   if (isCloudinaryConfigured()) {
@@ -164,6 +185,7 @@ export const createUploader = ({ folder, diskPrefix, allowedTypes, typeLabel, ma
         folder: `elite-empressions/${folder}`,
         format: cloudinaryFormatFor(file.mimetype),
         public_id: `${Date.now()}_${baseName}`,
+        ...(deliveryType !== "upload" ? { type: deliveryType } : {}),
       };
     });
 
@@ -171,7 +193,11 @@ export const createUploader = ({ folder, diskPrefix, allowedTypes, typeLabel, ma
   }
 
   const diskStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, path.resolve(process.cwd(), "uploads")),
+    destination: (_req, _file, cb) => {
+      const dir = path.resolve(process.cwd(), diskDir);
+      mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
     filename: (_req, file, cb) =>
       cb(null, `${diskPrefix}-${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.]/g, "_")}`),
   });

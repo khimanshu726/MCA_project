@@ -2,7 +2,9 @@ import { useSyncExternalStore } from "react";
 
 /**
  * The photo a customer uploaded for each personalised product, remembered in
- * this browser: productId → { id, url, name }. The card, product page, cart and
+ * this browser: productId → { id, name, thumb }. The uploaded photo itself is
+ * private on the server; `thumb` is a small preview made in this browser (a
+ * data URL) so the capsule, cart and checkout can show it. The card, product page, cart and
  * checkout all read it from here, and the order line sends the photo's id.
  *
  * Kept outside the cart on purpose, so the guest cart, the signed-in server
@@ -48,8 +50,8 @@ if (typeof window !== "undefined") {
 export const getPersonalPhoto = (productId) => photos[productId] || null;
 
 export const setPersonalPhoto = (productId, photo) => {
-  if (!productId || !photo?.id || !photo?.url) return;
-  photos = { ...photos, [productId]: { id: photo.id, url: photo.url, name: photo.name || "" } };
+  if (!productId || !photo?.id) return;
+  photos = { ...photos, [productId]: { id: photo.id, name: photo.name || "", thumb: photo.thumb || "" } };
   persist();
 };
 
